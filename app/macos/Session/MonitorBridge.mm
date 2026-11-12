@@ -166,7 +166,7 @@ struct EngineState {
     try {
         const auto draft=address_draft::normalize(mac_json::wide(street),mac_json::wide(house));
         if(!draft)return NO;
-        if(_state->receipt && _state->settings.draft!=*draft)_state->receipt->clear({epoch});
+        if(_state->receipt && _state->settings.draft!=*draft)_state->receipt->clear(schedule::UtcInstant{epoch});
         _state->settings.draft=*draft;
         _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
         return YES;
@@ -188,7 +188,7 @@ struct EngineState {
     const auto& result=*reply->_value;
     if(result.failure!=LookupFailure::none || !result.schedule || !result.schedule->received_at)return NO;
     mac_profile::Receipt receipt{_state->settings.draft,result.resolution,result.schedule->body,*result.schedule->received_at};
-    if(!_state->receipt->accept(receipt,_state->settings.draft,{epoch}))return NO;
+    if(!_state->receipt->accept(receipt,_state->settings.draft,schedule::UtcInstant{epoch}))return NO;
     if(!mac_profile::save_receipt(_state->profile,receipt))_state->storage_warning=true;
     return YES;
 }

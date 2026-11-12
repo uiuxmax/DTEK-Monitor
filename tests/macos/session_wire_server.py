@@ -73,6 +73,10 @@ def main():
                     payload=json.dumps(body,ensure_ascii=False).encode('utf-8')
                     tls.sendall(('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: '
                         +str(len(payload))+'\r\n\r\n').encode('ascii')+payload)
+                    # The raw transport requires an explicit TLS close_notify/EOF.
+                    tls.settimeout(0.5)
+                    try: tls.unwrap()
+                    except (ssl.SSLError,OSError): pass
             except Exception as error: errors.append(str(error)); connection.close()
     thread=threading.Thread(target=serve,daemon=True); thread.start()
     try:

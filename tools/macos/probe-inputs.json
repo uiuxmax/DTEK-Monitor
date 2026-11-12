@@ -8,7 +8,7 @@
     },
     {
       "path": ".github/workflows/macos-core.yml",
-      "sha256": "73c4ba154f046211ac9ad524161718db7d04e2374e46768c7e24a51e06e30296"
+      "sha256": "15c4f465e1231a6c0dec57d206ff657ba85a5b1e882bef58d10e32165afa20e9"
     },
     {
       "path": ".gitignore",
@@ -152,7 +152,7 @@
     },
     {
       "path": "app/macos/Session/MonitorBridge.mm",
-      "sha256": "29b6e54b4662188062b170dd13d9aef368d43ee20b33fc5d649236c17602f4cc"
+      "sha256": "77c921f5f94f85973ea1aa3157049ad0994eaf12f890a910e48a4b98726cb8b8"
     },
     {
       "path": "app/macos/Session/MonitorSession.swift",
@@ -276,7 +276,7 @@
     },
     {
       "path": "tests/macos/session_wire_server.py",
-      "sha256": "6db250859a1742e4db8f0247be017b128aaf9f42a5f8695fb70cb6df1ae9a6da"
+      "sha256": "1a738e478718a71260062a532de66a71b88329a6aa4b1cedc5e9304f15d763a8"
     },
     {
       "path": "tests/macos/timezone_tests.h",
@@ -292,7 +292,7 @@
     },
     {
       "path": "tools/macos/check-session.sh",
-      "sha256": "ffce28bfd0e29e3ddcdf3255b9d27066da2c237e00632a5704427875f3a36307"
+      "sha256": "e1657b4de9d5ff88c3dc8093ecce910e3587a58a51c98b55a13a91376891acdd"
     },
     {
       "path": "tools/macos/check-ui.sh",
