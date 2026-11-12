@@ -47,6 +47,11 @@ struct MacHTTPResult {
     var proxy = false
     var protocols: [String] = []
     var deliveredBytes = 0
+    // Network.framework evidence; false means proxy state has not been measured.
+    var proxyReported = false
+    var rawHeaderBytes = 0
+    var largestRead = 0
+    var diagnostic = ""
 }
 
 final class MacHTTPSAttempt: NSObject, URLSessionDataDelegate, @unchecked Sendable {

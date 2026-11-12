@@ -33,9 +33,9 @@ jobs:
       - name: Build and check isolated core probe
         shell: bash
         run: /bin/bash tools/macos/check.sh --public-probe
-      - name: Measure isolated native loopback HTTPS candidate
+      - name: Check isolated Network.framework HTTPS candidate
         shell: bash
-        run: /bin/bash tools/macos/check-https.sh --public-probe
+        run: /bin/bash tools/macos/check-https.sh --network-candidate --public-probe
       - name: Build and test isolated fixture UI
         shell: bash
         run: /bin/bash tools/macos/check-ui.sh --public-probe
@@ -59,7 +59,7 @@ jobs:
               esac
             fi
           done
-          for report in out/macos/https-check-*/build.log out/macos/https-check-*/production-build.log out/macos/https-check-*/resources.log out/macos/https-check-*/wire.log out/macos/https-check-*/results.json; do
+          for report in out/macos/https-check-*/build.log out/macos/https-check-*/production-build.log out/macos/https-check-*/resources.log out/macos/https-check-*/parser.log out/macos/https-check-*/wire.log out/macos/https-check-*/results.json; do
             if test -f "$report"; then
               printf '\nReport: %s\n' "$report"
               case "$report" in

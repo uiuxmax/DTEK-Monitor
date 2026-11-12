@@ -13,7 +13,8 @@ import time
 
 
 def main():
-    if sys.platform != 'darwin' or len(sys.argv) != 3:
+    network = len(sys.argv) == 4 and sys.argv[3] == '--network'
+    if sys.platform != 'darwin' or (len(sys.argv) != 3 and not network):
         raise SystemExit(64)
     probe = Path(sys.argv[1]).resolve(strict=True)
     profile = Path(sys.argv[2]).resolve(strict=True)
@@ -36,6 +37,33 @@ def main():
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.set_alpn_protocols(['http/1.1'])
     context.load_cert_chain(str(profile/'root.pem'), str(profile/'key.pem'))
+    expired_context = None
+    if network:
+        # Expired leaf has its own key, signed by the valid private test root.
+        subprocess.run(['/usr/bin/openssl', 'req', '-new', '-newkey', 'rsa:2048', '-nodes',
+                        '-config', str(config), '-keyout', str(profile/'expired.key'),
+                        '-out', str(profile/'expired.csr')], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        os.chmod(profile/'expired.key', 0o600)
+        (profile/'index.txt').write_text('', encoding='ascii')
+        (profile/'serial.txt').write_text('1000\n', encoding='ascii')
+        (profile/'certificates').mkdir()
+        ca = profile/'ca.conf'
+        ca.write_text('[ca]\ndefault_ca=local\n[local]\n'
+                      f'database={profile}/index.txt\nserial={profile}/serial.txt\n'
+                      f'new_certs_dir={profile}/certificates\ncertificate={profile}/root.pem\n'
+                      f'private_key={profile}/key.pem\ndefault_md=sha256\npolicy=policy\n'
+                      'default_days=1\nx509_extensions=leaf\n[policy]\ncommonName=supplied\n'
+                      '[leaf]\nsubjectAltName=DNS:localhost\nbasicConstraints=critical,CA:FALSE\n'
+                      'keyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n', encoding='utf-8')
+        subprocess.run(['/usr/bin/openssl', 'ca', '-batch', '-notext', '-config', str(ca),
+                        '-startdate', '20200101000000Z', '-enddate', '20200102000000Z',
+                        '-in', str(profile/'expired.csr'), '-out', str(profile/'expired.pem')],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        expired_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        expired_context.minimum_version = ssl.TLSVersion.TLSv1_2
+        expired_context.set_alpn_protocols(['http/1.1'])
+        expired_context.load_cert_chain(str(profile/'expired.pem'), str(profile/'expired.key'))
     body = b'{"synthetic":true}'
 
     def response(fields='', payload=body, framing=None, status='200 OK'):
@@ -66,6 +94,22 @@ def main():
         ('cancel', None, 'cancel', 'cancelled', 2000),
         ('pre-certificate-close', b'', 'raw-close', 'failure', 1000),
     ]
+    stalls = set()
+    if network:
+        cases = [(name, wire, mode, 'invalid_response' if name in
+                  ('duplicate-field', 'duplicate-type', 'huge-header', 'conflicting-framing') else expected, budget)
+                 for name, wire, mode, expected, budget in cases]
+        partial_header = b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nX-Synthetic: pending'
+        partial_body = response(payload=b'{', framing='Content-Length: 18\r\n')
+        cases += [
+            ('expired-certificate', response(), 'trusted', 'tls', 2000),
+            ('dns', None, 'dns', 'dns', 2000),
+            ('header-deadline', partial_header, 'trusted', 'timeout', 600),
+            ('body-deadline', partial_body, 'trusted', 'timeout', 600),
+            ('header-cancel', partial_header, 'cancel-header', 'cancelled', 2000),
+            ('body-cancel', partial_body, 'cancel-body', 'cancelled', 2000),
+        ]
+        stalls = {'header-deadline', 'body-deadline', 'header-cancel', 'body-cancel'}
     results = []
     for name, wire, mode, expected, budget in cases:
         listener = socket.socket()
@@ -81,7 +125,8 @@ def main():
                 if mode == 'raw-close':
                     connection.recv(4096)
                     return
-                with context.wrap_socket(connection, server_side=True) as secure:
+                selected_context = expired_context if name == 'expired-certificate' else context
+                with selected_context.wrap_socket(connection, server_side=True) as secure:
                     request = b''
                     while b'\r\n\r\n' not in request and len(request) <= 16_384:
                         data = secure.recv(4096)
@@ -91,19 +136,20 @@ def main():
                     stats['requests'].append(request.decode('ascii'))
                     if wire is not None:
                         secure.sendall(wire)
-                        # Explicit TLS close_notify makes close-delimited EOF well framed.
-                        secure.settimeout(0.5)
-                        try:
-                            secure.unwrap()
-                        except (ssl.SSLError, OSError):
-                            pass
-                    else:
+                    if wire is None or name in stalls:
                         while not stopping.is_set():
                             try:
                                 if not secure.recv(4096):
                                     break
                             except socket.timeout:
                                 continue
+                    else:
+                        # Explicit TLS close_notify makes close-delimited EOF well framed.
+                        secure.settimeout(0.5)
+                        try:
+                            secure.unwrap()
+                        except (ssl.SSLError, OSError):
+                            pass
             except (ssl.SSLError, OSError):
                 stats['tlsErrors'] += 1
             finally:
@@ -135,6 +181,19 @@ def main():
             assert not thread.is_alive() and not any(child.is_alive() for child in children)
         assert result['deliveries'] == 1 and result['token'] == 1
         assert result['address'] == 'synthetic-address' and not result['proxy']
+        if network:
+            assert stats['connections'] == (0 if name == 'dns' else 1), (name, stats)
+            assert result['rawHeaderBytes'] <= 65_536 and result['largestRead'] <= 4096, (name, result)
+            if stats['requests']:
+                assert result['proxyReported'] is True, (name, result)
+            if name == 'huge-header':
+                assert result['diagnostic'] == 'header_cap' and result['rawHeaderBytes'] == 65_536
+            if name == 'duplicate-field':
+                assert result['diagnostic'] == 'duplicate_field'
+            if name in ('header-cancel', 'body-cancel', 'header-deadline', 'body-deadline'):
+                assert result['deliveredBytes'] > 0
+            if name in ('body-cancel', 'body-deadline'):
+                assert result['status'] == 200 and result['deliveredBytes'] > result['rawHeaderBytes']
         if expected == 'failure':
             assert result['error'] != 'none', (name, result)
         elif expected != 'measure':
@@ -149,7 +208,7 @@ def main():
             assert 'accept-encoding: identity\r\n' in lowered
             assert 'cookie:' not in lowered and 'authorization:' not in lowered
             assert 'if-none-match:' not in lowered and 'if-modified-since:' not in lowered
-        if name in ('deadline', 'cancel'):
+        if name in ('deadline', 'cancel', 'header-deadline', 'body-deadline', 'header-cancel', 'body-cancel'):
             assert result['elapsedMs'] < 3000, (name, result)
         result.pop('bodyBase64')
         result['headers'] = {key: value if len(value) < 300 else f'<{len(value)} characters>'
@@ -158,11 +217,15 @@ def main():
         print(json.dumps(results[-1], ensure_ascii=False), flush=True)
     # Readiness is deliberately independent of whether the measurements executed correctly.
     report = dict(result='PASS', readiness='PARTIAL', cases=results,
-                  open=['URLSession raw header allocation cap is not exposed',
+                  critical_transport_checks='PASS' if network else 'FAIL',
+                  transport='Network.framework/raw HTTP1' if network else 'URLSession',
+                  open=['Four-resource orchestration, session stop and generations remain open'] if network else
+                       ['URLSession raw header allocation cap is not exposed',
                         'Raw duplicate-header multiplicity is not available in allHeaderFields',
                         'Review observed native retries/normalization before production integration',
                         'DNS, expired certificate, session generations and four-resource orchestration remain open'],
-                  scope='Owned loopback TLS only; no provider request or trust-store mutation')
+                  scope='Owned loopback TLS and fixed .invalid DNS test; no provider request or trust-store mutation'
+                        if network else 'Owned loopback TLS only; no provider request or trust-store mutation')
     (profile.parent/'results.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
 
 

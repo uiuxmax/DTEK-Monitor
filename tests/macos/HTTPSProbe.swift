@@ -5,10 +5,22 @@ import Darwin
 #error("Native protected Apple Silicon probe required")
 #endif
 
+#if DTEKMONITOR_NETWORK_CANDIDATE
+typealias ProbeAttempt = NetworkHTTPSAttempt
+#else
+typealias ProbeAttempt = MacHTTPSAttempt
+#endif
+
 @main enum HTTPSProbe {
     static func main() throws {
         let env = ProcessInfo.processInfo.environment
         guard TestEnvelope.isValid(env) else { exit(64) }
+        #if DTEKMONITOR_NETWORK_CANDIDATE
+        if CommandLine.arguments == [CommandLine.arguments[0], "--parser"] {
+            try runRawHTTPTests()
+            return
+        }
+        #endif
         if CommandLine.arguments == [CommandLine.arguments[0], "--resources"] {
             let base = "/api/blackout-service/public/shutdowns/addresses/v2/"
             let vectors: [(MacResource, String?)] = [
@@ -25,7 +37,7 @@ import Darwin
             ]
             guard vectors.allSatisfy({ $0.0.path == $0.1 }) else { exit(1) }
             let done = DispatchSemaphore(value: 0)
-            let protected = MacHTTPSAttempt(token: 1, address: "synthetic", resource: .planned) { result in
+            let protected = ProbeAttempt(token: 1, address: "synthetic", resource: .planned) { result in
                 guard result.error == "invalid_request", result.body.isEmpty, result.received == nil else { exit(1) }
                 done.signal()
             }
@@ -37,7 +49,7 @@ import Darwin
         guard CommandLine.arguments.count == 5,
               let port = UInt16(CommandLine.arguments[1]), port != 0,
               let milliseconds = Int(CommandLine.arguments[3]), (1...30_000).contains(milliseconds),
-              ["trusted", "untrusted", "mismatch", "cancel"].contains(CommandLine.arguments[2]),
+              ["trusted", "untrusted", "mismatch", "cancel", "dns", "cancel-header", "cancel-body"].contains(CommandLine.arguments[2]),
               let profile = env["DTEKMONITOR_TEST_PROFILE"] else { exit(64) }
         let certificate = URL(fileURLWithPath: profile).appendingPathComponent("root.der")
         guard certificate.resolvingSymlinksInPath().path == certificate.path else { exit(64) }
@@ -49,10 +61,21 @@ import Darwin
         var value: MacHTTPResult?
         var deliveries = 0
         let began = ContinuousClock.now
-        let attempt = MacHTTPSAttempt(testPort: port, mismatchHost: mode == "mismatch",
+        let completion: (MacHTTPResult) -> Void = { result in
+            lock.lock(); deliveries += 1; value = result; lock.unlock(); done.signal()
+        }
+        #if DTEKMONITOR_NETWORK_CANDIDATE
+        let attempt = ProbeAttempt(testPort: port, mismatchHost: mode == "mismatch",
+            anchorDER: mode == "untrusted" ? nil : data, totalMilliseconds: milliseconds,
+            testDNS: mode == "dns", cancelAt: mode == "cancel-header" ? "header" : mode == "cancel-body" ? "body" : "none",
+            completed: completion)
+        #else
+        guard ["trusted", "untrusted", "mismatch", "cancel"].contains(mode) else { exit(64) }
+        let attempt = ProbeAttempt(testPort: port, mismatchHost: mode == "mismatch",
             anchorDER: mode == "untrusted" ? nil : data, totalMilliseconds: milliseconds) { result in
-                lock.lock(); deliveries += 1; value = result; lock.unlock(); done.signal()
+                completion(result)
             }
+        #endif
         if mode == "cancel" { DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(100)) { attempt.cancel() } }
         guard done.wait(timeout: .now() + .seconds(35)) == .success else { exit(1) }
         // Force cancellation and callbacks after termination; there must be no second delivery.
@@ -67,6 +90,8 @@ import Darwin
             "bodyBase64": result.body.base64EncodedString(), "received": result.received != nil,
             "headers": result.headers, "transactions": result.transactions, "proxy": result.proxy,
             "protocols": result.protocols, "deliveredBytes": result.deliveredBytes,
+            "proxyReported": result.proxyReported, "rawHeaderBytes": result.rawHeaderBytes,
+            "largestRead": result.largestRead, "diagnostic": result.diagnostic,
             "deliveries": deliveries, "elapsedMs": Double(duration.seconds) * 1000 + Double(duration.attoseconds) / 1e15]
         let destination = URL(fileURLWithPath: CommandLine.arguments[4]).standardizedFileURL
         guard destination.path.hasPrefix(profile + "/"), destination.path == destination.resolvingSymlinksInPath().path,

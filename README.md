@@ -15,6 +15,7 @@ uploads no artifacts and uses no caches, private or larger runners.
 ```bash
 /bin/bash tools/macos/check.sh --public-probe
 /bin/bash tools/macos/check-ui.sh --public-probe
+/bin/bash tools/macos/check-https.sh --network-candidate --public-probe
 ```
 
 The executable requires the harness envelope and uses fixed synthetic fixtures.
@@ -26,6 +27,11 @@ There are no provider requests or Login Items. The fixed public provider URL in
 the parser identifies its source; no captured provider payload is included.
 An isolated M5 URLSession candidate is measured against a generated loopback TLS
 server with per-trust-object anchors, without changing system trust stores.
+Its recorded header/retry contract failures motivated a Network.framework
+candidate with bounded raw HTTP/1 parsing. The workflow now checks 213 parser
+cases and 27 controlled TLS/wire/DNS cases; native acceptance remains pending
+until their primary results are reviewed. Only a fixed reserved .invalid name
+is used for the DNS failure test, in addition to owned loopback TLS.
 Measurement execution and transport readiness are reported separately; PARTIAL
 readiness does not authorize live integration. The protected candidate rejects
 the provider endpoint. Its production branch is compiled but never executed.
