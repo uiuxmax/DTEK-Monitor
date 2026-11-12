@@ -1,5 +1,5 @@
 #!/bin/bash
-# M1 only: native arm64 console probe. No widget UI or provider requests.
+# M1/M3 native arm64 core/bridge/timezone probe. No widget UI or provider requests.
 set -euo pipefail
 if [[ "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
     echo 'Native Apple Silicon macOS is required; no files were written.' >&2
@@ -29,7 +29,7 @@ record checkout "$repo"
 record commit "$(/usr/bin/git -C "$repo" rev-parse HEAD)"
 record started_at_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 record architecture arm64
-record scope 'M1 synthetic core and bridge only; no macOS UI/live/timezone/login acceptance'
+record scope 'M1/M3 core, bridge and Foundation Kyiv projection; no live, physical UI, login or Gatekeeper acceptance'
 record input_scope "$scope"
 finish() {
     code=$?
@@ -59,6 +59,9 @@ inputs=(app/macos/CoreProbe/main.swift app/macos/CoreProbe/CoreProbeBridge.h
     app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme
     research/schedule-engine/schedule_engine.h research/schedule-engine/schedule_engine.cpp
     research/schedule-engine/test_support.h research/schedule-engine/portable_tests.cpp
+    research/schedule-engine/kyiv_time_projection.h research/schedule-engine/kyiv_timezone_cases.h
+    app/macos/Time/foundation_kyiv_timezone.h app/macos/Time/foundation_kyiv_timezone.mm
+    tests/macos/timezone_tests.h tests/macos/timezone_tests.mm
     tools/macos/doctor.sh tools/macos/check.sh "$verifier" "$manifest")
 (cd "$repo" && /usr/bin/shasum -a 256 "${inputs[@]}") > "$run/inputs.sha256"
 /usr/bin/xcodebuild -project "$repo/app/macos/DTEKMonitor.xcodeproj" \
@@ -93,11 +96,13 @@ expect_rejected symlink-profile "${valid_env[@]}" DTEKMONITOR_TEST_ROOT="$run/sy
     DTEKMONITOR_TEST_PROFILE="$run/symlink-case/profile" "$probe"
 "${valid_env[@]}" "$probe" > "$run/probe.log" 2>&1
 grep -q '^RESULT 67/67 portable checks; 3 bridge scenarios passed$' "$run/probe.log"
+grep -q '^RESULT 60/60 Kyiv timezone checks passed$' "$run/probe.log" || exit 1
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json"
 cmp "$run/verified-before.json" "$run/verified-after.json"
 record portable_checks 67
 record bridge_scenarios 3
+record timezone_checks 60
 record rejected_envelopes 6
 if [[ "$scope" == private-checkout ]]; then record preserved_files 504; fi
 record evidence 'build.log, probe.log, inputs.sha256, signature.log, toolchain.txt, linked-libraries.txt'

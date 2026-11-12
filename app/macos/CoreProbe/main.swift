@@ -51,3 +51,6 @@ for (offset, kind, text, seconds) in scenarios {
           (value["remainingSeconds"] as? NSNumber)?.int64Value == seconds else { exit(1) }
 }
 print("RESULT 67/67 portable checks; 3 bridge scenarios passed")
+let timezoneTotals = DMCoreProbeBridge.runTimezoneTests()
+guard timezoneTotals["checks"]?.intValue == 60, timezoneTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 60/60 Kyiv timezone checks passed")

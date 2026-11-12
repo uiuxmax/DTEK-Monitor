@@ -4,6 +4,7 @@ NS_ASSUME_NONNULL_BEGIN
 // M1 synthetic probe only. This is not a production provider/timezone adapter.
 @interface DMCoreProbeBridge : NSObject
 + (NSDictionary<NSString *, NSNumber *> *)runPortableTests;
++ (NSDictionary<NSString *, NSNumber *> *)runTimezoneTests;
 + (NSDictionary<NSString *, id> *)evaluateFixtureAtOffsetSeconds:(int64_t)offset
     NS_SWIFT_NAME(evaluateFixture(offsetSeconds:));
 @end
