@@ -11,6 +11,13 @@ private final class SnapshotBox: @unchecked Sendable {
     func load() -> MonitorSnapshot? { lock.lock(); defer { lock.unlock() }; return value }
 }
 
+private final class LookupBox: @unchecked Sendable {
+    private let lock=NSLock()
+    private var value: MonitorReplyBox?
+    func store(_ item: MonitorReplyBox) { lock.lock(); value=item; lock.unlock() }
+    func load() -> MonitorReplyBox? { lock.lock(); defer { lock.unlock() }; return value }
+}
+
 func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     guard TestEnvelope.isValid(ProcessInfo.processInfo.environment),
           let root = ProcessInfo.processInfo.environment["DTEKMONITOR_TEST_PROFILE"] else { return false }
@@ -72,6 +79,43 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     await stopped.applyAddress(street:"вул. Інша",house:"3"); await stopped.tick(wake:true)
     check("address change and wake cannot bypass session stop",stoppedBox.load()?.stopped == true && stoppedBox.load()?.requestCount == 1)
     await stopped.close()
+    func marker(_ leaf: String) async -> Bool {
+        for _ in 0..<300 {
+            if FileManager.default.fileExists(atPath:root+"/"+leaf) { return true }
+            try? await Task.sleep(for:.milliseconds(20))
+        }
+        return false
+    }
+    let abaBox=SnapshotBox()
+    let aba=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.loopback(port,anchor),publish:{ abaBox.store($0) })
+    try? Data("aba".utf8).write(to:URL(fileURLWithPath:root+"/phase"),options:.atomic)
+    await aba.start(); await aba.applyAddress(street:"вул. Тестова",house:"2-А")
+    check("cancel test reaches a real delayed planned-body read",await marker("delayed-ready"))
+    await aba.applyAddress(street:"вул. Тестова",house:"3")
+    await aba.applyAddress(street:"вул. Тестова",house:"2-А")
+    let latest=await wait(abaBox) { $0.forecast && !$0.loading }
+    check("A B A accepts only the latest confirmed selection",latest?.house == "2-А" && latest?.rows.count == 3)
+    check("superseded B stays bounded and cannot overwrite final A",(8...12).contains(latest?.requestCount ?? 0))
+    await aba.close()
+    let closingBox=SnapshotBox(), closingPath=profile()
+    let closing=MonitorSession(profile:closingPath,clock:MonitorClock(),mode:.loopback(port,anchor),publish:{ closingBox.store($0) })
+    try? Data("close".utf8).write(to:URL(fileURLWithPath:root+"/phase"),options:.atomic)
+    await closing.start(); await closing.applyAddress(street:"вул. Тестова",house:"2-А")
+    check("close test reaches a real delayed planned-body read",await marker("closing-ready"))
+    await closing.close()
+    try? await Task.sleep(for:.milliseconds(600))
+    check("late native completion cannot restore a closed graph",closingBox.load()?.forecast == false && closingBox.load()?.received == nil)
+    check("close before completion cannot persist a receipt",!FileManager.default.fileExists(atPath:closingPath+"/receipt.json"))
+    let worker=NativeLookupWorker(), first=LookupBox(), replacement=LookupBox()
+    let firstTicket=MacSessionPolicy.Ticket(generation:1,kind:.lookup,selection:"A")
+    let firstWork=worker.start(ticket:firstTicket,street:"вул. Тестова",house:"2-А",mode:.synthetic("403"),epoch:{ 0 },completed:{ first.store($0) })
+    for _ in 0..<300 { if first.load() != nil { break }; try? await Task.sleep(for:.milliseconds(20)) }
+    check("worker observes its first source-wide forbidden response",first.load()?.requests == 1 && first.load()?.value.metadata["failure"] as? String == "forbidden")
+    let nextTicket=MacSessionPolicy.Ticket(generation:2,kind:.lookup,selection:"B")
+    let nextWork=worker.start(ticket:nextTicket,street:"вул. Інша",house:"3",mode:.synthetic("tomorrow"),epoch:{ 0 },completed:{ replacement.store($0) })
+    for _ in 0..<300 { if replacement.load() != nil { break }; try? await Task.sleep(for:.milliseconds(20)) }
+    check("worker blocks replacement independently of actor notification",replacement.load()?.requests == 0 && replacement.load()?.value.metadata["failure"] as? String == "forbidden")
+    withExtendedLifetime(firstWork) {}; withExtendedLifetime(nextWork) {}
     print("RESULT \(checks-failures)/\(checks) connected session checks passed")
-    return checks == 16 && failures == 0
+    return checks == 24 && failures == 0
 }

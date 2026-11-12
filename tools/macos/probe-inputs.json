@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "d485bf2410e052424c1b344d595c5b7f980613b1",
+  "source_base_commit": "bc5d4296764d1b089945a19661bfd7be7942f047",
   "files": [
     {
       "path": ".gitattributes",
@@ -160,7 +160,7 @@
     },
     {
       "path": "app/macos/Session/NativeLookupWorker.swift",
-      "sha256": "825cab3c00f8a543a97021e9c85a4df0d8c4c539918544cee8291b85de42ed4c"
+      "sha256": "ecf5f481d79107cd795fffa0d83da1a0a06cd8581f4c9b0814f5d6ea3add7a12"
     },
     {
       "path": "app/macos/Time/foundation_kyiv_timezone.h",
@@ -236,7 +236,7 @@
     },
     {
       "path": "tests/macos/MonitorSessionTests.swift",
-      "sha256": "5c2bc70c845a29720c3307b35441b802047f5dfb0b1f24df1af01084cbb53c77"
+      "sha256": "d4693e243e43aa2295c284697257b2706c9f38c552b749f8418cda59d871bcdb"
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
@@ -276,7 +276,7 @@
     },
     {
       "path": "tests/macos/session_wire_server.py",
-      "sha256": "1a738e478718a71260062a532de66a71b88329a6aa4b1cedc5e9304f15d763a8"
+      "sha256": "6bf6d449c80b043ec8baebc2eee75425a212a20cbc58ef4c7509b75a08d83750"
     },
     {
       "path": "tests/macos/timezone_tests.h",
@@ -292,7 +292,7 @@
     },
     {
       "path": "tools/macos/check-session.sh",
-      "sha256": "e1657b4de9d5ff88c3dc8093ecce910e3587a58a51c98b55a13a91376891acdd"
+      "sha256": "367bd3e4b93aa20fae9b184f83d2321a3cae6b8a6e8b3b07183a6dd0e186fb05"
     },
     {
       "path": "tools/macos/check-ui.sh",

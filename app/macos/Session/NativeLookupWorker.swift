@@ -17,16 +17,18 @@ enum MonitorTransportMode: Sendable {
 // One shared serial queue owns synchronous lookup chains. Each active native
 // attempt has its own serial queue; cancellation never waits on the UI thread.
 final class NativeLookupWorker: @unchecked Sendable {
+    private let sourceGate=MonitorSourceGate()
     private let queue = DispatchQueue(label: "local.dtekmonitor.lookup-worker", autoreleaseFrequency: .workItem)
     func start(ticket: MacSessionPolicy.Ticket, street: String, house: String, mode: MonitorTransportMode,
                epoch: @escaping @Sendable () -> Int64, completed: @escaping @Sendable (MonitorReplyBox) -> Void) -> MonitorWork {
-        let work = MonitorWork(ticket: ticket, street: street, house: house, mode: mode, epoch: epoch)
+        let work = MonitorWork(ticket: ticket, street: street, house: house, mode: mode, epoch: epoch, sourceGate:sourceGate)
         queue.async { let reply = work.run(); completed(MonitorReplyBox(reply, requests: work.requests)) }
         return work
     }
 }
 
 final class MonitorWork: @unchecked Sendable {
+    private let sourceGate: MonitorSourceGate
     private let operation: DMLookupOperation
     private let ticket: MacSessionPolicy.Ticket
     private let street: String
@@ -41,8 +43,9 @@ final class MonitorWork: @unchecked Sendable {
     private var requestCount = 0
     var requests: Int { lock.lock(); defer { lock.unlock() }; return requestCount }
 
-    init(ticket: MacSessionPolicy.Ticket, street: String, house: String, mode: MonitorTransportMode,
-         epoch: @escaping @Sendable () -> Int64) {
+    fileprivate init(ticket: MacSessionPolicy.Ticket, street: String, house: String, mode: MonitorTransportMode,
+         epoch: @escaping @Sendable () -> Int64, sourceGate: MonitorSourceGate) {
+        self.sourceGate=sourceGate
         self.ticket = ticket; self.street = street; self.house = house; self.mode = mode; self.epoch = epoch
         operation = DMLookupOperation(street: street, house: house, token: ticket.generation, suggestions: ticket.kind == .suggestions)
     }
@@ -64,7 +67,15 @@ final class MonitorWork: @unchecked Sendable {
         ["token": request["token"] ?? NSNumber(value: ticket.generation), "error": error,
          "status": 0, "mime": "", "body": Data(), "received": NSNull()]
     }
-    private func get(_ request: [String: Any]) -> [String: Any] {
+    private func get(_ request: [String:Any]) -> [String:Any] {
+        if let status=sourceGate.status {
+            var value=failure(request,"http"); value["status"]=status; return value
+        }
+        let value=performGet(request)
+        sourceGate.observe((value["status"] as? NSNumber)?.intValue ?? 0)
+        return value
+    }
+    private func performGet(_ request: [String: Any]) -> [String: Any] {
         guard !isStopped else { return failure(request, "cancelled") }
         lock.lock(); requestCount += 1; lock.unlock()
         #if DTEKMONITOR_MAC_TEST_BUILD
@@ -104,10 +115,13 @@ final class MonitorWork: @unchecked Sendable {
         lock.lock(); attempt = native; began = origin; budget = timeout.intValue; let cancelNow = stopped; lock.unlock()
         if cancelNow { native.cancel() }
         defer { lock.lock(); attempt = nil; began = nil; lock.unlock() }
+        var cancellationSent=cancelNow
         while completed.wait(timeout: .now() + .milliseconds(100)) != .success {
-            if isStopped { native.cancel(); return failure(request,"cancelled") }
-            if origin.duration(to: .now) >= .milliseconds(timeout.intValue + 1000) {
-                native.cancel(); return failure(request,"timeout")
+            if isStopped && !cancellationSent { cancellationSent=true; native.cancel() }
+            // Network deadline remains unchanged; this grace only lets native
+            // cancellation/its bounded cleanup report finish before next work.
+            if origin.duration(to: .now) >= .milliseconds(timeout.intValue + 2000) {
+                native.cancel(); return failure(request,isStopped ? "cancelled" : "timeout")
             }
         }
         guard let result = box.load(), result.token == ticket.generation, result.address == ticket.selection else {
@@ -161,4 +175,16 @@ private final class WorkerResultBox: @unchecked Sendable {
     private var value: MacHTTPResult?
     func store(_ result: MacHTTPResult) { lock.lock(); value = result; lock.unlock() }
     func load() -> MacHTTPResult? { lock.lock(); defer { lock.unlock() }; return value }
+}
+
+// Shared by all work items of one session. Latch before notifying the actor,
+// so an already queued replacement cannot race a source-wide stop callback.
+fileprivate final class MonitorSourceGate: @unchecked Sendable {
+    private let lock=NSLock()
+    private var value: Int?
+    var status: Int? { lock.lock(); defer { lock.unlock() }; return value }
+    func observe(_ status: Int) {
+        guard status==403 || status==429 else { return }
+        lock.lock(); if value==nil { value=status }; lock.unlock()
+    }
 }

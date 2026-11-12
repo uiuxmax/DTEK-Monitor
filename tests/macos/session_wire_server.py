@@ -8,6 +8,7 @@ import ssl
 import subprocess
 import sys
 import threading
+import time
 from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
@@ -33,36 +34,43 @@ def main():
     context.minimum_version=ssl.TLSVersion.TLSv1_2; context.set_alpn_protocols(['http/1.1'])
     context.load_cert_chain(str(profile/'root.pem'),str(profile/'key.pem'))
     listener=socket.socket(); listener.bind(('127.0.0.1',0)); listener.listen(8); listener.settimeout(0.2)
-    port=listener.getsockname()[1]; requests=[]; errors=[]; stop=threading.Event()
+    port=listener.getsockname()[1]; requests=[]; errors=[]; stop=threading.Event(); planned_count=0; accepted=0
     def serve():
+        nonlocal planned_count, accepted
         while not stop.is_set():
             try: connection,_=listener.accept()
             except socket.timeout: continue
             except OSError: break
+            accepted += 1
             try:
                 connection.settimeout(3)
                 with context.wrap_socket(connection,server_side=True) as tls:
                     raw=b''
                     while b'\r\n\r\n' not in raw:
                         part=tls.recv(min(4096,8192-len(raw)))
-                        if not part: raise ValueError('Incomplete request')
+                        if not part: raise EOFError('Owned client cancelled before complete headers')
                         raw+=part
                         if len(raw)>=8192: raise ValueError('Request cap')
                     method,path,version=raw.split(b'\r\n',1)[0].decode('ascii').split(' ')
                     assert (method,version)==('GET','HTTP/1.1')
                     url=urlsplit(path); query=parse_qs(url.query); requests.append(path)
-                    assert len(requests)<=5
+                    assert len(requests)<=21
                     if url.path.endswith('/streets'):
                         assert query['regionId']==['25'] and query['dsoId']==['902']
                         body=[{'id':101,'value':'вул. Тестова'}]
                     elif url.path.endswith('/houses'):
-                        assert query['streetId']==['101'] and query['query']==['2-А']
-                        body=[{'id':201,'value':'2-А'}]
+                        assert query['streetId']==['101'] and query['query'][0] in ('2-А','3')
+                        body=[{'id':201,'value':query['query'][0]}]
                     elif url.path.endswith('/group'):
                         assert query['streetId']==['101'] and query['houseId']==['201']
                         body={'group':2,'subgroup':1}
                     else:
                         assert url.path=='/api/blackout-service/public/shutdowns/regions/25/dsos/902/planned-outages'
+                        phase=(profile/'phase').read_text() if (profile/'phase').exists() else ''
+                        planned_count += 1
+                        if (phase=='aba' and planned_count==2) or phase=='close':
+                            (profile/('delayed-ready' if phase=='aba' else 'closing-ready')).write_text('owned synthetic request\n',encoding='ascii')
+                            time.sleep(0.35)
                         now=datetime.now(ZoneInfo('Europe/Kyiv')).replace(microsecond=0)
                         today=now.replace(hour=0,minute=0,second=0)
                         slots=[{'start':0,'end':510,'type':'NotPlanned'},
@@ -77,6 +85,7 @@ def main():
                     tls.settimeout(0.5)
                     try: tls.unwrap()
                     except (ssl.SSLError,OSError): pass
+            except (ssl.SSLError,BrokenPipeError,ConnectionResetError,EOFError): connection.close()
             except Exception as error: errors.append(str(error)); connection.close()
     thread=threading.Thread(target=serve,daemon=True); thread.start()
     try:
@@ -84,14 +93,15 @@ def main():
             capture_output=True,text=True,encoding='utf-8',timeout=60)
     finally: stop.set(); listener.close(); thread.join(timeout=4)
     (profile.parent/'session.log').write_text(result.stdout+result.stderr,encoding='utf-8')
-    report=dict(result='PASS' if result.returncode==0 and len(requests)==5 and not errors else 'FAIL',
-        checks=16,accepted_connections=len(requests),resources=requests,server_errors=errors,
+    report=dict(result='PASS' if result.returncode==0 and 17<=len(requests)<=21 and not errors else 'FAIL',
+        checks=24,accepted_connections=accepted,http_gets=len(requests),resources=requests,server_errors=errors,
         scope='Real TLS loopback, synthetic provider JSON, no public provider, no Login Items')
     (profile.parent/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(result.stdout)
-    assert result.returncode==0 and 'RESULT 16/16 connected session checks passed' in result.stdout,result.stderr
-    assert len(requests)==5 and not errors,report
-    print('PASS: exactly four lookup GETs and one suggestion GET on owned TLS loopback')
+    assert result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout,result.stderr
+    assert 17<=len(requests)<=21 and not errors,report
+    assert len(requests)<=accepted<=len(requests)+1,report
+    print('PASS: 17..21 owned TLS GETs: lookup, suggestions, A B A and close cancellation on owned TLS loopback')
 
 
 if __name__=='__main__': main()

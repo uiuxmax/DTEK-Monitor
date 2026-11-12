@@ -32,7 +32,7 @@ for source in "${sources[@]}"; do production+=("$repo/$source"); done
 env DTEKMONITOR_TEST_ROOT="$run" DTEKMONITOR_TEST_PROFILE="$run/profile" \
     DTEKMONITOR_TEST_INSTANCE="$(basename "$run")" DTEKMONITOR_AUTOSTART_TEST_MODE=1 DTEKMONITOR_DISABLE_PROVIDER=1 \
     python3 -B "$repo/tests/macos/session_wire_server.py" "$probe" "$run/profile" > "$run/runner.log" 2>&1
-grep -q '^RESULT 16/16 connected session checks passed$' "$run/session.log"
+grep -q '^RESULT 24/24 connected session checks passed$' "$run/session.log"
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json"
 cmp "$run/verified-before.json" "$run/verified-after.json"
