@@ -1,0 +1,82 @@
+{
+  "format": "dtek-monitor-public-core-probe-v1",
+  "source_base_commit": "62e16c6861992bc5f69757a48a593ee75d7a438a",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "5b06f5f0b07b706eaecdd7f1fc6cd92976fa8bd83c70cb2b3e8e57046fcc5d6c"
+    },
+    {
+      "path": ".github/workflows/macos-core.yml",
+      "sha256": "cdac295cdc3fe7c049784fad10a17211a6a29f847fda74be8d4fc9f32aea7cea"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "2ea7cc8c7a35ab3be9bb7a61bab07ac55c44c062042a7b891024243bab6ce7e9"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "405752f74634e97dad52f57694206013d4ce94af1be8223c8987c574f99de12f"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "a2097d242dd348ea3f349777abd1e8191cc56968819083d5a79976b75268ad15"
+    },
+    {
+      "path": "README.md",
+      "sha256": "578488ec8d637ba73f31b0c05398a7d8ee8b07b3556c055ac3c7f605d279c483"
+    },
+    {
+      "path": "app/macos/CoreProbe/BridgingHeader.h",
+      "sha256": "e9298bbefb448360cafb9072f34a507efd06ead6548fc0f36ccb0c138393344d"
+    },
+    {
+      "path": "app/macos/CoreProbe/CoreProbeBridge.h",
+      "sha256": "62d0e44b55887a4cf15dc76b4ad77c7ed2e986b667606aba88894e465a249f6d"
+    },
+    {
+      "path": "app/macos/CoreProbe/CoreProbeBridge.mm",
+      "sha256": "07c355f8229ec32cff7ab3bc5c709b79c41fd6d9a4d29c006efe06e7152adbef"
+    },
+    {
+      "path": "app/macos/CoreProbe/main.swift",
+      "sha256": "613b27ec117dc63729a254bfc8c4090bae0bff831035b7e930fc25e5b9db744f"
+    },
+    {
+      "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",
+      "sha256": "65e21d09abc165962f15f5f7a228318246fdd3482c81765892cca9533122728c"
+    },
+    {
+      "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme",
+      "sha256": "854807066e5913cefa1d33980171c0bd46ace33f6ce6f92d8dda68447affef67"
+    },
+    {
+      "path": "research/schedule-engine/portable_tests.cpp",
+      "sha256": "319381cdc644b68aa02643f4e75b15b4f5b529a4f3ffe36fd71f8b61b91b905f"
+    },
+    {
+      "path": "research/schedule-engine/schedule_engine.cpp",
+      "sha256": "5851bf8fddab81f4d1c626689d35094df263ad06893a9fe07d32f98b3d223b7f"
+    },
+    {
+      "path": "research/schedule-engine/schedule_engine.h",
+      "sha256": "fce0aa0230931144e7036f023649642ca5411ef58a81196a21ae20e6ca03c557"
+    },
+    {
+      "path": "research/schedule-engine/test_support.h",
+      "sha256": "257a6effb44bbc0ff8909a6154548b7f66b885c85f98ddc3a682cba4c5922f93"
+    },
+    {
+      "path": "tools/macos/check.sh",
+      "sha256": "4833cb05c5572d6dce760a09fd03d6c6b4386b35326bca3af96951509f066c22"
+    },
+    {
+      "path": "tools/macos/doctor.sh",
+      "sha256": "9feb334b40f3843c2b55be98180764685df4ca4d92e4017110b191626aeff0e5"
+    },
+    {
+      "path": "tools/macos/verify-probe-inputs.swift",
+      "sha256": "d05be9b0939b585fe6728f0b5d8568c58ac58de5468ddc84d6a09996c41e56c6"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+name: Apple Silicon core probe
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-probe:
+    # Standard public-repository runner only: no private/larger-runner billing.
+    if: github.event.repository.private == false
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Check out synthetic source export
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require native Apple Silicon
+        shell: bash
+        run: |
+          test "$(uname -s)" = Darwin
+          test "$(uname -m)" = arm64
+      - name: Build and check isolated core probe
+        shell: bash
+        run: /bin/bash tools/macos/check.sh --public-probe
+      - name: Print bounded verification evidence
+        if: always()
+        shell: bash
+        run: |
+          for report in out/macos/doctor-*/environment.txt out/macos/check-*/*.json out/macos/check-*/probe.log out/macos/check-*/build.log; do
+            if test -f "$report"; then
+              printf '\nReport: %s\n' "$report"
+              tail -n 100 "$report"
+            fi
+          done
+          printf '%s\n' 'Apple Silicon core probe: see the build/check step and reports in this log.' >> "$GITHUB_STEP_SUMMARY"

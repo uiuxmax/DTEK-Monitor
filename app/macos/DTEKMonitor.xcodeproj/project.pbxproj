@@ -1,0 +1,132 @@
+// !$*UTF8*$!
+{
+    archiveVersion = 1;
+    classes = {};
+    objectVersion = 56;
+    objects = {
+        A00000000000000000000001 = {isa = PBXBuildFile; fileRef = B00000000000000000000001; };
+        A00000000000000000000002 = {isa = PBXBuildFile; fileRef = B00000000000000000000002; };
+        A00000000000000000000003 = {isa = PBXBuildFile; fileRef = B00000000000000000000003; };
+        A00000000000000000000004 = {isa = PBXBuildFile; fileRef = B00000000000000000000004; };
+        A00000000000000000000005 = {isa = PBXBuildFile; fileRef = B00000000000000000000005; };
+        B00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreProbe/main.swift; sourceTree = SOURCE_ROOT; };
+        B00000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreProbe/CoreProbeBridge.mm; sourceTree = SOURCE_ROOT; };
+        B00000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ../../research/schedule-engine/schedule_engine.cpp; sourceTree = SOURCE_ROOT; };
+        B00000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ../../research/schedule-engine/portable_tests.cpp; sourceTree = SOURCE_ROOT; };
+        B00000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+        B00000000000000000000006 = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTEKCoreProbe; sourceTree = BUILT_PRODUCTS_DIR; };
+        B00000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreProbe/CoreProbeBridge.h; sourceTree = SOURCE_ROOT; };
+        B00000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CoreProbe/BridgingHeader.h; sourceTree = SOURCE_ROOT; };
+        C00000000000000000000001 = {
+            isa = PBXGroup;
+            children = (B00000000000000000000001, B00000000000000000000002,
+                B00000000000000000000007, B00000000000000000000008,
+                B00000000000000000000003, B00000000000000000000004,
+                B00000000000000000000005, C00000000000000000000002);
+            sourceTree = "<group>";
+        };
+        C00000000000000000000002 = {isa = PBXGroup; children = (B00000000000000000000006); name = Products; sourceTree = "<group>"; };
+        D00000000000000000000001 = {
+            isa = PBXProject;
+            attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1500; };
+            buildConfigurationList = F00000000000000000000001;
+            compatibilityVersion = "Xcode 14.0";
+            developmentRegion = uk;
+            hasScannedForEncodings = 0;
+            knownRegions = (uk, en, Base);
+            mainGroup = C00000000000000000000001;
+            productRefGroup = C00000000000000000000002;
+            projectDirPath = "";
+            projectRoot = "";
+            targets = (D00000000000000000000002);
+        };
+        D00000000000000000000002 = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = F00000000000000000000002;
+            buildPhases = (E00000000000000000000001, E00000000000000000000002);
+            buildRules = ();
+            dependencies = ();
+            name = DTEKCoreProbe;
+            productName = DTEKCoreProbe;
+            productReference = B00000000000000000000006;
+            productType = "com.apple.product-type.tool";
+        };
+        E00000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001, A00000000000000000000002, A00000000000000000000003, A00000000000000000000004); runOnlyForDeploymentPostprocessing = 0; };
+        E00000000000000000000002 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000005); runOnlyForDeploymentPostprocessing = 0; };
+        F00000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000003, F00000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+        F00000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000005, F00000000000000000000006); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+        F00000000000000000000003 = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                ARCHS = arm64;
+                CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+                CLANG_CXX_LIBRARY = "libc++";
+                CLANG_ENABLE_MODULES = YES;
+                CLANG_ENABLE_OBJC_ARC = YES;
+                GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+                GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+                GCC_WARN_UNDECLARED_SELECTOR = YES;
+                MACOSX_DEPLOYMENT_TARGET = 13.0;
+                ONLY_ACTIVE_ARCH = NO;
+                SDKROOT = macosx;
+                SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+                SWIFT_VERSION = 5.0;
+            };
+            name = Debug;
+        };
+        F00000000000000000000004 = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                ARCHS = arm64;
+                CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+                CLANG_CXX_LIBRARY = "libc++";
+                CLANG_ENABLE_MODULES = YES;
+                CLANG_ENABLE_OBJC_ARC = YES;
+                GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+                GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+                GCC_WARN_UNDECLARED_SELECTOR = YES;
+                MACOSX_DEPLOYMENT_TARGET = 13.0;
+                ONLY_ACTIVE_ARCH = NO;
+                SDKROOT = macosx;
+                SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+                SWIFT_VERSION = 5.0;
+            };
+            name = Release;
+        };
+        F00000000000000000000005 = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CODE_SIGN_IDENTITY = "-";
+                CODE_SIGN_STYLE = Manual;
+                ENABLE_HARDENED_RUNTIME = YES;
+                GCC_PREPROCESSOR_DEFINITIONS = ("$(inherited)", "DTEKMONITOR_MAC_TEST_BUILD=1");
+                HEADER_SEARCH_PATHS = ("$(inherited)", "$(SRCROOT)/../../research/schedule-engine");
+                PRODUCT_BUNDLE_IDENTIFIER = local.dtekmonitor.CoreProbe;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SUPPORTED_PLATFORMS = macosx;
+                SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DTEKMONITOR_MAC_TEST_BUILD";
+                SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/CoreProbe/BridgingHeader.h";
+                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+            };
+            name = Debug;
+        };
+        F00000000000000000000006 = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CODE_SIGN_IDENTITY = "-";
+                CODE_SIGN_STYLE = Manual;
+                ENABLE_HARDENED_RUNTIME = YES;
+                GCC_PREPROCESSOR_DEFINITIONS = ("$(inherited)", "DTEKMONITOR_MAC_TEST_BUILD=1");
+                HEADER_SEARCH_PATHS = ("$(inherited)", "$(SRCROOT)/../../research/schedule-engine");
+                PRODUCT_BUNDLE_IDENTIFIER = local.dtekmonitor.CoreProbe;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SUPPORTED_PLATFORMS = macosx;
+                SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DTEKMONITOR_MAC_TEST_BUILD";
+                SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/CoreProbe/BridgingHeader.h";
+                SWIFT_OPTIMIZATION_LEVEL = "-O";
+            };
+            name = Release;
+        };
+    };
+    rootObject = D00000000000000000000001;
+}
