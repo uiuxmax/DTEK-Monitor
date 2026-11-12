@@ -126,7 +126,7 @@ import AppKit
                 }
             }
             TextField("Будинок",text:$house).focused($focus,equals:.house).accessibilityIdentifier("house")
-                .onSubmit(perform:apply)
+                .onSubmit { apply() }
             if !validation.isEmpty { Text(validation).font(.caption).foregroundStyle(.red).accessibilityIdentifier("address-error") }
             HStack {
                 Button("Застосувати",action:apply).accessibilityIdentifier("apply-address")
