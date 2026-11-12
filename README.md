@@ -24,6 +24,11 @@ Fixture UI address/theme changes are in memory. Data tests write only into
 the harness profile, including native atomic-save/error/permission/symlink checks.
 There are no provider requests or Login Items. The fixed public provider URL in
 the parser identifies its source; no captured provider payload is included.
+An isolated M5 URLSession candidate is measured against a generated loopback TLS
+server with per-trust-object anchors, without changing system trust stores.
+Measurement execution and transport readiness are reported separately; PARTIAL
+readiness does not authorize live integration. The protected candidate rejects
+the provider endpoint. Its production branch is compiled but never executed.
 The UI data is synthetic. The separately tested Foundation Kyiv adapter handles
 strict Gregorian dates and DST gap/fold cases; this is not acceptance of
 networking, physical displays, VoiceOver, sleep/wake, Gatekeeper or sign-in behavior.

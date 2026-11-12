@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "a0a00f883f5907af96b729a0020c766e4e256140",
+  "source_base_commit": "3838c194a40f455cdfc2cad6921d3f7983e4a6ba",
   "files": [
     {
       "path": ".gitattributes",
@@ -8,7 +8,7 @@
     },
     {
       "path": ".github/workflows/macos-core.yml",
-      "sha256": "7e26de88c6e78cbc566cd81b3d69c12637658b08b5b40de0c3538f3a0bd075dd"
+      "sha256": "11505280b63081faee0d1354433a7da307ac9deef59853b2a374c65601b5bab0"
     },
     {
       "path": ".gitignore",
@@ -24,7 +24,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "84be0f453fbc496fb7b94a562eaa06666f35e3f743f97a0b5db8a6c060a0c301"
+      "sha256": "e271ef110bd20c3d3fd449190b147e0b45babaecc295e12335b2279a66640ad2"
     },
     {
       "path": "app/address_draft.h",
@@ -111,6 +111,10 @@
       "sha256": "b6a4442a8334c523141359877a61d8e7417bddbd25797c24ff791367ec73d50e"
     },
     {
+      "path": "app/macos/Network/HTTPSAttempt.swift",
+      "sha256": "9ebb4736ba4221ee6b1650c0f1187bab3b584b6166dc5593d946c5c6ee0baf13"
+    },
+    {
       "path": "app/macos/Time/foundation_kyiv_timezone.h",
       "sha256": "258641a4ccbefa411158aadff2aa161281178d9980c2b5a8073e43c665e6bf0e"
     },
@@ -167,6 +171,10 @@
       "sha256": "1bf073563e77011f08338e25c47249f759c85a2efdd950df39ac8840e51b789f"
     },
     {
+      "path": "tests/macos/HTTPSProbe.swift",
+      "sha256": "0845f0f2434b55625a8471b3d9ad4fda90c72097095482d38078b906cf2f262e"
+    },
+    {
       "path": "tests/macos/Info.plist",
       "sha256": "b5bf35d045b73d55255991a704a577897e6913f91e6f70da41c0bb16b9c0634f"
     },
@@ -179,12 +187,20 @@
       "sha256": "41cb890c75f35563673792e056afff1178a65c7b96c9db89b507a1476a89f5b7"
     },
     {
+      "path": "tests/macos/https_wire_server.py",
+      "sha256": "20d85629ca23fed8d251f5393e3ee1b1ae6ae072b3519ecb5439658fb1b7d333"
+    },
+    {
       "path": "tests/macos/timezone_tests.h",
       "sha256": "f48b5fe4c9d576fed6027167d41fe50c7bc5b28890f448c22cc35fc02c69763f"
     },
     {
       "path": "tests/macos/timezone_tests.mm",
       "sha256": "6ad57cfe54ce6e29dc0180a09880d7a0ee226ee18e993ec3ad605eb8f9ee7bdb"
+    },
+    {
+      "path": "tools/macos/check-https.sh",
+      "sha256": "077ccef87f430a488bce772aa1271e2f57c9d772e752425986f6015acee157c2"
     },
     {
       "path": "tools/macos/check-ui.sh",

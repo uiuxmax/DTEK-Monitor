@@ -33,6 +33,9 @@ jobs:
       - name: Build and check isolated core probe
         shell: bash
         run: /bin/bash tools/macos/check.sh --public-probe
+      - name: Measure isolated native loopback HTTPS candidate
+        shell: bash
+        run: /bin/bash tools/macos/check-https.sh --public-probe
       - name: Build and test isolated fixture UI
         shell: bash
         run: /bin/bash tools/macos/check-ui.sh --public-probe
@@ -53,6 +56,15 @@ jobs:
               case "$report" in
                 */probe.log) awk '/^FAIL |Data probe failed/ { if (++count <= 40) print }' "$report" ;;
                 */tests.log) awk '/error:|Test Case .* failed/ { if (++count <= 40) print }' "$report" ;;
+              esac
+            fi
+          done
+          for report in out/macos/https-check-*/build.log out/macos/https-check-*/production-build.log out/macos/https-check-*/resources.log out/macos/https-check-*/wire.log out/macos/https-check-*/results.json; do
+            if test -f "$report"; then
+              printf '\nReport: %s\n' "$report"
+              case "$report" in
+                */results.json) cat "$report" ;;
+                *) tail -n 100 "$report" ;;
               esac
             fi
           done
