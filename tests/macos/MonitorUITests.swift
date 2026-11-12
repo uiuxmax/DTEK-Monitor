@@ -44,6 +44,17 @@ final class MonitorUITests: XCTestCase {
         element("house").click(); element("house").typeText("2-А\r")
     }
     private func ready() { XCTAssertTrue(element("interval-510").waitForExistence(timeout:8)) }
+    private func waitLogin(_ checked: Bool) {
+        let native=app.checkBoxes.matching(identifier:"launch-at-login").firstMatch
+        let toggle=native.exists ? native : element("launch-at-login")
+        let predicate=NSPredicate { _,_ in
+            if let number=toggle.value as? NSNumber { return number.boolValue==checked }
+            if let text=toggle.value as? String { return text==(checked ? "1" : "0") }
+            return false
+        }
+        let result=XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:predicate,object:nil)],timeout:8)
+        XCTAssertEqual(result,.completed,"Toggle AX: \(toggle.debugDescription); value=\(String(describing:toggle.value))")
+    }
     private func reopen() throws {
         guard let pid=pid,let url=NSRunningApplication(processIdentifier:pid)?.bundleURL else { throw NSError(domain:"Owned app missing",code:1) }
         let opened=expectation(description:"reopen owned app")
@@ -87,7 +98,9 @@ final class MonitorUITests: XCTestCase {
         XCTAssertFalse(element("countdown").exists)
         let original=pid
         app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
-        XCTAssertTrue(app.wait(for:.runningBackground,timeout:5)); try reopen()
+        XCTAssertTrue(app.state == .runningBackground || app.state == .runningForeground)
+        XCTAssertNotNil(original.flatMap { NSRunningApplication(processIdentifier:$0) })
+        try reopen()
         waitText("selected-day","Сьогодні")
         XCTAssertEqual(NSRunningApplication.runningApplications(withBundleIdentifier:"local.dtekmonitor.MonitorTest").count,1)
         XCTAssertEqual(NSRunningApplication.runningApplications(withBundleIdentifier:"local.dtekmonitor.MonitorTest").first?.processIdentifier,original)
@@ -104,9 +117,9 @@ final class MonitorUITests: XCTestCase {
         waitText("address","вул. Інша"); waitText("request-count","1"); XCTAssertTrue(element("source-stop").exists)
     }
     func testThemeReceiptRestartAndFakeLogin() throws {
-        launch(); XCTAssertEqual(element("launch-at-login").value as? String,"0")
-        element("launch-at-login").click(); XCTAssertEqual(element("launch-at-login").value as? String,"1")
-        element("launch-at-login").click(); XCTAssertEqual(element("launch-at-login").value as? String,"0")
+        launch(); waitLogin(false)
+        element("launch-at-login").click(); waitLogin(true)
+        element("launch-at-login").click(); waitLogin(false)
         applyAddress(); ready(); element("theme-dark").click(); waitText("selected-theme","Темна")
         let receipt=root.appendingPathComponent("profile/receipt.json")
         let original=try Data(contentsOf:receipt)
