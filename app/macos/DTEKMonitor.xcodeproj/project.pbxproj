@@ -84,6 +84,7 @@
                 SWIFT_OPTIMIZATION_LEVEL = "-Onone";
         PRODUCT_BUNDLE_IDENTIFIER = local.dtekmonitor.FixtureUITests;
                 GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_KEY_DTEKFixtureRoot = "$(DTEKMONITOR_UI_TEST_ROOT)";
                 ENABLE_TESTING_SEARCH_PATHS = YES;
                 TEST_TARGET_NAME = DTEKFixtureWidget;
                 LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", "@loader_path/../Frameworks");
@@ -96,6 +97,7 @@
                 SWIFT_OPTIMIZATION_LEVEL = "-Onone";
         PRODUCT_BUNDLE_IDENTIFIER = local.dtekmonitor.FixtureUITests;
                 GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_KEY_DTEKFixtureRoot = "$(DTEKMONITOR_UI_TEST_ROOT)";
                 ENABLE_TESTING_SEARCH_PATHS = YES;
                 TEST_TARGET_NAME = DTEKFixtureWidget;
                 LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", "@loader_path/../Frameworks");

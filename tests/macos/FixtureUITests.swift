@@ -85,7 +85,6 @@ final class FixtureModelTests: XCTestCase {
             XCTAssertFalse(TestEnvelope.isValid(invalid))
         }
         let alias = root.appendingPathComponent("alias")
-        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: root.appendingPathComponent("profile"))
         envelope["DTEKMONITOR_TEST_PROFILE"] = alias.path
         XCTAssertFalse(TestEnvelope.isValid(envelope))
     }
@@ -93,15 +92,20 @@ final class FixtureModelTests: XCTestCase {
 
 final class FixtureUITests: XCTestCase {
     private var app: XCUIApplication!
+    private var ownedProcess: pid_t?
+    private static var nextProfile = 0
 
     static func makeRunRoot() throws -> URL {
-        var repository = URL(fileURLWithPath: #filePath)
-        for _ in 0..<3 { repository.deleteLastPathComponent() }
-        guard FileManager.default.fileExists(atPath: repository.appendingPathComponent("app/macos/FixtureWidget/Info.plist").path)
-        else { throw NSError(domain: "Missing checkout", code: 1) }
-        let root = repository.appendingPathComponent("out/macos/ui-tests-" + UUID().uuidString)
+        guard let path = Bundle(for: FixtureUITests.self).object(forInfoDictionaryKey: "DTEKFixtureRoot") as? String,
+              path.hasPrefix("/"), !path.contains("$(") else {
+            throw NSError(domain: "Run tools/macos/check-ui.sh to prepare isolated profiles", code: 1)
+        }
+        defer { nextProfile += 1 }
+        let root = URL(fileURLWithPath: path).appendingPathComponent("case-\(nextProfile)")
             .standardizedFileURL.resolvingSymlinksInPath()
-        try FileManager.default.createDirectory(at: root.appendingPathComponent("profile"), withIntermediateDirectories: true)
+        guard FileManager.default.fileExists(atPath: root.appendingPathComponent("profile").path) else {
+            throw NSError(domain: "Harness profile is missing", code: 2)
+        }
         return root
     }
 
@@ -114,12 +118,20 @@ final class FixtureUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        guard NSRunningApplication.runningApplications(withBundleIdentifier: "local.dtekmonitor.FixtureWidget").isEmpty
+        else { throw XCTSkip("An existing fixture app is running; leave it untouched and close it manually before testing") }
         app = XCUIApplication(bundleIdentifier: "local.dtekmonitor.FixtureWidget")
         app.launchEnvironment = Self.envelope(try Self.makeRunRoot())
         app.launch()
+        ownedProcess = NSRunningApplication.runningApplications(withBundleIdentifier: "local.dtekmonitor.FixtureWidget")
+            .first?.processIdentifier
         XCTAssertTrue(element("test-banner").waitForExistence(timeout: 10))
     }
-    override func tearDownWithError() throws { app?.terminate() }
+    override func tearDownWithError() throws {
+        if let pid = ownedProcess, NSRunningApplication(processIdentifier: pid)?.bundleIdentifier == "local.dtekmonitor.FixtureWidget" {
+            app?.terminate()
+        }
+    }
     private func element(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }

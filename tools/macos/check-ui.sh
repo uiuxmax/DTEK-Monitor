@@ -24,6 +24,10 @@ fi
 /bin/bash "$repo/tools/macos/doctor.sh"
 run=$(mktemp -d "$repo/out/macos/ui-check-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX")
 mkdir "$run/profile"
+for case_id in 0 1 2 3 4 5 6 7; do
+    mkdir -p "$run/case-$case_id/profile"
+    ln -s "$run/case-$case_id/profile" "$run/case-$case_id/alias"
+done
 report="$run/results.plist"
 /usr/bin/plutil -create xml1 "$report"
 record() { /usr/bin/plutil -insert "$1" -string "$2" "$report"; }
@@ -51,7 +55,8 @@ inputs=(app/macos/FixtureWidget/FixtureWidgetApp.swift app/macos/FixtureWidget/F
 build=(/usr/bin/xcodebuild -project "$repo/app/macos/DTEKMonitor.xcodeproj"
     -scheme DTEKFixtureWidget -configuration Debug -derivedDataPath "$run/DerivedData"
     -destination 'platform=macOS,arch=arm64' -parallel-testing-enabled NO
-    ARCHS=arm64 ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES)
+    ARCHS=arm64 ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES
+    DTEKMONITOR_UI_TEST_ROOT="$run")
 "${build[@]}" build-for-testing > "$run/build.log" 2>&1
 app="$run/DerivedData/Build/Products/Debug/DTEKFixtureWidget.app"
 binary="$app/Contents/MacOS/DTEKFixtureWidget"

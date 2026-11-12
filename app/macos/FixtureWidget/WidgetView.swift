@@ -23,49 +23,49 @@ struct WidgetView: View {
                 .accessibilityIdentifier("test-banner")
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-            Text(model.status).font(.title3.bold()).accessibilityIdentifier("status")
-                .fixedSize(horizontal: false, vertical: true)
-            HStack {
-                Text(model.address).lineLimit(2).accessibilityIdentifier("address")
-                Spacer()
-                Button("Змінити") { editing = true; validation = ""; streetFocused = true }
-                    .accessibilityIdentifier("edit-address")
-            }
-            if editing { addressForm }
-            HStack {
-                Button("Сьогодні") { model.selectTomorrow(false) }
-                    .accessibilityIdentifier("today")
-                    .accessibilityValue(model.tomorrow ? "Не вибрано" : "Вибрано")
-                Button("Завтра") { model.selectTomorrow(true) }
-                    .disabled(!model.tomorrowAvailable).accessibilityIdentifier("tomorrow")
-                    .accessibilityValue(model.tomorrow ? "Вибрано" : "Не вибрано")
-                Spacer()
-                Text(model.tomorrow ? "Завтра" : "Сьогодні").font(.caption)
-                    .accessibilityIdentifier("selected-day")
-            }
-            if !model.tomorrowAvailable {
-                Text("Завтра ще не підтверджене").font(.caption).foregroundStyle(.secondary)
-            }
-                VStack(alignment: .leading, spacing: 8) {
-                    if model.hasSchedule {
-                        ForEach(model.intervals) { interval in
-                            HStack {
-                                Image(systemName: interval.hasPower ? "bolt.fill" : "bolt.slash.fill")
-                                    .foregroundStyle(interval.hasPower ? .green : .orange)
-                                    .accessibilityHidden(true)
-                                Text(interval.time).monospacedDigit()
-                                Spacer()
-                                Text(interval.status)
-                            }
-                            .padding(8).background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
-                            .accessibilityElement(children: .combine)
-                            .accessibilityIdentifier("interval-\(interval.startMinute)")
-                        }
-                    } else {
-                        Text(model.scenario == .emergency ? "Час відновлення невідомий" : "Підтвердженого графіка немає")
-                            .foregroundStyle(.secondary).padding(.vertical, 16)
+                    Text(model.status).font(.title3.bold()).accessibilityIdentifier("status")
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Text(model.address).lineLimit(2).accessibilityIdentifier("address")
+                        Spacer()
+                        Button("Змінити") { editing = true; validation = ""; streetFocused = true }
+                            .accessibilityIdentifier("edit-address")
                     }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                    if editing { addressForm }
+                    HStack {
+                        Button("Сьогодні") { model.selectTomorrow(false) }
+                            .accessibilityIdentifier("today")
+                            .accessibilityValue(model.tomorrow ? "Не вибрано" : "Вибрано")
+                        Button("Завтра") { model.selectTomorrow(true) }
+                            .disabled(!model.tomorrowAvailable).accessibilityIdentifier("tomorrow")
+                            .accessibilityValue(model.tomorrow ? "Вибрано" : "Не вибрано")
+                        Spacer()
+                        Text(model.tomorrow ? "Завтра" : "Сьогодні").font(.caption)
+                            .accessibilityIdentifier("selected-day")
+                    }
+                    if !model.tomorrowAvailable {
+                        Text("Завтра ще не підтверджене").font(.caption).foregroundStyle(.secondary)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        if model.hasSchedule {
+                            ForEach(model.intervals) { interval in
+                                HStack {
+                                    Image(systemName: interval.hasPower ? "bolt.fill" : "bolt.slash.fill")
+                                        .foregroundStyle(interval.hasPower ? .green : .orange)
+                                        .accessibilityHidden(true)
+                                    Text(interval.time).monospacedDigit()
+                                    Spacer()
+                                    Text(interval.status)
+                                }
+                                .padding(8).background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                                .accessibilityElement(children: .combine)
+                                .accessibilityIdentifier("interval-\(interval.startMinute)")
+                            }
+                        } else {
+                            Text(model.scenario == .emergency ? "Час відновлення невідомий" : "Підтвердженого графіка немає")
+                                .foregroundStyle(.secondary).padding(.vertical, 16)
+                        }
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.accessibilityIdentifier("schedule-scroll")
             Divider()

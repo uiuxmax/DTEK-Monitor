@@ -16,8 +16,8 @@ uploads no artifacts and uses no caches, private or larger runners.
 ```
 
 The executable requires the harness envelope and uses fixed synthetic fixtures.
-The app also requires this envelope. XCUITest creates unique profiles under
-out/macos, exercises the app serially, and terminates only its test instance.
+The app also requires this envelope. The harness prepares unique profiles under
+out/macos; XCUITest exercises the app serially and terminates only its test instance.
 All address/theme changes are in memory. No provider requests or Login Items.
 The test timezone is synthetic; this is not acceptance of a macOS Kyiv adapter,
 networking, physical displays, VoiceOver, sleep/wake, Gatekeeper or sign-in behavior.
