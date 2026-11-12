@@ -4,12 +4,12 @@ import AppKit
 struct WidgetView: View {
     @ObservedObject var model: FixtureModel
     let showSchedule: () -> Void
+    let closeWindow: () -> Void
     @State private var editing = false
     @State private var street = ""
     @State private var house = ""
     @State private var validation = ""
     @FocusState private var streetFocused: Bool
-    @StateObject private var windowHandle = WidgetWindowHandle()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -91,7 +91,7 @@ struct WidgetView: View {
         .padding(16).frame(width: 380)
         .frame(maxHeight: .infinity)
         .preferredColorScheme(model.theme.colorScheme)
-        .background(WidgetWindowReader(handle: windowHandle, onEscape: handleEscape)
+        .background(WidgetWindowReader(onEscape: handleEscape)
             .frame(width: 0, height: 0).accessibilityHidden(true))
         .onExitCommand(perform: handleEscape)
     }
@@ -122,28 +122,20 @@ struct WidgetView: View {
 
     private func handleEscape() {
         if editing { editing = false; validation = "" }
-        else { windowHandle.window?.close() }
+        else { closeWindow() }
     }
 }
 
-// MenuBarExtra's panel is not reliably NSApp.keyWindow after field focus ends.
-// Keep a weak reference to this view's own window; never close another scene.
-private final class WidgetWindowHandle: ObservableObject {
-    weak var window: NSWindow?
-}
-
+// Keep Escape scoped to the owning view's window after editor focus ends.
 private struct WidgetWindowReader: NSViewRepresentable {
-    let handle: WidgetWindowHandle
     let onEscape: () -> Void
     final class TrackingView: NSView {
-        weak var handle: WidgetWindowHandle?
         var onEscape: (() -> Void)?
         private var keyMonitor: Any?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             stopMonitoring()
-            handle?.window = window
             guard window != nil else { return }
             // SwiftUI can lose the Escape responder after the editor is removed.
             // This is an app-local event monitor, scoped to this exact window.
@@ -162,12 +154,10 @@ private struct WidgetWindowReader: NSViewRepresentable {
     }
     func makeNSView(context: Context) -> TrackingView {
         let view = TrackingView()
-        view.handle = handle
         view.onEscape = onEscape
         return view
     }
     func updateNSView(_ view: TrackingView, context: Context) {
-        handle.window = view.window
         view.onEscape = onEscape
     }
     static func dismantleNSView(_ view: TrackingView, coordinator: ()) {

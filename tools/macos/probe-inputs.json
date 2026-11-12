@@ -60,7 +60,7 @@
     },
     {
       "path": "app/macos/FixtureWidget/FixtureWidgetApp.swift",
-      "sha256": "ad45e2a94da6b87a15287b454bed473bdff268dffe7b80a90c9b7a1f2166e8bc"
+      "sha256": "9dfad9ac04cb81f7c7eb14c57b48395657d58ce08f4d5234165b5af213461ee1"
     },
     {
       "path": "app/macos/FixtureWidget/Info.plist",
@@ -72,7 +72,7 @@
     },
     {
       "path": "app/macos/FixtureWidget/WidgetView.swift",
-      "sha256": "9a3ab42aababe37dd7fb3e0ebc2156034f2efb75a82546ccc27a83f88e8e720c"
+      "sha256": "b6a4442a8334c523141359877a61d8e7417bddbd25797c24ff791367ec73d50e"
     },
     {
       "path": "research/schedule-engine/portable_tests.cpp",
