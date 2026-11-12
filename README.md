@@ -29,7 +29,7 @@ An isolated M5 URLSession candidate is measured against a generated loopback TLS
 server with per-trust-object anchors, without changing system trust stores.
 Its recorded header/retry contract failures motivated a Network.framework
 candidate with bounded raw HTTP/1 parsing. The workflow now checks 213 parser
-cases and 27 controlled TLS/wire/DNS cases; native acceptance remains pending
+cases and 31 controlled TLS/wire/DNS cases; native acceptance remains pending
 until their primary results are reviewed. Only a fixed reserved .invalid name
 is used for the DNS failure test, in addition to owned loopback TLS.
 Measurement execution and transport readiness are reported separately; PARTIAL

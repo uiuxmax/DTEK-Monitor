@@ -38,7 +38,7 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
     #if DTEKMONITOR_MAC_TEST_BUILD
     init(testPort: UInt16, mismatchHost: Bool, anchorDER: Data?, token: UInt64 = 1,
          bodyLimit: Int = 2_000_000, totalMilliseconds: Int = 2_000,
-         testDNS: Bool = false, cancelAt: String = "none",
+         testDNS: Bool = false, localhostDNS: Bool = false, cancelAt: String = "none",
          completed: @escaping (MacHTTPResult) -> Void) {
         budget = totalMilliseconds; limit = bodyLimit; parser = RawHTTPResponse(bodyCap: bodyLimit)
         result = MacHTTPResult(token: token, address: "synthetic-address"); self.completed = completed
@@ -49,7 +49,7 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
         guard ["none", "header", "body"].contains(cancelAt) else { owner.async { self.finish("invalid_request") }; return }
         testCancelAt = cancelAt
         let name = testDNS ? "dtekmonitor-probe.invalid" : mismatchHost ? "127.0.0.1" : "localhost"
-        let endpointHost = testDNS ? name : "127.0.0.1"
+        let endpointHost = testDNS ? name : localhostDNS ? "localhost" : "127.0.0.1"
         start(endpoint: .hostPort(host: .init(endpointHost), port: NWEndpoint.Port(rawValue: testPort)!),
               serverName: name, authority: "\(name):\(testPort)", path: "/probe", anchorDER: anchorDER)
     }
@@ -125,7 +125,8 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
                         guard let self = self, self.active() else { return }
                         guard let report = report else { self.finish("invalid_response"); return }
                         self.result.proxyReported = true; self.result.proxy = report.usedProxy
-                        guard !report.usedProxy else { self.finish("invalid_response"); return }
+                        self.result.previousAttempts = Int(report.previousAttemptCount)
+                        guard !report.usedProxy, report.previousAttemptCount == 0 else { self.finish("invalid_response"); return }
                         self.send(authority: authority, path: path)
                     }
                 case .waiting(let error), .failed(let error): self.finish(self.kind(error))

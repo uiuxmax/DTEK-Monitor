@@ -49,7 +49,7 @@ typealias ProbeAttempt = MacHTTPSAttempt
         guard CommandLine.arguments.count == 5,
               let port = UInt16(CommandLine.arguments[1]), port != 0,
               let milliseconds = Int(CommandLine.arguments[3]), (1...30_000).contains(milliseconds),
-              ["trusted", "untrusted", "mismatch", "cancel", "dns", "cancel-header", "cancel-body"].contains(CommandLine.arguments[2]),
+              ["trusted", "untrusted", "mismatch", "cancel", "dns", "hostname-dns", "cancel-header", "cancel-body"].contains(CommandLine.arguments[2]),
               let profile = env["DTEKMONITOR_TEST_PROFILE"] else { exit(64) }
         let certificate = URL(fileURLWithPath: profile).appendingPathComponent("root.der")
         guard certificate.resolvingSymlinksInPath().path == certificate.path else { exit(64) }
@@ -67,7 +67,8 @@ typealias ProbeAttempt = MacHTTPSAttempt
         #if DTEKMONITOR_NETWORK_CANDIDATE
         let attempt = ProbeAttempt(testPort: port, mismatchHost: mode == "mismatch",
             anchorDER: mode == "untrusted" ? nil : data, totalMilliseconds: milliseconds,
-            testDNS: mode == "dns", cancelAt: mode == "cancel-header" ? "header" : mode == "cancel-body" ? "body" : "none",
+            testDNS: mode == "dns", localhostDNS: mode == "hostname-dns",
+            cancelAt: mode == "cancel-header" ? "header" : mode == "cancel-body" ? "body" : "none",
             completed: completion)
         #else
         guard ["trusted", "untrusted", "mismatch", "cancel"].contains(mode) else { exit(64) }
@@ -92,6 +93,7 @@ typealias ProbeAttempt = MacHTTPSAttempt
             "protocols": result.protocols, "deliveredBytes": result.deliveredBytes,
             "proxyReported": result.proxyReported, "rawHeaderBytes": result.rawHeaderBytes,
             "largestRead": result.largestRead, "diagnostic": result.diagnostic,
+            "previousAttempts": result.previousAttempts,
             "deliveries": deliveries, "elapsedMs": Double(duration.seconds) * 1000 + Double(duration.attoseconds) / 1e15]
         let destination = URL(fileURLWithPath: CommandLine.arguments[4]).standardizedFileURL
         guard destination.path.hasPrefix(profile + "/"), destination.path == destination.resolvingSymlinksInPath().path,

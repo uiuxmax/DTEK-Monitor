@@ -52,6 +52,7 @@ struct MacHTTPResult {
     var rawHeaderBytes = 0
     var largestRead = 0
     var diagnostic = ""
+    var previousAttempts = -1 // Unknown until an establishment report exists.
 }
 
 final class MacHTTPSAttempt: NSObject, URLSessionDataDelegate, @unchecked Sendable {

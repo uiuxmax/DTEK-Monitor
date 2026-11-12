@@ -108,6 +108,10 @@ def main():
             ('body-deadline', partial_body, 'trusted', 'timeout', 600),
             ('header-cancel', partial_header, 'cancel-header', 'cancelled', 2000),
             ('body-cancel', partial_body, 'cancel-body', 'cancelled', 2000),
+            ('localhost-dns', response(), 'hostname-dns', 'none', 2000),
+            ('localhost-duplicate', response('X-Synthetic: first\r\nX-Synthetic: second\r\n'), 'hostname-dns', 'invalid_response', 2000),
+            ('localhost-framing', response(framing='Content-Length: 18\r\nTransfer-Encoding: chunked\r\n'), 'hostname-dns', 'invalid_response', 2000),
+            ('localhost-pre-certificate-close', b'', 'raw-close-dns', 'failure', 2000),
         ]
         stalls = {'header-deadline', 'body-deadline', 'header-cancel', 'body-cancel'}
     results = []
@@ -122,7 +126,7 @@ def main():
         def serve(connection):
             connection.settimeout(3)
             try:
-                if mode == 'raw-close':
+                if mode in ('raw-close', 'raw-close-dns'):
                     connection.recv(4096)
                     return
                 selected_context = expired_context if name == 'expired-certificate' else context
@@ -170,7 +174,8 @@ def main():
         thread = threading.Thread(target=accept); thread.start()
         destination = profile/(name+'.json')
         try:
-            run = subprocess.run([str(probe), str(port), 'trusted' if mode == 'raw-close' else mode,
+            probe_mode = 'trusted' if mode == 'raw-close' else 'hostname-dns' if mode == 'raw-close-dns' else mode
+            run = subprocess.run([str(probe), str(port), probe_mode,
                                   str(budget), str(destination)], capture_output=True, text=True, timeout=38)
             assert run.returncode == 0, (name, run.returncode, run.stderr)
             result = json.loads(destination.read_bytes())
@@ -185,7 +190,7 @@ def main():
             assert stats['connections'] == (0 if name == 'dns' else 1), (name, stats)
             assert result['rawHeaderBytes'] <= 65_536 and result['largestRead'] <= 4096, (name, result)
             if stats['requests']:
-                assert result['proxyReported'] is True, (name, result)
+                assert result['proxyReported'] is True and result['previousAttempts'] == 0, (name, result)
             if name == 'huge-header':
                 assert result['diagnostic'] == 'header_cap' and result['rawHeaderBytes'] == 65_536
             if name == 'duplicate-field':
@@ -219,7 +224,8 @@ def main():
     report = dict(result='PASS', readiness='PARTIAL', cases=results,
                   critical_transport_checks='PASS' if network else 'FAIL',
                   transport='Network.framework/raw HTTP1' if network else 'URLSession',
-                  open=['Four-resource orchestration, session stop and generations remain open'] if network else
+                  open=['Four-resource orchestration, session stop and generations remain open',
+                        'Accepted TCP counts and reported attempts do not establish every OS-level failed-IP attempt policy'] if network else
                        ['URLSession raw header allocation cap is not exposed',
                         'Raw duplicate-header multiplicity is not available in allHeaderFields',
                         'Review observed native retries/normalization before production integration',
