@@ -5,9 +5,22 @@
 #include "test_support.h"
 #include "../../../tests/macos/timezone_tests.h"
 #include "../../../tests/macos/data_tests.h"
+#include "../../../tests/macos/lookup_tests.h"
 #include <exception>
 
 @implementation DMCoreProbeBridge
++ (NSDictionary<NSString *, NSNumber *> *)runLookupTests {
+    const auto checks = engine_tests::checks;
+    const auto failures = engine_tests::failures;
+    try {
+        const bool available = engine_tests::run_foundation_lookup_tests();
+        return @{ @"checks": @(engine_tests::checks - checks),
+                  @"failures": @(engine_tests::failures - failures + (available ? 0 : 1)) };
+    } catch (const std::exception& error) {
+        std::cerr << "Lookup probe failed: " << error.what() << '\n';
+        return @{ @"checks": @(engine_tests::checks - checks), @"failures": @1 };
+    } catch (...) { return @{ @"checks": @(engine_tests::checks - checks), @"failures": @1 }; }
+}
 + (NSDictionary<NSString *, NSNumber *> *)runDataRestartTests {
     const auto before_checks = engine_tests::checks;
     const auto before_failures = engine_tests::failures;

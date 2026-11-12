@@ -54,7 +54,7 @@ jobs:
               printf '\nReport: %s\n' "$report"
               tail -n 100 "$report"
               case "$report" in
-                */probe.log) awk '/^FAIL |Data probe failed/ { if (++count <= 40) print }' "$report" ;;
+                */probe.log) awk '/^FAIL |Data probe failed|Lookup probe failed/ { if (++count <= 40) print }' "$report" ;;
                 */tests.log) awk '/error:|Test Case .* failed/ { if (++count <= 40) print }' "$report" ;;
               esac
             fi

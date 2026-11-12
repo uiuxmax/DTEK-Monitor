@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "a018cd6ac8954052dafff3ac4192ef7d79d8bb34",
+  "source_base_commit": "381d26754be555ecadf30ed3de1d9612b19847e9",
   "files": [
     {
       "path": ".gitattributes",
@@ -8,7 +8,7 @@
     },
     {
       "path": ".github/workflows/macos-core.yml",
-      "sha256": "7b174c3867eee93e0abab44ca9947a00f2accadac740dd1c60c125bee4588b66"
+      "sha256": "2493bd6edb24ba9d4a1fff037028d7a11a2efda28cfbea643724129fae9ec9d9"
     },
     {
       "path": ".gitignore",
@@ -24,11 +24,23 @@
     },
     {
       "path": "README.md",
-      "sha256": "c7a19fc128cd9036e8949934efc88bfeaeaefdba5e2c2ca58c410d3a8ee8156e"
+      "sha256": "97e34e1e9549f7db06dc19ad1a5d1934bad15ce57185b6adeb0d562c388b6846"
     },
     {
       "path": "app/address_draft.h",
       "sha256": "dda9a0a29542ce80f9cb4ff7e398f792fda7f4cca48d979e24f4021b1e08da21"
+    },
+    {
+      "path": "app/https_contract.h",
+      "sha256": "5d7dce149b329cc4fc02333211396f364697c0d3715662232aae085380becb82"
+    },
+    {
+      "path": "app/https_resource.cpp",
+      "sha256": "35f46891032a45ddb29c34af81a0c211ae5a8ff95239de781d5e0d10a4f81702"
+    },
+    {
+      "path": "app/https_resource.h",
+      "sha256": "108fc8ae57d109a8be4e20c6f8eeba5bc11b05fb7b6702cf4e1d60b444f4f795"
     },
     {
       "path": "app/log_retention.h",
@@ -40,19 +52,19 @@
     },
     {
       "path": "app/macos/CoreProbe/CoreProbeBridge.h",
-      "sha256": "392d32d3e027eab1aeb8f4c997da1dc0952241a650ff2e6054bf8ae16d6ec4c0"
+      "sha256": "1af4c143ae2176cdc4cf95cdb1b95317fa3392a4c33027c9b92dd06056944314"
     },
     {
       "path": "app/macos/CoreProbe/CoreProbeBridge.mm",
-      "sha256": "3a2ba98eec32cf11aca12bee887671179fd66a923b9a30533412d3436b8b231f"
+      "sha256": "b56578c84edfeffb044ba41f18b24eabf841a5235d202f513769622ece7936ad"
     },
     {
       "path": "app/macos/CoreProbe/main.swift",
-      "sha256": "40314036a8a074ff9f8e8fc2910e89743a4c4d4be14761c9e96ccee7b57ac442"
+      "sha256": "5e3d53bfba68bfca59429d3503ca0309d881ff893f13189329debea39cd41c71"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",
-      "sha256": "6620bc79c04bb9ef80bbb3a4b4aaedda28bd64cddcbda6b51fea4d6de775a6e7"
+      "sha256": "957967cb96d43a8a3973ad2af2e868cbec7870c7972fcd4ddc1c0a446c20ffbd"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme",
@@ -89,6 +101,10 @@
     {
       "path": "app/macos/Data/foundation_yasno_adapter.mm",
       "sha256": "d655f3da6cf6144e1b45a4d0af26b58fab3b2b36027cab79fe3ac5e8de41767a"
+    },
+    {
+      "path": "app/macos/Data/foundation_yasno_lookup.mm",
+      "sha256": "bb4edaa63e65c758437a535480bb9a35bf38959694ed0825bca19eddab71692e"
     },
     {
       "path": "app/macos/FixtureWidget/FixtureModel.swift",
@@ -141,6 +157,10 @@
     {
       "path": "app/schedule_flow.h",
       "sha256": "453267fef1fc3430925e6e89b0fae8138e6c5cc47f8ec384ded6e7eec006882f"
+    },
+    {
+      "path": "app/yasno_lookup.h",
+      "sha256": "c0df2976319638299a91cd7de03cf418cf45b1fb26e9146fbaf6c18e37a39609"
     },
     {
       "path": "app/yasno_schedule_adapter.h",
@@ -203,6 +223,14 @@
       "sha256": "c23f4235eb0b22ac24608d7a9623427717f477db617d59ae8d2cb5c2e550f7f4"
     },
     {
+      "path": "tests/macos/lookup_tests.h",
+      "sha256": "363510706e732f5a679cd5ea995cfb2047546f812f08765c9c5aef3a6b9c6ed8"
+    },
+    {
+      "path": "tests/macos/lookup_tests.mm",
+      "sha256": "69baed2edc833a56a6dba43e40b38964df6d90f3390be7b5a2b5b9e68636fbf7"
+    },
+    {
       "path": "tests/macos/timezone_tests.h",
       "sha256": "f48b5fe4c9d576fed6027167d41fe50c7bc5b28890f448c22cc35fc02c69763f"
     },
@@ -220,7 +248,7 @@
     },
     {
       "path": "tools/macos/check.sh",
-      "sha256": "25568f105b23214c7981a85be23114f901537790bdf9355ce5f929a81df5de16"
+      "sha256": "a1dac5ed36c1f97caa0ba17e3a064d152fd93cc9e45ea4f3e27b1eca6174023e"
     },
     {
       "path": "tools/macos/doctor.sh",
@@ -228,7 +256,7 @@
     },
     {
       "path": "tools/macos/verify-probe-inputs.swift",
-      "sha256": "a87c5e60eb704811dcc5b83c6beb7d00b553c2f951867096b23c79cfc978a9c3"
+      "sha256": "7f7398161c59314fb16b4bfa4e3271fe8bf8868ac373566597968af87abd2542"
     },
     {
       "path": "tools/macos/verify-ui-result.swift",

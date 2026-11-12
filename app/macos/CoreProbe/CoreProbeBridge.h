@@ -7,6 +7,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSDictionary<NSString *, NSNumber *> *)runTimezoneTests;
 + (NSDictionary<NSString *, NSNumber *> *)runDataTests;
 + (NSDictionary<NSString *, NSNumber *> *)runDataRestartTests;
++ (NSDictionary<NSString *, NSNumber *> *)runLookupTests;
 + (NSDictionary<NSString *, id> *)evaluateFixtureAtOffsetSeconds:(int64_t)offset
     NS_SWIFT_NAME(evaluateFixture(offsetSeconds:));
 @end

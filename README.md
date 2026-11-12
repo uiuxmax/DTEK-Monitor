@@ -8,6 +8,7 @@ GitHub Actions uses the standard public-repository `macos-15` Apple Silicon
 runner. It compiles Swift → Objective-C++ → C++20 and checks 67 portable cases,
 60 Foundation Europe/Kyiv cases (including the same 42 vectors as Windows),
 111 Foundation JSON/profile/receipt cases plus a five-case fresh-process restore,
+83 Foundation four-stage lookup checks (request context, budgets and cancellation),
 three bridge scenarios, six invalid test envelopes, source hashes, arm64 and
 the local ad-hoc signature. Evidence is printed in the Actions log. The workflow
 uploads no artifacts and uses no caches, private or larger runners.

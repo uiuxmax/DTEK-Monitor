@@ -64,3 +64,6 @@ print("RESULT 60/60 Kyiv timezone checks passed")
 let dataTotals = DMCoreProbeBridge.runDataTests()
 guard dataTotals["checks"]?.intValue == 111, dataTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 111/111 Foundation data checks passed")
+let lookupTotals = DMCoreProbeBridge.runLookupTests()
+guard lookupTotals["checks"]?.intValue == 83, lookupTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 83/83 Foundation lookup checks passed")
