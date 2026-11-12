@@ -9,6 +9,7 @@ struct WidgetView: View {
     @State private var house = ""
     @State private var validation = ""
     @FocusState private var streetFocused: Bool
+    @StateObject private var windowHandle = WidgetWindowHandle()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -90,9 +91,10 @@ struct WidgetView: View {
         .padding(16).frame(width: 380)
         .frame(maxHeight: .infinity)
         .preferredColorScheme(model.theme.colorScheme)
+        .background(WidgetWindowReader(handle: windowHandle).frame(width: 0, height: 0).accessibilityHidden(true))
         .onExitCommand {
             if editing { editing = false; validation = "" }
-            else { NSApplication.shared.keyWindow?.close() }
+            else { windowHandle.window?.close() }
         }
     }
 
@@ -119,4 +121,27 @@ struct WidgetView: View {
         if let error = model.apply(street: street, house: house) { validation = error }
         else { editing = false; validation = "" }
     }
+}
+
+// MenuBarExtra's panel is not reliably NSApp.keyWindow after field focus ends.
+// Keep a weak reference to this view's own window; never close another scene.
+private final class WidgetWindowHandle: ObservableObject {
+    weak var window: NSWindow?
+}
+
+private struct WidgetWindowReader: NSViewRepresentable {
+    let handle: WidgetWindowHandle
+    final class TrackingView: NSView {
+        weak var handle: WidgetWindowHandle?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            handle?.window = window
+        }
+    }
+    func makeNSView(context: Context) -> TrackingView {
+        let view = TrackingView()
+        view.handle = handle
+        return view
+    }
+    func updateNSView(_ view: TrackingView, context: Context) { handle.window = view.window }
 }

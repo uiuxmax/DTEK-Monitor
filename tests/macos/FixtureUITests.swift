@@ -222,6 +222,9 @@ final class FixtureUITests: XCTestCase {
         XCTAssertFalse(element("street").exists)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertFalse(element("test-banner").isHittable)
+        item.click()
+        XCTAssertTrue(element("test-banner").waitForExistence(timeout: 5))
+        XCTAssertTrue(element("test-banner").isHittable)
     }
 
     func testReopenUsesSameProcessAndQuit() throws {

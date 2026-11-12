@@ -46,7 +46,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          for report in out/macos/doctor-*/environment.txt out/macos/check-*/*.json out/macos/check-*/probe.log out/macos/check-*/build.log out/macos/ui-check-*/*.json out/macos/ui-check-*/build.log out/macos/ui-check-*/tests.log; do
+          for report in out/macos/doctor-*/environment.txt out/macos/check-*/*.json out/macos/check-*/probe.log out/macos/check-*/build.log out/macos/ui-check-*/*.json out/macos/ui-check-*/summary*.log out/macos/ui-check-*/build.log out/macos/ui-check-*/tests.log; do
             if test -f "$report"; then
               printf '\nReport: %s\n' "$report"
               tail -n 100 "$report"
