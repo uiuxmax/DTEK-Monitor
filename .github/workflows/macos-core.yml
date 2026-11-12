@@ -44,6 +44,9 @@ jobs:
             if test -f "$report"; then
               printf '\nReport: %s\n' "$report"
               tail -n 100 "$report"
+              case "$report" in
+                */tests.log) awk '/error:|Test Case .* failed/ { if (++count <= 40) print }' "$report" ;;
+              esac
             fi
           done
           printf '%s\n' 'Apple Silicon core and synthetic UI: see the build/check steps and reports in this log. Physical display and VoiceOver acceptance remain manual.' >> "$GITHUB_STEP_SUMMARY"

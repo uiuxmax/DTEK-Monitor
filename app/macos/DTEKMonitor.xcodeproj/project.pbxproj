@@ -83,8 +83,7 @@
                 SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DTEKMONITOR_MAC_TEST_BUILD";
                 SWIFT_OPTIMIZATION_LEVEL = "-Onone";
         PRODUCT_BUNDLE_IDENTIFIER = local.dtekmonitor.FixtureUITests;
-                GENERATE_INFOPLIST_FILE = YES;
-                INFOPLIST_KEY_DTEKFixtureRoot = "$(DTEKMONITOR_UI_TEST_ROOT)";
+                INFOPLIST_FILE = ../../tests/macos/Info.plist;
                 ENABLE_TESTING_SEARCH_PATHS = YES;
                 TEST_TARGET_NAME = DTEKFixtureWidget;
                 LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", "@loader_path/../Frameworks");
@@ -96,8 +95,7 @@
                 SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DTEKMONITOR_MAC_TEST_BUILD";
                 SWIFT_OPTIMIZATION_LEVEL = "-Onone";
         PRODUCT_BUNDLE_IDENTIFIER = local.dtekmonitor.FixtureUITests;
-                GENERATE_INFOPLIST_FILE = YES;
-                INFOPLIST_KEY_DTEKFixtureRoot = "$(DTEKMONITOR_UI_TEST_ROOT)";
+                INFOPLIST_FILE = ../../tests/macos/Info.plist;
                 ENABLE_TESTING_SEARCH_PATHS = YES;
                 TEST_TARGET_NAME = DTEKFixtureWidget;
                 LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", "@loader_path/../Frameworks");

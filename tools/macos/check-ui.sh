@@ -47,7 +47,7 @@ trap finish EXIT
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-before.json"
 inputs=(app/macos/FixtureWidget/FixtureWidgetApp.swift app/macos/FixtureWidget/FixtureModel.swift
     app/macos/FixtureWidget/TestEnvelope.swift app/macos/FixtureWidget/WidgetView.swift
-    app/macos/FixtureWidget/Info.plist tests/macos/FixtureUITests.swift
+    app/macos/FixtureWidget/Info.plist tests/macos/FixtureUITests.swift tests/macos/Info.plist
     app/macos/DTEKMonitor.xcodeproj/project.pbxproj
     app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKFixtureWidget.xcscheme
     tools/macos/check-ui.sh tools/macos/doctor.sh "$verifier" "$manifest")
@@ -58,6 +58,9 @@ build=(/usr/bin/xcodebuild -project "$repo/app/macos/DTEKMonitor.xcodeproj"
     ARCHS=arm64 ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES
     DTEKMONITOR_UI_TEST_ROOT="$run")
 "${build[@]}" build-for-testing > "$run/build.log" 2>&1
+test_plist=$(find "$run/DerivedData/Build/Products" -path '*/DTEKFixtureUITests.xctest/Contents/Info.plist' -type f -print -quit)
+[[ -n "$test_plist" ]]
+[[ "$(/usr/bin/plutil -extract DTEKFixtureRoot raw "$test_plist")" == "$run" ]]
 app="$run/DerivedData/Build/Products/Debug/DTEKFixtureWidget.app"
 binary="$app/Contents/MacOS/DTEKFixtureWidget"
 [[ "$(/usr/bin/lipo -archs "$binary")" == arm64 ]]
@@ -79,8 +82,10 @@ valid_env=("${base_env[@]}" DTEKMONITOR_TEST_ROOT="$run" DTEKMONITOR_TEST_PROFIL
     DTEKMONITOR_DISABLE_PROVIDER=1)
 expect_rejected real-backend "${valid_env[@]}" DTEKMONITOR_AUTOSTART_TEST_MODE=0 "$binary"
 expect_rejected network-enabled "${valid_env[@]}" DTEKMONITOR_DISABLE_PROVIDER=0 "$binary"
-"${build[@]}" test-without-building -resultBundlePath "$run/Tests.xcresult" > "$run/tests.log" 2>&1
+test_code=0
+"${build[@]}" test-without-building -resultBundlePath "$run/Tests.xcresult" > "$run/tests.log" 2>&1 || test_code=$?
 /usr/bin/xcrun xcresulttool get test-results summary --path "$run/Tests.xcresult" > "$run/test-summary.json"
+[[ "$test_code" -eq 0 ]]
 [[ "$(/usr/bin/plutil -extract failedTests raw "$run/test-summary.json")" == 0 ]]
 [[ "$(/usr/bin/plutil -extract passedTests raw "$run/test-summary.json")" == 13 ]]
 [[ "$(/usr/bin/plutil -extract skippedTests raw "$run/test-summary.json")" == 0 ]]
