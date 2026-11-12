@@ -152,7 +152,7 @@
     },
     {
       "path": "app/macos/Session/MonitorBridge.mm",
-      "sha256": "fdb9312c4e9cc33a58d1b53ce9301c3a5a4d973184d106e90dca402c068ceb2b"
+      "sha256": "29b6e54b4662188062b170dd13d9aef368d43ee20b33fc5d649236c17602f4cc"
     },
     {
       "path": "app/macos/Session/MonitorSession.swift",

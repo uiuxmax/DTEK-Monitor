@@ -14,7 +14,7 @@ using namespace yasno;
 using namespace yasno::lookup;
 using namespace yasno::https;
 NSString *text(std::string_view value) { return mac_json::text(value); }
-NSString *wide(std::wstring_view value) { return mac_json::text(value); }
+NSString *wide_text(std::wstring_view value) { return mac_json::text(value); }
 NSString *resource_name(ResourceKind value) {
     switch(value) {
     case ResourceKind::streets:return @"streets"; case ResourceKind::houses:return @"houses";
@@ -152,13 +152,13 @@ struct EngineState {
     try {
         const auto draft=address_draft::normalize(mac_json::wide(street),mac_json::wide(house));
         if(!draft)return nil;
-        return @{@"street":wide(draft->street),@"house":wide(draft->house)};
+        return @{@"street":wide_text(draft->street),@"house":wide_text(draft->house)};
     } catch(...) { return nil; }
 }
 + (NSString *)streetQuery:(NSString *)input {
     try {
         if(!address_draft::normalize(mac_json::wide(input),L"1"))return nil;
-        return wide(mac_address_search::street(mac_json::utf8(input)).name);
+        return wide_text(mac_address_search::street(mac_json::utf8(input)).name);
     } catch(...) { return nil; }
 }
 - (BOOL)selectStreet:(NSString *)street house:(NSString *)house epoch:(int64_t)epoch {
@@ -204,7 +204,7 @@ struct EngineState {
         NSString *countdown=@"",*address=@"Адресу не задано";
         id received=NSNull.null;
         unsigned total=0;
-        if(!_state->settings.draft.street.empty())address=[NSString stringWithFormat:@"%@, %@",wide(_state->settings.draft.street),wide(_state->settings.draft.house)];
+        if(!_state->settings.draft.street.empty())address=[NSString stringWithFormat:@"%@, %@",wide_text(_state->settings.draft.street),wide_text(_state->settings.draft.house)];
         if(_state->receipt) {
             const auto& window=_state->receipt->view(now);
             tomorrow=window.viewing_tomorrow(); tomorrowAvailable=window.has_tomorrow();
@@ -228,7 +228,7 @@ struct EngineState {
                 address=[NSString stringWithFormat:@"%@, %@",text(saved->resolution.address.displayed_street),text(saved->resolution.address.displayed_house)];
             }
         }
-        return @{@"valid":@YES,@"street":wide(_state->settings.draft.street),@"house":wide(_state->settings.draft.house),
+        return @{@"valid":@YES,@"street":wide_text(_state->settings.draft.street),@"house":wide_text(_state->settings.draft.house),
             @"address":address,@"theme":text(_state->settings.theme),@"storageWarning":@(_state->storage_warning),
             @"kyivDay":dayKey,@"forecast":@(forecast),@"emergency":@(emergency),@"tomorrow":@(tomorrow),
             @"tomorrowAvailable":@(tomorrowAvailable),@"countdown":countdown,@"intervals":intervals,
