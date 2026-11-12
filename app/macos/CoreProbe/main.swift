@@ -36,6 +36,13 @@ func validEnvelope(_ environment: [String: String]) -> Bool {
 }
 
 guard validEnvelope(ProcessInfo.processInfo.environment) else { exit(64) }
+if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--restore-data-probe" {
+    let totals = DMCoreProbeBridge.runDataRestartTests()
+    guard totals["checks"]?.intValue == 5, totals["failures"]?.intValue == 0 else { exit(1) }
+    print("RESULT 5/5 Foundation restart checks passed")
+    exit(0)
+}
+guard CommandLine.arguments.count == 1 else { exit(64) }
 print("SYNTHETIC TEST DATA — NOT A REAL OUTAGE SCHEDULE")
 let totals = DMCoreProbeBridge.runPortableTests()
 guard totals["checks"]?.intValue == 67, totals["failures"]?.intValue == 0 else { exit(1) }
@@ -54,3 +61,6 @@ print("RESULT 67/67 portable checks; 3 bridge scenarios passed")
 let timezoneTotals = DMCoreProbeBridge.runTimezoneTests()
 guard timezoneTotals["checks"]?.intValue == 60, timezoneTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 60/60 Kyiv timezone checks passed")
+let dataTotals = DMCoreProbeBridge.runDataTests()
+guard dataTotals["checks"]?.intValue == 110, dataTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 110/110 Foundation data checks passed")

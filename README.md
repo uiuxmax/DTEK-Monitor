@@ -7,6 +7,7 @@ fixture states and a scrollable schedule window. It is not a live outage monitor
 GitHub Actions uses the standard public-repository `macos-15` Apple Silicon
 runner. It compiles Swift → Objective-C++ → C++20 and checks 67 portable cases,
 60 Foundation Europe/Kyiv cases (including the same 42 vectors as Windows),
+110 Foundation JSON/profile/receipt cases plus a five-case fresh-process restore,
 three bridge scenarios, six invalid test envelopes, source hashes, arm64 and
 the local ad-hoc signature. Evidence is printed in the Actions log. The workflow
 uploads no artifacts and uses no caches, private or larger runners.
@@ -19,7 +20,10 @@ uploads no artifacts and uses no caches, private or larger runners.
 The executable requires the harness envelope and uses fixed synthetic fixtures.
 The app also requires this envelope. The harness prepares unique profiles under
 out/macos; XCUITest exercises the app serially and terminates only its test instance.
-All address/theme changes are in memory. No provider requests or Login Items.
+Fixture UI address/theme changes are in memory. Data tests write only into
+the harness profile, including native atomic-save/error/permission/symlink checks.
+There are no provider requests or Login Items. The fixed public provider URL in
+the parser identifies its source; no captured provider payload is included.
 The UI data is synthetic. The separately tested Foundation Kyiv adapter handles
 strict Gregorian dates and DST gap/fold cases; this is not acceptance of
 networking, physical displays, VoiceOver, sleep/wake, Gatekeeper or sign-in behavior.

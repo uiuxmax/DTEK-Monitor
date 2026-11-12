@@ -62,6 +62,12 @@ inputs=(app/macos/CoreProbe/main.swift app/macos/CoreProbe/CoreProbeBridge.h
     research/schedule-engine/kyiv_time_projection.h research/schedule-engine/kyiv_timezone_cases.h
     app/macos/Time/foundation_kyiv_timezone.h app/macos/Time/foundation_kyiv_timezone.mm
     tests/macos/timezone_tests.h tests/macos/timezone_tests.mm
+    app/macos/Data/foundation_json.h app/macos/Data/foundation_json.mm
+    app/macos/Data/foundation_address_draft.mm app/macos/Data/foundation_address_search.h
+    app/macos/Data/foundation_yasno_adapter.mm app/macos/Data/foundation_profile.h app/macos/Data/foundation_profile.mm
+    tests/macos/data_tests.h tests/macos/data_tests.mm app/yasno_schedule_adapter.h app/address_draft.h
+    app/schedule_flow.h app/schedule_cache.h app/popup_schedule.h app/log_retention.h
+    research/schedule-engine/windows_kyiv_timezone.h
     tools/macos/doctor.sh tools/macos/check.sh "$verifier" "$manifest")
 (cd "$repo" && /usr/bin/shasum -a 256 "${inputs[@]}") > "$run/inputs.sha256"
 /usr/bin/xcodebuild -project "$repo/app/macos/DTEKMonitor.xcodeproj" \
@@ -97,12 +103,17 @@ expect_rejected symlink-profile "${valid_env[@]}" DTEKMONITOR_TEST_ROOT="$run/sy
 "${valid_env[@]}" "$probe" > "$run/probe.log" 2>&1
 grep -q '^RESULT 67/67 portable checks; 3 bridge scenarios passed$' "$run/probe.log"
 grep -q '^RESULT 60/60 Kyiv timezone checks passed$' "$run/probe.log" || exit 1
+grep -q '^RESULT 110/110 Foundation data checks passed$' "$run/probe.log" || exit 1
+"${valid_env[@]}" "$probe" --restore-data-probe > "$run/restart.log" 2>&1 || exit 1
+grep -q '^RESULT 5/5 Foundation restart checks passed$' "$run/restart.log" || exit 1
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json"
 cmp "$run/verified-before.json" "$run/verified-after.json"
 record portable_checks 67
 record bridge_scenarios 3
 record timezone_checks 60
+record data_checks 110
+record data_restart_checks 5
 record rejected_envelopes 6
 if [[ "$scope" == private-checkout ]]; then record preserved_files 504; fi
 record evidence 'build.log, probe.log, inputs.sha256, signature.log, toolchain.txt, linked-libraries.txt'

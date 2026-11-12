@@ -4,9 +4,35 @@
 #import "CoreProbeBridge.h"
 #include "test_support.h"
 #include "../../../tests/macos/timezone_tests.h"
+#include "../../../tests/macos/data_tests.h"
 #include <exception>
 
 @implementation DMCoreProbeBridge
++ (NSDictionary<NSString *, NSNumber *> *)runDataRestartTests {
+    const auto before_checks = engine_tests::checks;
+    const auto before_failures = engine_tests::failures;
+    try {
+        const bool available = engine_tests::run_foundation_restart_tests();
+        return @{ @"checks": @(engine_tests::checks - before_checks),
+                  @"failures": @(engine_tests::failures - before_failures + (available ? 0 : 1)) };
+    } catch (...) {
+        return @{ @"checks": @(engine_tests::checks - before_checks), @"failures": @1 };
+    }
+}
++ (NSDictionary<NSString *, NSNumber *> *)runDataTests {
+    const auto before_checks = engine_tests::checks;
+    const auto before_failures = engine_tests::failures;
+    try {
+        const bool available = engine_tests::run_foundation_data_tests();
+        return @{ @"checks": @(engine_tests::checks - before_checks),
+                  @"failures": @(engine_tests::failures - before_failures + (available ? 0 : 1)) };
+    } catch (const std::exception& error) {
+        std::cerr << "Data probe failed: " << error.what() << '\n';
+        return @{ @"checks": @(engine_tests::checks - before_checks), @"failures": @1 };
+    } catch (...) {
+        return @{ @"checks": @(engine_tests::checks - before_checks), @"failures": @1 };
+    }
+}
 + (NSDictionary<NSString *, NSNumber *> *)runTimezoneTests {
     const auto before_checks = engine_tests::checks;
     const auto before_failures = engine_tests::failures;

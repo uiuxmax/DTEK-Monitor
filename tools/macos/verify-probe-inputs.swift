@@ -15,7 +15,7 @@ else { fatalError("Private checkout must retain the 504-file preservation check"
 let manifestURL = root.appendingPathComponent("tools/macos/probe-inputs.json")
 let manifest = try JSONDecoder().decode(ProbeManifest.self, from: Data(contentsOf: manifestURL))
 guard manifest.format == "dtek-monitor-public-core-probe-v1", !manifest.files.isEmpty,
-      manifest.files.count <= 48 else { fatalError("Unexpected probe manifest") }
+      manifest.files.count <= 64 else { fatalError("Unexpected probe manifest") }
 var paths = Set<String>()
 for entry in manifest.files {
     guard paths.insert(entry.path).inserted, !entry.path.hasPrefix("/"),

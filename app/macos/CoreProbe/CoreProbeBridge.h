@@ -5,6 +5,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface DMCoreProbeBridge : NSObject
 + (NSDictionary<NSString *, NSNumber *> *)runPortableTests;
 + (NSDictionary<NSString *, NSNumber *> *)runTimezoneTests;
++ (NSDictionary<NSString *, NSNumber *> *)runDataTests;
++ (NSDictionary<NSString *, NSNumber *> *)runDataRestartTests;
 + (NSDictionary<NSString *, id> *)evaluateFixtureAtOffsetSeconds:(int64_t)offset
     NS_SWIFT_NAME(evaluateFixture(offsetSeconds:));
 @end
