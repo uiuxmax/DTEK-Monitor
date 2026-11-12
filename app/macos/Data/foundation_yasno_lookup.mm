@@ -47,7 +47,7 @@ LookupResult lookup_once(LookupRequest request, Get get, StopToken stop) {
             result.failure = LookupFailure::cancelled; return std::nullopt;
         }
         if (completion.status == 403 || completion.status == 429) { result.failure = LookupFailure::forbidden; return std::nullopt; }
-        if (completion.error != https::Error::none || completion.status != 200) {
+        if (completion.cleanup_failed || completion.error != https::Error::none || completion.status != 200) {
             result.failure = LookupFailure::transport; return std::nullopt;
         }
         if (completion.content_type.size() > 256 || !json_type(completion.content_type) || completion.body.empty() || completion.body.size() > 2'000'000 ||

@@ -76,8 +76,8 @@ let dataTotals = DMCoreProbeBridge.runDataTests()
 guard dataTotals["checks"]?.intValue == 111, dataTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 111/111 Foundation data checks passed")
 let lookupTotals = DMCoreProbeBridge.runLookupTests()
-guard lookupTotals["checks"]?.intValue == 88, lookupTotals["failures"]?.intValue == 0 else { exit(1) }
-print("RESULT 88/88 Foundation lookup checks passed")
+guard lookupTotals["checks"]?.intValue == 92, lookupTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 92/92 Foundation lookup checks passed")
 
 let monitorTotals = DMCoreProbeBridge.runMonitorBridgeTests()
 guard monitorTotals["checks"]?.intValue == 26, monitorTotals["failures"]?.intValue == 0 else { exit(1) }

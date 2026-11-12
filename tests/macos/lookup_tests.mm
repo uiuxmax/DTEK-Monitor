@@ -84,6 +84,13 @@ bool run_foundation_lookup_tests() {
             return reply(std::move(request),calls-1);
         });
         check_result("transport exception stops the chain",raised.failure==LookupFailure::transport && calls==stage+1 && !raised.schedule);
+        calls=0;
+        auto unclean=lookup_once(selected,[&](Request request,StopToken) {
+            auto value=reply(std::move(request),calls++);
+            if(calls==stage+1)value.cleanup_failed=true;
+            return value;
+        });
+        check_result("unconfirmed cleanup cannot advance the lookup",unclean.failure==LookupFailure::transport && calls==stage+1 && !unclean.schedule);
     }
     const std::array<std::function<void(Request&)>,8> corrupt{
         [](Request& r){++r.token;}, [](Request& r){r.resource.kind=static_cast<ResourceKind>(99);},

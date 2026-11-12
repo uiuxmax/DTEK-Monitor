@@ -73,7 +73,7 @@ cases = report['cases']
 assert len({case['case'] for case in cases}) == len(cases)
 if sys.argv[2] == 'network':
     assert report['transport'] == 'Network.framework/raw HTTP1'
-    assert report['critical_transport_checks'] == 'PASS' and len(cases) == 31
+    assert report['critical_transport_checks'] == 'PASS' and len(cases) == 36
 else:
     assert report['transport'] == 'URLSession' and len(cases) == 21
 print('PASS: primary wire report agrees with the requested candidate and exact case count')

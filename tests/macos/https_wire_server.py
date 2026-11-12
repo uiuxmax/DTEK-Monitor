@@ -112,12 +112,17 @@ def main():
             ('localhost-duplicate', response('X-Synthetic: first\r\nX-Synthetic: second\r\n'), 'hostname-dns', 'invalid_response', 2000),
             ('localhost-framing', response(framing='Content-Length: 18\r\nTransfer-Encoding: chunked\r\n'), 'hostname-dns', 'invalid_response', 2000),
             ('localhost-pre-certificate-close', b'', 'raw-close-dns', 'failure', 2000),
+            ('first-unreachable', response(), 'first-unreachable', 'connection', 2000),
+            ('dns-deadline', None, 'dns-deadline', 'timeout', 250),
+            ('dns-cancel', None, 'dns-cancel', 'cancelled', 2000),
+            ('real-dns-cancel', None, 'real-dns-cancel', 'cancelled', 2000),
+            ('ipv6', response(), 'ipv6', 'none', 2000),
         ]
         stalls = {'header-deadline', 'body-deadline', 'header-cancel', 'body-cancel'}
     results = []
     for name, wire, mode, expected, budget in cases:
-        listener = socket.socket()
-        listener.bind(('127.0.0.1', 0)); listener.listen(8); listener.settimeout(0.05)
+        listener = socket.socket(socket.AF_INET6 if mode == 'ipv6' else socket.AF_INET)
+        listener.bind(('::1' if mode == 'ipv6' else '127.0.0.1', 0)); listener.listen(8); listener.settimeout(0.05)
         port = listener.getsockname()[1]
         stopping = threading.Event()
         stats = {'connections': 0, 'requests': [], 'tlsErrors': 0}
@@ -187,7 +192,10 @@ def main():
         assert result['deliveries'] == 1 and result['token'] == 1
         assert result['address'] == 'synthetic-address' and not result['proxy']
         if network:
-            assert stats['connections'] == (0 if name == 'dns' else 1), (name, stats)
+            no_tcp={'dns','dns-deadline','dns-cancel','real-dns-cancel'}
+            assert stats['connections'] == (0 if name in no_tcp or name == 'first-unreachable' else 1), (name, stats)
+            assert result['connectionAttempts'] == (0 if name in no_tcp else 1), (name,result)
+            assert result['cleanupFailed'] is False, (name,result)
             assert result['rawHeaderBytes'] <= 65_536 and result['largestRead'] <= 4096, (name, result)
             if stats['requests']:
                 assert result['proxyReported'] is True and result['previousAttempts'] == 0, (name, result)

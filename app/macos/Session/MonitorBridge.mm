@@ -34,6 +34,7 @@ Error error_code(NSString *value) {
     const auto code=mac_json::utf8(value);
     if(code=="none")return Error::none; if(code=="dns")return Error::dns; if(code=="tls")return Error::tls;
     if(code=="http")return Error::http; if(code=="timeout")return Error::timeout; if(code=="cancelled")return Error::cancelled;
+    if(code=="connection")return Error::connection;
     if(code=="body_too_large")return Error::body_too_large; if(code=="incomplete_body")return Error::incomplete_body;
     if(code=="cleanup")return Error::cleanup; if(code=="invalid_request")return Error::invalid_request;
     return Error::invalid_response;
@@ -115,6 +116,7 @@ struct EngineState {
                             @"token":@(request.token),@"bodyLimit":@(request.limits.body_bytes),@"timeoutMS":@(request.limits.total_ms)};
                         NSDictionary *output=mac_json::object(transport(input));
                         value.request.token=token_number(output[@"token"]);
+                        if([output[@"cleanupFailed"] isKindOfClass:NSNumber.class])value.cleanup_failed=[output[@"cleanupFailed"] boolValue];
                         value.error=error_code(mac_json::string(output[@"error"]));
                         value.status=static_cast<int>(mac_json::integer(output[@"status"],599,true));
                         value.content_type=mac_json::utf8(mac_json::string(output[@"mime"]));

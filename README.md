@@ -8,7 +8,7 @@ GitHub Actions uses the standard public-repository `macos-15` Apple Silicon
 runner. It compiles Swift → Objective-C++ → C++20 and checks 67 portable cases,
 60 Foundation Europe/Kyiv cases (including the same 42 vectors as Windows),
 111 Foundation JSON/profile/receipt cases plus a five-case fresh-process restore,
-88 Foundation four-stage lookup checks (request context, budgets and cancellation),
+92 Foundation four-stage lookup checks (request context, budgets and cancellation),
 26 receipt bridge checks and connected worker/session loopback checks,
 three bridge scenarios, six invalid test envelopes, source hashes, arm64 and
 the local ad-hoc signature. Evidence is printed in the Actions log. The workflow
@@ -31,7 +31,7 @@ An isolated M5 URLSession candidate is measured against a generated loopback TLS
 server with per-trust-object anchors, without changing system trust stores.
 Its recorded header/retry contract failures motivated a Network.framework
 candidate with bounded raw HTTP/1 parsing. The workflow now checks 213 parser
-cases and 31 controlled TLS/wire/DNS cases; native acceptance remains pending
+cases and 36 controlled TLS/wire/DNS cases; native acceptance remains pending
 until their primary results are reviewed. Only a fixed reserved .invalid name
 is used for the DNS failure test, in addition to owned loopback TLS.
 An isolated 49-case lifecycle policy suite covers request generations, refresh,

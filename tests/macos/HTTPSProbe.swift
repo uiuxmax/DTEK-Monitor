@@ -53,7 +53,8 @@ typealias ProbeAttempt = MacHTTPSAttempt
         guard CommandLine.arguments.count == 5,
               let port = UInt16(CommandLine.arguments[1]), port != 0,
               let milliseconds = Int(CommandLine.arguments[3]), (1...30_000).contains(milliseconds),
-              ["trusted", "untrusted", "mismatch", "cancel", "dns", "hostname-dns", "cancel-header", "cancel-body"].contains(CommandLine.arguments[2]),
+              ["trusted", "untrusted", "mismatch", "cancel", "dns", "hostname-dns", "cancel-header", "cancel-body",
+               "first-unreachable", "dns-deadline", "dns-cancel", "real-dns-cancel", "ipv6"].contains(CommandLine.arguments[2]),
               let profile = env["DTEKMONITOR_TEST_PROFILE"] else { exit(64) }
         let certificate = URL(fileURLWithPath: profile).appendingPathComponent("root.der")
         guard certificate.resolvingSymlinksInPath().path == certificate.path else { exit(64) }
@@ -73,6 +74,7 @@ typealias ProbeAttempt = MacHTTPSAttempt
             anchorDER: mode == "untrusted" ? nil : data, totalMilliseconds: milliseconds,
             testDNS: mode == "dns", localhostDNS: mode == "hostname-dns",
             cancelAt: mode == "cancel-header" ? "header" : mode == "cancel-body" ? "body" : "none",
+            resolverMode: ["first-unreachable","dns-deadline","dns-cancel","real-dns-cancel","ipv6"].contains(mode) ? mode : "normal",
             completed: completion)
         #else
         guard ["trusted", "untrusted", "mismatch", "cancel"].contains(mode) else { exit(64) }
@@ -81,7 +83,7 @@ typealias ProbeAttempt = MacHTTPSAttempt
                 completion(result)
             }
         #endif
-        if mode == "cancel" { DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(100)) { attempt.cancel() } }
+        if mode == "cancel" || mode == "dns-cancel" { DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(100)) { attempt.cancel() } }
         guard done.wait(timeout: .now() + .seconds(35)) == .success else { exit(1) }
         // Force cancellation and callbacks after termination; there must be no second delivery.
         attempt.cancel(); attempt.revalidateDeadline()
@@ -98,6 +100,7 @@ typealias ProbeAttempt = MacHTTPSAttempt
             "proxyReported": result.proxyReported, "rawHeaderBytes": result.rawHeaderBytes,
             "largestRead": result.largestRead, "diagnostic": result.diagnostic,
             "previousAttempts": result.previousAttempts,
+            "connectionAttempts":result.connectionAttempts,"cleanupFailed":result.cleanupFailed,
             "deliveries": deliveries, "elapsedMs": Double(duration.seconds) * 1000 + Double(duration.attoseconds) / 1e15]
         let destination = URL(fileURLWithPath: CommandLine.arguments[4]).standardizedFileURL
         guard destination.path.hasPrefix(profile + "/"), destination.path == destination.resolvingSymlinksInPath().path,

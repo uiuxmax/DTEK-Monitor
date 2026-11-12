@@ -114,7 +114,7 @@ final class MonitorWork: @unchecked Sendable {
             return failure(request,"invalid_response")
         }
         var output: [String: Any] = ["token": NSNumber(value: result.token), "error": result.error,
-            "status": result.status, "mime": result.headers["content-type"] ?? "", "body": result.body, "received": NSNull()]
+            "status": result.status, "cleanupFailed":result.cleanupFailed, "mime": result.headers["content-type"] ?? "", "body": result.body, "received": NSNull()]
         if let received = result.received { output["received"] = NSNumber(value: floor(received.timeIntervalSince1970)) }
         return output
     }

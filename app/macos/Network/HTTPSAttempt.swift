@@ -52,6 +52,8 @@ struct MacHTTPResult {
     var rawHeaderBytes = 0
     var largestRead = 0
     var diagnostic = ""
+    var connectionAttempts = 0
+    var cleanupFailed = false
     var previousAttempts = -1 // Unknown until an establishment report exists.
 }
 
