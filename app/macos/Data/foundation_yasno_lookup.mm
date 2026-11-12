@@ -1,5 +1,5 @@
 // Foundation-backed four-stage lookup. The caller serializes this worker; no IO is started here.
-#include "../../yasno_lookup.h"
+#include "foundation_yasno_lookup.h"
 #include "foundation_address_search.h"
 #include <algorithm>
 #include <exception>
@@ -17,7 +17,8 @@ bool json_type(std::string_view value) {
 }
 } // namespace
 
-LookupResult lookup_once(LookupRequest request, Get get, std::stop_token stop) {
+LookupResult lookup_once(LookupRequest request, Get get, StopToken stop) {
+    @autoreleasepool {
     LookupResult result;
     result.selection = request.selection;
     if (!request.selection || !get) { result.failure = LookupFailure::schema; return result; }
@@ -88,5 +89,6 @@ LookupResult lookup_once(LookupRequest request, Get get, std::stop_token stop) {
     }
     result.schedule = fetch({https::ResourceKind::planned_outages}, result.resolution);
     return result;
+    }
 }
 } // namespace yasno::lookup

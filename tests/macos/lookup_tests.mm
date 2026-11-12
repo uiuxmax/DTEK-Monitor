@@ -2,10 +2,11 @@
 #error Isolated native Mac tests required.
 #endif
 #include "lookup_tests.h"
-#include "../../app/yasno_lookup.h"
+#include "../../app/macos/Data/foundation_yasno_lookup.h"
 #include "test_support.h"
 #include <array>
 #include <stdexcept>
+#include <thread>
 
 namespace engine_tests {
 namespace {
@@ -28,7 +29,7 @@ Completion reply(Request request, unsigned stage) {
 } // namespace
 bool run_foundation_lookup_tests() {
     std::vector<Request> requests;
-    auto success=lookup_once(selected,[&](Request request,std::stop_token) {
+    auto success=lookup_once(selected,[&](Request request,StopToken) {
         requests.push_back(request); return reply(std::move(request),static_cast<unsigned>(requests.size()-1));
     });
     check_result("lookup runs exactly four ordered resources", success.failure==LookupFailure::none && requests.size()==4 &&
@@ -54,7 +55,7 @@ bool run_foundation_lookup_tests() {
     for (unsigned stage=0; stage<4; ++stage) {
         for (const int status:{403,429}) {
             unsigned calls=0;
-            auto result=lookup_once(selected,[&](Request request,std::stop_token) {
+            auto result=lookup_once(selected,[&](Request request,StopToken) {
                 auto value=reply(std::move(request),calls++);
                 if (calls==stage+1) { value.status=status; value.error=Error::http; value.body.clear(); value.received_at.reset(); }
                 return value;
@@ -63,14 +64,14 @@ bool run_foundation_lookup_tests() {
                 !result.schedule && result.stages.back().status==status);
         }
         unsigned calls=0;
-        auto timeout=lookup_once(selected,[&](Request request,std::stop_token) {
+        auto timeout=lookup_once(selected,[&](Request request,StopToken) {
             auto value=reply(std::move(request),calls++);
             if (calls==stage+1) { value.error=Error::timeout; value.body.clear(); value.received_at.reset(); }
             return value;
         });
         check_result("timeout cannot advance to another stage",timeout.failure==LookupFailure::transport && calls==stage+1 && !timeout.schedule);
-        calls=0; std::stop_source stop;
-        auto cancelled=lookup_once(selected,[&](Request request,std::stop_token token) {
+        calls=0; StopSource stop;
+        auto cancelled=lookup_once(selected,[&](Request request,StopToken token) {
             auto value=reply(std::move(request),calls++);
             if (calls==stage+1) stop.request_stop();
             check_result("stage receives the caller cancellation state", token.stop_requested()==stop.stop_requested());
@@ -78,7 +79,7 @@ bool run_foundation_lookup_tests() {
         },stop.get_token());
         check_result("cancellation after a stage prevents the next GET",cancelled.failure==LookupFailure::cancelled && calls==stage+1 && !cancelled.schedule);
         calls=0;
-        auto raised=lookup_once(selected,[&](Request request,std::stop_token) {
+        auto raised=lookup_once(selected,[&](Request request,StopToken) {
             if (calls++==stage) throw std::runtime_error("synthetic transport failure");
             return reply(std::move(request),calls-1);
         });
@@ -92,23 +93,33 @@ bool run_foundation_lookup_tests() {
     };
     for (unsigned stage=0;stage<4;++stage) for (const auto& mutate:corrupt) {
         unsigned calls=0;
-        auto result=lookup_once(selected,[&](Request request,std::stop_token) {
+        auto result=lookup_once(selected,[&](Request request,StopToken) {
             auto value=reply(std::move(request),calls++); if(calls==stage+1) mutate(value.request); return value;
         });
         check_result("a reply cannot relabel resource/token/address/budget",result.failure==LookupFailure::address_mismatch && calls==stage+1 && !result.schedule);
     }
     unsigned calls=0;
-    auto none=lookup_once({0,"вул. Тестова","2-А"},[&](Request r,std::stop_token){++calls;return reply(std::move(r),0);});
+    auto none=lookup_once({0,"вул. Тестова","2-А"},[&](Request r,StopToken){++calls;return reply(std::move(r),0);});
     check_result("zero selection performs no IO",none.failure==LookupFailure::schema && calls==0);
     check_result("missing getter performs no IO",lookup_once(selected,{}).failure==LookupFailure::schema);
-    std::stop_source stopped; stopped.request_stop();
-    auto early=lookup_once(selected,[&](Request r,std::stop_token){++calls;return reply(std::move(r),0);},stopped.get_token());
+    StopSource stopped; stopped.request_stop();
+    auto early=lookup_once(selected,[&](Request r,StopToken){++calls;return reply(std::move(r),0);},stopped.get_token());
     check_result("pre-cancelled lookup performs no IO",early.failure==LookupFailure::cancelled && calls==0);
-    auto invalid=lookup_once({7,std::string{"\xc3\x28",2},"2"},[&](Request r,std::stop_token){++calls;return reply(std::move(r),0);});
+    auto invalid=lookup_once({7,std::string{"\xc3\x28",2},"2"},[&](Request r,StopToken){++calls;return reply(std::move(r),0);});
     check_result("invalid UTF-8 query fails before IO",invalid.failure==LookupFailure::schema && calls==0);
     calls=0;
-    auto suggestions=lookup_once({8,"ТЕС",{},true},[&](Request request,std::stop_token){++calls;return reply(std::move(request),0);});
+    auto suggestions=lookup_once({8,"ТЕС",{},true},[&](Request request,StopToken){++calls;return reply(std::move(request),0);});
     check_result("suggestions use one street resource only",suggestions.failure==LookupFailure::none && suggestions.suggestions.size()==1 && calls==1 && !suggestions.schedule);
+    check_result("default cancellation token remains unstopped",!StopToken{}.stop_requested());
+    StopSource owner; auto token=owner.get_token(); auto shared=owner;
+    check_result("copied source initially shares unstopped state",!owner.stop_requested() && !token.stop_requested() && !shared.stop_requested());
+    check_result("first cancellation transition propagates exactly once",owner.request_stop() && token.stop_requested() && shared.stop_requested() && !shared.request_stop());
+    StopToken surviving;
+    { StopSource temporary; surviving=temporary.get_token(); temporary.request_stop(); }
+    check_result("token safely outlives its source",surviving.stop_requested());
+    StopSource threaded; auto cross_thread=threaded.get_token();
+    std::thread cancellation([threaded]() mutable { threaded.request_stop(); }); cancellation.join();
+    check_result("cancellation is shared across actual threads",cross_thread.stop_requested());
     return true;
 }
 } // namespace engine_tests
