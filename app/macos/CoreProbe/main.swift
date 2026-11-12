@@ -53,6 +53,13 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--session-pr
     }
     dispatchMain()
 }
+if CommandLine.arguments == [CommandLine.arguments[0], "--login-probe"] {
+    Task.detached {
+        let passed=await runLoginItemTests()
+        exit(passed ? 0 : 1)
+    }
+    dispatchMain()
+}
 guard CommandLine.arguments.count == 1 else { exit(64) }
 print("SYNTHETIC TEST DATA — NOT A REAL OUTAGE SCHEDULE")
 let totals = DMCoreProbeBridge.runPortableTests()

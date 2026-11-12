@@ -48,7 +48,8 @@ struct MonitorSnapshot: Sendable {
 // The only mutable owner of profile/receipt/policy state. UI receives value
 // snapshots; the separate worker queue owns blocking lookup chains.
 actor MonitorSession {
-    private let engine: DMMonitorEngine
+    private let profile: String
+    private var engine: DMMonitorEngine?
     private let worker = NativeLookupWorker()
     private let clock: MonitorClock
     private let mode: MonitorTransportMode
@@ -64,11 +65,12 @@ actor MonitorSession {
 
     init(profile: String, clock: MonitorClock, mode: MonitorTransportMode,
          publish: @escaping @Sendable (MonitorSnapshot) -> Void) {
-        self.clock = clock; self.mode = mode; self.publish = publish
-        engine = DMMonitorEngine(profile: profile, epoch: clock.read()?.epoch ?? 0)
+        self.profile=profile; self.clock = clock; self.mode = mode; self.publish = publish
     }
     func start() {
-        guard !started else { return }
+        guard !started, !policy.closed else { return }
+        let engine=DMMonitorEngine(profile:profile,epoch:clock.read()?.epoch ?? 0)
+        self.engine=engine
         started = true
         let value = engine.snapshot(epoch: clock.read()?.epoch ?? 0)
         street = value["street"] as? String ?? ""; house = value["house"] as? String ?? ""
@@ -92,6 +94,7 @@ actor MonitorSession {
         active = (ticket,work)
     }
     func tick(wake: Bool = false) {
+        guard started, !policy.closed, let engine=engine else { return }
         guard let now = clock.read() else {
             execute(policy.tick(nowMS:-1,kyivDay:nil)); emit(epoch:0); return
         }
@@ -102,14 +105,19 @@ actor MonitorSession {
         emit(epoch:now.epoch)
     }
     func editStreet(_ input: String?) {
+        guard started, !policy.closed else { return }
         let now = clock.read()
         let query = input.flatMap { DMMonitorEngine.streetQuery($0) }
         cancel(policy.editStreetQuery(query,nowMS:now?.milliseconds ?? -1))
         suggestions = []
         emit(epoch:now?.epoch ?? 0)
     }
-    func cancelEditing() { cancel(policy.cancelEditing()); suggestions = []; emit(epoch:clock.read()?.epoch ?? 0) }
+    func cancelEditing() {
+        guard started, !policy.closed, policy.editing else { return }
+        cancel(policy.cancelEditing()); suggestions = []; emit(epoch:clock.read()?.epoch ?? 0)
+    }
     func applyAddress(street: String, house: String) {
+        guard started, !policy.closed, let engine=engine else { return }
         let now = clock.read()?.epoch ?? 0
         guard let normalized = DMMonitorEngine.normalize(street:street,house:house),
               let normalizedStreet = normalized["street"], let normalizedHouse = normalized["house"],
@@ -120,15 +128,23 @@ actor MonitorSession {
         lastFailure = nil
         tick()
     }
-    func setTheme(_ theme: String) { _ = engine.setTheme(theme); emit(epoch:clock.read()?.epoch ?? 0) }
-    func selectTomorrow(_ value: Bool) { engine.selectTomorrow(value); emit(epoch:clock.read()?.epoch ?? 0) }
+    func setTheme(_ theme: String) {
+        guard started, !policy.closed, let engine=engine else { return }
+        _ = engine.setTheme(theme); emit(epoch:clock.read()?.epoch ?? 0)
+    }
+    func selectTomorrow(_ value: Bool) {
+        guard started, !policy.closed, let engine=engine else { return }
+        engine.selectTomorrow(value); emit(epoch:clock.read()?.epoch ?? 0)
+    }
     func popupOpened() {
+        guard started, !policy.closed, let engine=engine else { return }
         _ = policy.popupOpened()
         engine.selectTomorrow(false)
         emit(epoch:clock.read()?.epoch ?? 0)
     }
     func close() { cancel(policy.close()); emit(epoch:clock.read()?.epoch ?? 0) }
     private func received(_ ticket: MacSessionPolicy.Ticket, reply: MonitorReplyBox) {
+        guard let engine=engine else { return }
         completedRequests += reply.requests
         let metadata = reply.value.metadata
         let stages = metadata["stages"] as? [[String:Any]] ?? []
@@ -147,6 +163,7 @@ actor MonitorSession {
         emit(epoch:clock.read()?.epoch ?? 0)
     }
     private func emit(epoch: Int64) {
+        guard let engine=engine else { return }
         guard sequence < UInt64.max else { cancel(policy.close()); return }
         sequence += 1
         let value = engine.snapshot(epoch:epoch)

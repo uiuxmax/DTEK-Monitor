@@ -11,16 +11,18 @@ struct UISummary: Decodable {
     let result: String
 }
 
-guard CommandLine.arguments.count == 2 else { exit(64) }
+guard [2,3].contains(CommandLine.arguments.count) else { exit(64) }
+let expected=CommandLine.arguments.count == 3 ? Int(CommandLine.arguments[2]) ?? 0 : 13
+guard [8,13].contains(expected) else { exit(64) }
 do {
     let summary = try JSONDecoder().decode(UISummary.self,
         from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))
     guard summary.result == "Passed", summary.failedTests == 0, summary.skippedTests == 0,
-          summary.passedTests == 13, summary.totalTestCount == 13 else {
-        fputs("XCTest summary rejected: expected 13 passed, zero failed/skipped\n", stderr)
+          summary.passedTests == expected, summary.totalTestCount == expected else {
+        fputs("XCTest summary rejected: expected \(expected) passed, zero failed/skipped\n", stderr)
         exit(1)
     }
-    print("RESULT 13/13 XCTest cases passed; zero failures or skips")
+    print("RESULT \(expected)/\(expected) XCTest cases passed; zero failures or skips")
 } catch {
     fputs("Missing or malformed XCTest summary\n", stderr)
     exit(1)

@@ -53,7 +53,8 @@ else
 fi
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-before.json"
 # Record every build input, including shared engine/tests, before compilation.
-inputs=(app/macos/Session/MonitorBridge.h app/macos/Session/MonitorBridge.mm
+inputs=(app/macos/Session/LoginItemModel.swift tests/macos/LoginItemTests.swift
+    app/macos/Session/MonitorBridge.h app/macos/Session/MonitorBridge.mm
     app/macos/Session/MonitorSession.swift app/macos/Session/NativeLookupWorker.swift
     app/macos/Network/SessionPolicy.swift app/macos/Network/HTTPSAttempt.swift
     app/macos/Network/NetworkHTTPSAttempt.swift app/macos/Network/RawHTTPResponse.swift

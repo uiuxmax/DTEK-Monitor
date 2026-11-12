@@ -42,12 +42,18 @@ jobs:
       - name: Check connected worker and session on owned TLS loopback
         shell: bash
         run: /bin/bash tools/macos/check-session.sh --public-probe
+      - name: Check connected synthetic monitor UI and fake Login Items
+        shell: bash
+        run: /bin/bash tools/macos/check-monitor.sh --public-probe
       - name: Verify primary XCTest result independently
         shell: bash
         run: |
           reports=(out/macos/ui-check-*/test-summary.json)
           if test "${#reports[@]}" -ne 1 || ! test -f "${reports[0]}"; then exit 1; fi
           /usr/bin/xcrun swift tools/macos/verify-ui-result.swift "${reports[0]}" || exit 1
+          monitors=(out/macos/monitor-ui-check-*/test-summary.json)
+          if test "${#monitors[@]}" -ne 1 || ! test -f "${monitors[0]}"; then exit 1; fi
+          /usr/bin/xcrun swift tools/macos/verify-ui-result.swift "${monitors[0]}" 8 || exit 1
       - name: Print bounded verification evidence
         if: always()
         shell: bash
@@ -78,3 +84,12 @@ jobs:
             fi
           done
           printf '%s\n' 'Apple Silicon core and synthetic UI: see the build/check steps and reports in this log. Physical display and VoiceOver acceptance remain manual.' >> "$GITHUB_STEP_SUMMARY"
+          for report in out/macos/monitor-ui-check-*/*.json out/macos/monitor-ui-check-*/build.log out/macos/monitor-ui-check-*/release-build.log out/macos/monitor-ui-check-*/login.log out/macos/monitor-ui-check-*/tests.log; do
+            if test -f "$report"; then
+              printf '\nReport: %s\n' "$report"
+              tail -n 100 "$report"
+              case "$report" in
+                */build.log|*/release-build.log|*/tests.log) awk '/error:|Test Case .* failed/ { if (++count <= 40) print }' "$report" ;;
+              esac
+            fi
+          done

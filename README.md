@@ -9,7 +9,7 @@ runner. It compiles Swift → Objective-C++ → C++20 and checks 67 portable cas
 60 Foundation Europe/Kyiv cases (including the same 42 vectors as Windows),
 111 Foundation JSON/profile/receipt cases plus a five-case fresh-process restore,
 92 Foundation four-stage lookup checks (request context, budgets and cancellation),
-26 receipt bridge checks and connected worker/session loopback checks,
+26 receipt bridge checks and 24 connected worker/session loopback checks,
 three bridge scenarios, six invalid test envelopes, source hashes, arm64 and
 the local ad-hoc signature. Evidence is printed in the Actions log. The workflow
 uploads no artifacts and uses no caches, private or larger runners.
@@ -18,6 +18,8 @@ uploads no artifacts and uses no caches, private or larger runners.
 /bin/bash tools/macos/check.sh --public-probe
 /bin/bash tools/macos/check-ui.sh --public-probe
 /bin/bash tools/macos/check-https.sh --network-candidate --public-probe
+/bin/bash tools/macos/check-session.sh --public-probe
+/bin/bash tools/macos/check-monitor.sh --public-probe
 ```
 
 The executable requires the harness envelope and uses fixed synthetic fixtures.
@@ -39,6 +41,10 @@ debounce, source stops, wake and ContinuousClock adaptation without provider IO.
 Measurement execution and transport readiness are reported separately; PARTIAL
 readiness does not authorize live integration. The protected candidate rejects
 the provider endpoint. Its production branch is compiled but never executed.
+The DTEKMonitor target connects the protected synthetic session/profile backend
+to MainActor UI; eight additional UI and 14 fake Login Item checks are gated
+on exact primary results. Login defaults off and no test registers a real item.
+The normal personal configuration is compiled and signature-checked, never run.
 The UI data is synthetic. The separately tested Foundation Kyiv adapter handles
 strict Gregorian dates and DST gap/fold cases; this is not acceptance of
 networking, physical displays, VoiceOver, sleep/wake, Gatekeeper or sign-in behavior.
