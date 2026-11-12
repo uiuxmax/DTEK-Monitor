@@ -13,6 +13,8 @@
 #include <iterator>
 #include <stdexcept>
 #include <sys/stat.h>
+#include <sys/mount.h>
+#include <cstring>
 
 namespace engine_tests {
 namespace {
@@ -143,6 +145,9 @@ bool run_foundation_data_tests() {
         const auto root = parent / ("data-" + mac_json::utf8(NSUUID.UUID.UUIDString));
         fs::create_directories(root / fs::path{mac_json::utf8(@"дані-é")});
         const auto profile = fs::canonical(root / fs::path{mac_json::utf8(@"дані-é")});
+        struct statfs volume{};
+        const bool volume_read = ::statfs(profile.c_str(),&volume) == 0;
+        check_result("native profile filesystem is APFS", volume_read && std::strcmp(volume.f_fstypename,"apfs") == 0);
         check_result("missing settings read does not create a file", mac_profile::load_settings(profile).state == ReadState::missing && !fs::exists(profile/"settings.json"));
         const mac_profile::Settings settings{draft,"dark"};
         check_result("Unicode path settings save", mac_profile::save_settings(profile,settings));

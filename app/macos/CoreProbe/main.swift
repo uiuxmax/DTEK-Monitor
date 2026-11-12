@@ -62,5 +62,5 @@ let timezoneTotals = DMCoreProbeBridge.runTimezoneTests()
 guard timezoneTotals["checks"]?.intValue == 60, timezoneTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 60/60 Kyiv timezone checks passed")
 let dataTotals = DMCoreProbeBridge.runDataTests()
-guard dataTotals["checks"]?.intValue == 110, dataTotals["failures"]?.intValue == 0 else { exit(1) }
-print("RESULT 110/110 Foundation data checks passed")
+guard dataTotals["checks"]?.intValue == 111, dataTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 111/111 Foundation data checks passed")

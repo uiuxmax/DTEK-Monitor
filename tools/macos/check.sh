@@ -1,5 +1,5 @@
 #!/bin/bash
-# M1/M3 native arm64 core/bridge/timezone probe. No widget UI or provider requests.
+# M1/M3/M4 native core, timezone and isolated profile/data probe. No provider requests.
 set -euo pipefail
 if [[ "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
     echo 'Native Apple Silicon macOS is required; no files were written.' >&2
@@ -29,7 +29,7 @@ record checkout "$repo"
 record commit "$(/usr/bin/git -C "$repo" rev-parse HEAD)"
 record started_at_utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 record architecture arm64
-record scope 'M1/M3 core, bridge and Foundation Kyiv projection; no live, physical UI, login or Gatekeeper acceptance'
+record scope 'M1/M3/M4 core, bridge, Foundation Kyiv, JSON and isolated profiles; no live, physical UI, login or Gatekeeper acceptance'
 record input_scope "$scope"
 finish() {
     code=$?
@@ -103,7 +103,7 @@ expect_rejected symlink-profile "${valid_env[@]}" DTEKMONITOR_TEST_ROOT="$run/sy
 "${valid_env[@]}" "$probe" > "$run/probe.log" 2>&1
 grep -q '^RESULT 67/67 portable checks; 3 bridge scenarios passed$' "$run/probe.log"
 grep -q '^RESULT 60/60 Kyiv timezone checks passed$' "$run/probe.log" || exit 1
-grep -q '^RESULT 110/110 Foundation data checks passed$' "$run/probe.log" || exit 1
+grep -q '^RESULT 111/111 Foundation data checks passed$' "$run/probe.log" || exit 1
 "${valid_env[@]}" "$probe" --restore-data-probe > "$run/restart.log" 2>&1 || exit 1
 grep -q '^RESULT 5/5 Foundation restart checks passed$' "$run/restart.log" || exit 1
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
@@ -112,7 +112,7 @@ cmp "$run/verified-before.json" "$run/verified-after.json"
 record portable_checks 67
 record bridge_scenarios 3
 record timezone_checks 60
-record data_checks 110
+record data_checks 111
 record data_restart_checks 5
 record rejected_envelopes 6
 if [[ "$scope" == private-checkout ]]; then record preserved_files 504; fi

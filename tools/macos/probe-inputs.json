@@ -24,7 +24,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "d4edff5386f44ea8f323e8179be41d8641b99f45441dc52db2f9ba2e7978466d"
+      "sha256": "84be0f453fbc496fb7b94a562eaa06666f35e3f743f97a0b5db8a6c060a0c301"
     },
     {
       "path": "app/address_draft.h",
@@ -48,7 +48,7 @@
     },
     {
       "path": "app/macos/CoreProbe/main.swift",
-      "sha256": "53c66ae35ee37e4af9b0512a740bdbb2e4cdb077c7c466bd5d5a0e4fcd1524df"
+      "sha256": "40314036a8a074ff9f8e8fc2910e89743a4c4d4be14761c9e96ccee7b57ac442"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",
@@ -176,7 +176,7 @@
     },
     {
       "path": "tests/macos/data_tests.mm",
-      "sha256": "7fefe78bcee84aff35ff2c7095f1fabf394ea937cadd503652a11efb3259891d"
+      "sha256": "41cb890c75f35563673792e056afff1178a65c7b96c9db89b507a1476a89f5b7"
     },
     {
       "path": "tests/macos/timezone_tests.h",
@@ -192,7 +192,7 @@
     },
     {
       "path": "tools/macos/check.sh",
-      "sha256": "113053b6dda9bdc3d50435909988cf201854a1826c9ed23ed73a659c8cda3f04"
+      "sha256": "25568f105b23214c7981a85be23114f901537790bdf9355ce5f929a81df5de16"
     },
     {
       "path": "tools/macos/doctor.sh",
