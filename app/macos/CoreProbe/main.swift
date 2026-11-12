@@ -42,6 +42,17 @@ if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--restore-da
     print("RESULT 5/5 Foundation restart checks passed")
     exit(0)
 }
+if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--session-probe" {
+    guard let port = UInt16(CommandLine.arguments[2]), port != 0,
+          let root = ProcessInfo.processInfo.environment["DTEKMONITOR_TEST_PROFILE"],
+          CommandLine.arguments[3] == root + "/root.der",
+          let anchor = try? Data(contentsOf:URL(fileURLWithPath:CommandLine.arguments[3])) else { exit(64) }
+    Task.detached {
+        let passed = await runMonitorSessionTests(port:port, anchor:anchor)
+        exit(passed ? 0 : 1)
+    }
+    dispatchMain()
+}
 guard CommandLine.arguments.count == 1 else { exit(64) }
 print("SYNTHETIC TEST DATA — NOT A REAL OUTAGE SCHEDULE")
 let totals = DMCoreProbeBridge.runPortableTests()
@@ -67,3 +78,7 @@ print("RESULT 111/111 Foundation data checks passed")
 let lookupTotals = DMCoreProbeBridge.runLookupTests()
 guard lookupTotals["checks"]?.intValue == 88, lookupTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 88/88 Foundation lookup checks passed")
+
+let monitorTotals = DMCoreProbeBridge.runMonitorBridgeTests()
+guard monitorTotals["checks"]?.intValue == 26, monitorTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 26/26 monitor receipt bridge checks passed")

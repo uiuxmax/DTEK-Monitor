@@ -3,8 +3,8 @@ import Foundation
 // Single-owner scheduling policy. Its owner validates addresses/normalizes queries
 // with M4, supplies named-Kyiv dates and cancels retired tickets before new work.
 struct MacSessionPolicy {
-    enum Kind: Equatable { case lookup, suggestions }
-    struct Ticket: Equatable {
+    enum Kind: Equatable, Sendable { case lookup, suggestions }
+    struct Ticket: Equatable, Sendable {
         let generation: UInt64
         let kind: Kind
         let selection: String

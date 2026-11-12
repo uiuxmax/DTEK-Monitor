@@ -39,6 +39,9 @@ jobs:
       - name: Build and test isolated fixture UI
         shell: bash
         run: /bin/bash tools/macos/check-ui.sh --public-probe
+      - name: Check connected worker and session on owned TLS loopback
+        shell: bash
+        run: /bin/bash tools/macos/check-session.sh --public-probe
       - name: Verify primary XCTest result independently
         shell: bash
         run: |
@@ -66,6 +69,12 @@ jobs:
                 */results.json) cat "$report" ;;
                 *) tail -n 100 "$report" ;;
               esac
+            fi
+          done
+          for report in out/macos/session-check-*/session.log out/macos/session-check-*/runner.log out/macos/session-check-*/results.json; do
+            if test -f "$report"; then
+              printf '\nReport: %s\n' "$report"
+              tail -n 100 "$report"
             fi
           done
           printf '%s\n' 'Apple Silicon core and synthetic UI: see the build/check steps and reports in this log. Physical display and VoiceOver acceptance remain manual.' >> "$GITHUB_STEP_SUMMARY"

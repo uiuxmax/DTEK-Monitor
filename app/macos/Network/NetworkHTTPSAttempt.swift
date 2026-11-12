@@ -39,19 +39,21 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
     init(testPort: UInt16, mismatchHost: Bool, anchorDER: Data?, token: UInt64 = 1,
          bodyLimit: Int = 2_000_000, totalMilliseconds: Int = 2_000,
          testDNS: Bool = false, localhostDNS: Bool = false, cancelAt: String = "none",
+         resource: MacResource? = nil, address: String = "synthetic-address",
          completed: @escaping (MacHTTPResult) -> Void) {
         budget = totalMilliseconds; limit = bodyLimit; parser = RawHTTPResponse(bodyCap: bodyLimit)
-        result = MacHTTPResult(token: token, address: "synthetic-address"); self.completed = completed
+        result = MacHTTPResult(token: token, address: address); self.completed = completed
         guard TestEnvelope.isValid(ProcessInfo.processInfo.environment), testPort != 0,
               anchorDER == nil || anchorDER!.count <= 32_768 else {
             owner.async { self.finish("invalid_request") }; return
         }
         guard ["none", "header", "body"].contains(cancelAt) else { owner.async { self.finish("invalid_request") }; return }
+        guard resource == nil || resource?.path != nil else { owner.async { self.finish("invalid_request") }; return }
         testCancelAt = cancelAt
         let name = testDNS ? "dtekmonitor-probe.invalid" : mismatchHost ? "127.0.0.1" : "localhost"
         let endpointHost = testDNS ? name : localhostDNS ? "localhost" : "127.0.0.1"
         start(endpoint: .hostPort(host: .init(endpointHost), port: NWEndpoint.Port(rawValue: testPort)!),
-              serverName: name, authority: "\(name):\(testPort)", path: "/probe", anchorDER: anchorDER)
+              serverName: name, authority: "\(name):\(testPort)", path: resource?.path ?? "/probe", anchorDER: anchorDER)
     }
     #endif
 

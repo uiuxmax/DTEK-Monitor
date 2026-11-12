@@ -6,9 +6,20 @@
 #include "../../../tests/macos/timezone_tests.h"
 #include "../../../tests/macos/data_tests.h"
 #include "../../../tests/macos/lookup_tests.h"
+#include "../../../tests/macos/monitor_bridge_tests.h"
 #include <exception>
 
 @implementation DMCoreProbeBridge
++ (NSDictionary<NSString *, NSNumber *> *)runMonitorBridgeTests {
+    const auto checks = engine_tests::checks, failures = engine_tests::failures;
+    try {
+        const bool available = engine_tests::run_monitor_bridge_tests();
+        return @{ @"checks": @(engine_tests::checks - checks), @"failures": @(engine_tests::failures - failures + (available ? 0 : 1)) };
+    } catch (const std::exception& error) {
+        std::cerr << "Monitor bridge failed: " << error.what() << '\n';
+        return @{ @"checks": @(engine_tests::checks - checks), @"failures": @1 };
+    } catch (...) { return @{ @"checks": @(engine_tests::checks - checks), @"failures": @1 }; }
+}
 + (NSDictionary<NSString *, NSNumber *> *)runLookupTests {
     const auto checks = engine_tests::checks;
     const auto failures = engine_tests::failures;

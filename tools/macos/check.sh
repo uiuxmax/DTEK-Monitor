@@ -53,7 +53,12 @@ else
 fi
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-before.json"
 # Record every build input, including shared engine/tests, before compilation.
-inputs=(app/macos/CoreProbe/main.swift app/macos/CoreProbe/CoreProbeBridge.h
+inputs=(app/macos/Session/MonitorBridge.h app/macos/Session/MonitorBridge.mm
+    app/macos/Session/MonitorSession.swift app/macos/Session/NativeLookupWorker.swift
+    app/macos/Network/SessionPolicy.swift app/macos/Network/HTTPSAttempt.swift
+    app/macos/Network/NetworkHTTPSAttempt.swift app/macos/Network/RawHTTPResponse.swift
+    app/macos/FixtureWidget/TestEnvelope.swift tests/macos/MonitorSessionTests.swift
+    tests/macos/monitor_bridge_tests.h tests/macos/monitor_bridge_tests.mm app/macos/CoreProbe/main.swift app/macos/CoreProbe/CoreProbeBridge.h
     app/macos/CoreProbe/CoreProbeBridge.mm app/macos/CoreProbe/BridgingHeader.h
     app/macos/DTEKMonitor.xcodeproj/project.pbxproj
     app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme
@@ -107,6 +112,7 @@ grep -q '^RESULT 67/67 portable checks; 3 bridge scenarios passed$' "$run/probe.
 grep -q '^RESULT 60/60 Kyiv timezone checks passed$' "$run/probe.log" || exit 1
 grep -q '^RESULT 111/111 Foundation data checks passed$' "$run/probe.log" || exit 1
 grep -q '^RESULT 88/88 Foundation lookup checks passed$' "$run/probe.log" || exit 1
+grep -q '^RESULT 26/26 monitor receipt bridge checks passed$' "$run/probe.log" || exit 1
 "${valid_env[@]}" "$probe" --restore-data-probe > "$run/restart.log" 2>&1 || exit 1
 grep -q '^RESULT 5/5 Foundation restart checks passed$' "$run/restart.log" || exit 1
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
@@ -118,6 +124,7 @@ record timezone_checks 60
 record data_checks 111
 record data_restart_checks 5
 record lookup_checks 88
+record monitor_bridge_checks 26
 record rejected_envelopes 6
 if [[ "$scope" == private-checkout ]]; then record preserved_files 504; fi
 record evidence 'build.log, probe.log, inputs.sha256, signature.log, toolchain.txt, linked-libraries.txt'
