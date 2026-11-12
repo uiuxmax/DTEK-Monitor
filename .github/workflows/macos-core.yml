@@ -36,6 +36,12 @@ jobs:
       - name: Build and test isolated fixture UI
         shell: bash
         run: /bin/bash tools/macos/check-ui.sh --public-probe
+      - name: Verify primary XCTest result independently
+        shell: bash
+        run: |
+          reports=(out/macos/ui-check-*/test-summary.json)
+          if test "${#reports[@]}" -ne 1 || ! test -f "${reports[0]}"; then exit 1; fi
+          /usr/bin/xcrun swift tools/macos/verify-ui-result.swift "${reports[0]}" || exit 1
       - name: Print bounded verification evidence
         if: always()
         shell: bash

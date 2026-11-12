@@ -55,6 +55,7 @@ struct FixtureWidgetApp: App {
         } label: {
             Label("ТЕСТ · DTEK", systemImage: "bolt.circle")
                 .accessibilityIdentifier("fixture-menubar")
+                .accessibilityLabel("ТЕСТ · DTEK")
         }
         .menuBarExtraStyle(.window)
     }

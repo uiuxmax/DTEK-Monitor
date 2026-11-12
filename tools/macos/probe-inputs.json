@@ -8,7 +8,7 @@
     },
     {
       "path": ".github/workflows/macos-core.yml",
-      "sha256": "ca737f8693c34ac94c2402309e33cd569890dd35de2b2d048a487fdfa4be639d"
+      "sha256": "4577d57df70d0890c82d618fb05adfdda665679eb8b7c08844399df9057f40a9"
     },
     {
       "path": ".gitignore",
@@ -60,7 +60,7 @@
     },
     {
       "path": "app/macos/FixtureWidget/FixtureWidgetApp.swift",
-      "sha256": "3ef1088f12a96e2b85065c5f896efd02873be992c36854cafcaec4a2b10c14c5"
+      "sha256": "ad45e2a94da6b87a15287b454bed473bdff268dffe7b80a90c9b7a1f2166e8bc"
     },
     {
       "path": "app/macos/FixtureWidget/Info.plist",
@@ -92,7 +92,7 @@
     },
     {
       "path": "tests/macos/FixtureUITests.swift",
-      "sha256": "d5e68c2354a197238ea01474a473d6880922d0a5900511afe19a5d798573b9a6"
+      "sha256": "8b44d8db499601b02f2b4dd2629331f699819a399c7f0505a79138b987087e73"
     },
     {
       "path": "tests/macos/Info.plist",
@@ -100,7 +100,7 @@
     },
     {
       "path": "tools/macos/check-ui.sh",
-      "sha256": "7417e38e730eb9063e888fefaec655f07d928637cd31a504fb69f9dd3de1e444"
+      "sha256": "81e965ae23f618ec676db80f0ef8245efbfb64e465d812d29cd3f9b8b2a969dc"
     },
     {
       "path": "tools/macos/check.sh",
@@ -113,6 +113,10 @@
     {
       "path": "tools/macos/verify-probe-inputs.swift",
       "sha256": "d05be9b0939b585fe6728f0b5d8568c58ac58de5468ddc84d6a09996c41e56c6"
+    },
+    {
+      "path": "tools/macos/verify-ui-result.swift",
+      "sha256": "747895406d21a7e53373241f175fe094a49733a22a8a579eb60678993da3e7d8"
     }
   ]
 }

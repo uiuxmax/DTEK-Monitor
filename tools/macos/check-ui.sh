@@ -50,7 +50,7 @@ inputs=(app/macos/FixtureWidget/FixtureWidgetApp.swift app/macos/FixtureWidget/F
     app/macos/FixtureWidget/Info.plist tests/macos/FixtureUITests.swift tests/macos/Info.plist
     app/macos/DTEKMonitor.xcodeproj/project.pbxproj
     app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKFixtureWidget.xcscheme
-    tools/macos/check-ui.sh tools/macos/doctor.sh "$verifier" "$manifest")
+    tools/macos/check-ui.sh tools/macos/doctor.sh tools/macos/verify-ui-result.swift "$verifier" "$manifest")
 (cd "$repo" && /usr/bin/shasum -a 256 "${inputs[@]}") > "$run/inputs.sha256"
 build=(/usr/bin/xcodebuild -project "$repo/app/macos/DTEKMonitor.xcodeproj"
     -scheme DTEKFixtureWidget -configuration Debug -derivedDataPath "$run/DerivedData"
@@ -82,18 +82,35 @@ valid_env=("${base_env[@]}" DTEKMONITOR_TEST_ROOT="$run" DTEKMONITOR_TEST_PROFIL
     DTEKMONITOR_DISABLE_PROVIDER=1)
 expect_rejected real-backend "${valid_env[@]}" DTEKMONITOR_AUTOSTART_TEST_MODE=0 "$binary"
 expect_rejected network-enabled "${valid_env[@]}" DTEKMONITOR_DISABLE_PROVIDER=0 "$binary"
-test_code=0
-"${build[@]}" test-without-building -resultBundlePath "$run/Tests.xcresult" > "$run/tests.log" 2>&1 || test_code=$?
-/usr/bin/xcrun xcresulttool get test-results summary --path "$run/Tests.xcresult" > "$run/test-summary.json"
-[[ "$test_code" -eq 0 ]]
-[[ "$(/usr/bin/plutil -extract failedTests raw "$run/test-summary.json")" == 0 ]]
-[[ "$(/usr/bin/plutil -extract passedTests raw "$run/test-summary.json")" == 13 ]]
-[[ "$(/usr/bin/plutil -extract skippedTests raw "$run/test-summary.json")" == 0 ]]
+summary_verifier="$repo/tools/macos/verify-ui-result.swift"
+# Regression for the observed false-green run: a primary failing/skipped or
+# malformed report must produce a nonzero exit, even if the outer shell continues.
+for invalid in failed skipped partial malformed; do
+    case "$invalid" in
+        failed) fixture='{"result":"Failed","failedTests":6,"passedTests":7,"skippedTests":0,"totalTestCount":13}' ;;
+        skipped) fixture='{"result":"Passed","failedTests":0,"passedTests":12,"skippedTests":1,"totalTestCount":13}' ;;
+        partial) fixture='{"result":"Passed","failedTests":0,"passedTests":12,"skippedTests":0,"totalTestCount":12}' ;;
+        malformed) fixture='{}' ;;
+    esac
+    printf '%s\n' "$fixture" > "$run/summary-$invalid.json"
+    verifier_code=0
+    /usr/bin/xcrun swift "$summary_verifier" "$run/summary-$invalid.json" > "$run/summary-$invalid.log" 2>&1 || verifier_code=$?
+    if [[ "$verifier_code" -ne 1 ]]; then echo 'Summary verifier failed its rejection regression' >&2; exit 1; fi
+done
+if "${build[@]}" test-without-building -resultBundlePath "$run/Tests.xcresult" > "$run/tests.log" 2>&1; then
+    test_code=0
+else
+    test_code=$?
+fi
+if ! /usr/bin/xcrun xcresulttool get test-results summary --path "$run/Tests.xcresult" > "$run/test-summary.json"; then exit 1; fi
+if ! /usr/bin/xcrun swift "$summary_verifier" "$run/test-summary.json" > "$run/summary-verification.log" 2>&1; then exit 1; fi
+if [[ "$test_code" -ne 0 ]]; then exit "$test_code"; fi
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json"
 cmp "$run/verified-before.json" "$run/verified-after.json"
 record model_tests 6
 record ui_tests 7
 record rejected_app_envelopes 3
+record rejected_invalid_summaries 4
 record architecture arm64
 record evidence 'Tests.xcresult, test-summary.json, tests.log, build.log, inputs.sha256, executable.sha256'

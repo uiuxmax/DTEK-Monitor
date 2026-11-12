@@ -135,15 +135,21 @@ final class FixtureUITests: XCTestCase {
     private func element(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
+    private func text(_ element: XCUIElement) -> String {
+        // macOS static text exposes its content as AXValue; combined rows can
+        // expose AXLabel. Assert the actual text through either native mapping.
+        if let value = element.value as? String, !value.isEmpty { return value }
+        return element.label
+    }
     private func choose(_ scenario: FixtureScenario) {
         element("fixture-scenario").click()
         app.menuItems[scenario.title].click()
     }
 
     func testInitialStateAndWindowBounds() {
-        XCTAssertTrue(element("status").label.contains("Додайте тестову адресу"))
+        XCTAssertTrue(text(element("status")).contains("Додайте тестову адресу"))
         XCTAssertFalse(element("tomorrow").isEnabled)
-        XCTAssertEqual(element("selected-day").label, "Сьогодні")
+        XCTAssertEqual(text(element("selected-day")), "Сьогодні")
         let window = app.windows.firstMatch
         XCTAssertLessThanOrEqual(window.frame.height, NSScreen.main!.visibleFrame.height)
         XCTAssertLessThanOrEqual(window.frame.width, NSScreen.main!.visibleFrame.width)
@@ -157,9 +163,9 @@ final class FixtureUITests: XCTestCase {
         element("street").typeText("Тестова вулиця")
         element("house").click()
         element("house").typeText("2-А\r")
-        XCTAssertTrue(element("address").label.contains("Тестова вулиця, 2-А"))
+        XCTAssertTrue(text(element("address")).contains("Тестова вулиця, 2-А"))
         XCTAssertFalse(element("street").exists)
-        XCTAssertTrue(element("status").label.contains("доступний"))
+        XCTAssertTrue(text(element("status")).contains("доступний"))
     }
 
     func testStatesAndConfirmedTomorrow() {
@@ -167,28 +173,28 @@ final class FixtureUITests: XCTestCase {
         XCTAssertFalse(element("tomorrow").isEnabled)
         choose(.tomorrowVerified)
         XCTAssertTrue(element("tomorrow").isEnabled)
-        XCTAssertEqual(element("selected-day").label, "Сьогодні")
+        XCTAssertEqual(text(element("selected-day")), "Сьогодні")
         element("tomorrow").click()
-        XCTAssertEqual(element("selected-day").label, "Завтра")
+        XCTAssertEqual(text(element("selected-day")), "Завтра")
         choose(.emergency)
-        XCTAssertTrue(element("status").label.contains("Екстрені"))
+        XCTAssertTrue(text(element("status")).contains("Екстрені"))
         XCTAssertFalse(element("tomorrow").isEnabled)
-        XCTAssertEqual(element("selected-day").label, "Сьогодні")
+        XCTAssertEqual(text(element("selected-day")), "Сьогодні")
         choose(.loading)
-        XCTAssertTrue(element("status").label.contains("Завантаження"))
+        XCTAssertTrue(text(element("status")).contains("Завантаження"))
         choose(.unavailable)
-        XCTAssertTrue(element("status").label.contains("недоступний"))
+        XCTAssertTrue(text(element("status")).contains("недоступний"))
     }
 
     func testThemesAndEscapeCancel() {
         for theme in FixtureTheme.allCases {
             element("theme-\(theme.rawValue)").click()
-            XCTAssertEqual(element("selected-theme").label, "Тема: \(theme.title)")
+            XCTAssertEqual(text(element("selected-theme")), "Тема: \(theme.title)")
         }
         element("edit-address").click()
         element("street").typeKey(.escape, modifierFlags: [])
         XCTAssertFalse(element("street").exists)
-        XCTAssertTrue(element("address").label.contains("не задано"))
+        XCTAssertTrue(text(element("address")).contains("не задано"))
     }
 
     func testLongScheduleScrollsWithinWindow() {
@@ -201,13 +207,13 @@ final class FixtureUITests: XCTestCase {
             scroll.scroll(byDeltaX: 0, deltaY: -220)
         }
         XCTAssertTrue(last.isHittable)
-        XCTAssertTrue(last.label.contains("24:00"))
+        XCTAssertTrue(text(last).contains("24:00"))
         XCTAssertLessThanOrEqual(app.windows.firstMatch.frame.height, NSScreen.main!.visibleFrame.height)
     }
 
     func testMenuBarPanelAndEscape() {
         app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
-        let item = app.menuBars.menuBarItems.matching(NSPredicate(format: "label CONTAINS %@", "ТЕСТ · DTEK")).firstMatch
+        let item = element("fixture-menubar")
         XCTAssertTrue(item.waitForExistence(timeout: 5), app.debugDescription)
         item.click()
         XCTAssertTrue(element("test-banner").waitForExistence(timeout: 5))
