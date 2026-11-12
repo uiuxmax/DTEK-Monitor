@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "62e16c6861992bc5f69757a48a593ee75d7a438a",
+  "source_base_commit": "ef3b2df7f06b2d01e831d817fae9a392c565e081",
   "files": [
     {
       "path": ".gitattributes",
@@ -8,7 +8,7 @@
     },
     {
       "path": ".github/workflows/macos-core.yml",
-      "sha256": "cdac295cdc3fe7c049784fad10a17211a6a29f847fda74be8d4fc9f32aea7cea"
+      "sha256": "8f1e6c420c6645bfb9852df65fd61ec4ce42351442a96534554b20821fe8ed48"
     },
     {
       "path": ".gitignore",
@@ -16,7 +16,7 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "405752f74634e97dad52f57694206013d4ce94af1be8223c8987c574f99de12f"
+      "sha256": "354ce662318fd25bc793db88f32a476ba579f7f3361cec9bbc177c736e06e816"
     },
     {
       "path": "LICENSE",
@@ -24,7 +24,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "578488ec8d637ba73f31b0c05398a7d8ee8b07b3556c055ac3c7f605d279c483"
+      "sha256": "019149e0883641bcb8f88faf68974e4d638498aecd387d18e58ef71d83944bba"
     },
     {
       "path": "app/macos/CoreProbe/BridgingHeader.h",
@@ -44,11 +44,39 @@
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",
-      "sha256": "65e21d09abc165962f15f5f7a228318246fdd3482c81765892cca9533122728c"
+      "sha256": "8a2000cdcdeea91c583888aabf3eb4da84af25e5c5eb63ca6981e18c0dd968f6"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme",
       "sha256": "854807066e5913cefa1d33980171c0bd46ace33f6ce6f92d8dda68447affef67"
+    },
+    {
+      "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKFixtureWidget.xcscheme",
+      "sha256": "647c5179ec2b77e1a773eea6047f1becd1777c5cd941126c13b94aade0636397"
+    },
+    {
+      "path": "app/macos/FixtureUITests/FixtureUITests.swift",
+      "sha256": "9fe78a60e29aaccf2c7005fcc533d40d56dd9b1774eb70198c2a715cd52ac054"
+    },
+    {
+      "path": "app/macos/FixtureWidget/FixtureModel.swift",
+      "sha256": "62baac99f1eb8d3c22b0470a8f4be389af0deea3316cb13e596ac780c5e5f10b"
+    },
+    {
+      "path": "app/macos/FixtureWidget/FixtureWidgetApp.swift",
+      "sha256": "3ef1088f12a96e2b85065c5f896efd02873be992c36854cafcaec4a2b10c14c5"
+    },
+    {
+      "path": "app/macos/FixtureWidget/Info.plist",
+      "sha256": "2d3d9f43cb6dcd54ac3b1a624d735392d3f9ebe648f1aaa21f5d924c8ef5cdb4"
+    },
+    {
+      "path": "app/macos/FixtureWidget/TestEnvelope.swift",
+      "sha256": "00b2098984629b71c0974a843805c52dc0154be96336a95c0746d3848b02ed76"
+    },
+    {
+      "path": "app/macos/FixtureWidget/WidgetView.swift",
+      "sha256": "62339c21231495ba6d9fb54ba92e1256c0545fd1ef4300b4d131ae526899e378"
     },
     {
       "path": "research/schedule-engine/portable_tests.cpp",
@@ -65,6 +93,10 @@
     {
       "path": "research/schedule-engine/test_support.h",
       "sha256": "257a6effb44bbc0ff8909a6154548b7f66b885c85f98ddc3a682cba4c5922f93"
+    },
+    {
+      "path": "tools/macos/check-ui.sh",
+      "sha256": "336148197257a9adb023e1b52a8f9f9488de48edc7368112bb52a9f39766bcb1"
     },
     {
       "path": "tools/macos/check.sh",

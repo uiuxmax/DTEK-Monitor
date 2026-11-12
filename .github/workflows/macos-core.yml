@@ -1,4 +1,4 @@
-name: Apple Silicon core probe
+name: Apple Silicon fixture checks
 
 on:
   push:
@@ -33,14 +33,17 @@ jobs:
       - name: Build and check isolated core probe
         shell: bash
         run: /bin/bash tools/macos/check.sh --public-probe
+      - name: Build and test isolated fixture UI
+        shell: bash
+        run: /bin/bash tools/macos/check-ui.sh --public-probe
       - name: Print bounded verification evidence
         if: always()
         shell: bash
         run: |
-          for report in out/macos/doctor-*/environment.txt out/macos/check-*/*.json out/macos/check-*/probe.log out/macos/check-*/build.log; do
+          for report in out/macos/doctor-*/environment.txt out/macos/check-*/*.json out/macos/check-*/probe.log out/macos/check-*/build.log out/macos/ui-check-*/*.json out/macos/ui-check-*/build.log out/macos/ui-check-*/tests.log; do
             if test -f "$report"; then
               printf '\nReport: %s\n' "$report"
               tail -n 100 "$report"
             fi
           done
-          printf '%s\n' 'Apple Silicon core probe: see the build/check step and reports in this log.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Apple Silicon core and synthetic UI: see the build/check steps and reports in this log. Physical display and VoiceOver acceptance remain manual.' >> "$GITHUB_STEP_SUMMARY"
