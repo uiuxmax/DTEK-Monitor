@@ -188,7 +188,7 @@
     },
     {
       "path": "tests/macos/https_wire_server.py",
-      "sha256": "20d85629ca23fed8d251f5393e3ee1b1ae6ae072b3519ecb5439658fb1b7d333"
+      "sha256": "9e3396b90a3a70cc61f71894b5b05f9ecc1ec1e4b485c8037b0cc1bfb983d031"
     },
     {
       "path": "tests/macos/timezone_tests.h",

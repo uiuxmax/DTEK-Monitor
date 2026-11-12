@@ -57,7 +57,7 @@ def main():
         ('stream-overflow', response(payload=b'1e8481\r\n'+b'x'*2_000_001+b'\r\n0\r\n\r\n', framing='Transfer-Encoding: chunked\r\n'), 'trusted', 'body_too_large', 4000),
         ('truncated', response(payload=b'{}', framing='Content-Length: 20\r\n'), 'trusted', 'failure', 2000),
         ('unknown-length', response(framing=''), 'trusted', 'none', 2000),
-        ('chunked', response(payload=b'11\r\n{"synthetic":true}\r\n0\r\n\r\n', framing='Transfer-Encoding: chunked\r\n'), 'trusted', 'none', 2000),
+        ('chunked', response(payload=f'{len(body):x}\r\n'.encode()+body+b'\r\n0\r\n\r\n', framing='Transfer-Encoding: chunked\r\n'), 'trusted', 'none', 2000),
         ('duplicate-field', response('X-Synthetic: first\r\nX-Synthetic: second\r\n'), 'trusted', 'measure', 2000),
         ('duplicate-type', response('Content-Type: application/json\r\n'), 'trusted', 'measure', 2000),
         ('huge-header', response('X-Synthetic: ' + 'h'*70_000 + '\r\n'), 'trusted', 'measure', 2000),
