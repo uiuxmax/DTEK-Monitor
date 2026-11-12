@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "19fa833e82aca1e565d595b499dc1f85abf56648",
+  "source_base_commit": "f8429bc09b0987b97316555f910f1cbc23aaa6d5",
   "files": [
     {
       "path": ".gitattributes",
@@ -8,7 +8,7 @@
     },
     {
       "path": ".github/workflows/macos-core.yml",
-      "sha256": "2493bd6edb24ba9d4a1fff037028d7a11a2efda28cfbea643724129fae9ec9d9"
+      "sha256": "75885a162851340c4417e5c1a687c299f1c45d9aa0bc0a5ffe0c2f9a15f2b634"
     },
     {
       "path": ".gitignore",
@@ -24,7 +24,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "45e8304a85c62f65752249fb4dba6af76b5cd1b6a363b12615b97bb26119cd4e"
+      "sha256": "5c534394f0d6e0b947f706a7433497c5e2f46a9582de6fae21b44245a69416b7"
     },
     {
       "path": "app/address_draft.h",
@@ -143,6 +143,10 @@
       "sha256": "8a79a784f45d151baba140f564543db7114b725449d451fe9e4cff0893cd5e5d"
     },
     {
+      "path": "app/macos/Network/SessionPolicy.swift",
+      "sha256": "5de7f45967b5e7bb650501f440c03736fc4f32234555788ec56d14340b850a8d"
+    },
+    {
       "path": "app/macos/Time/foundation_kyiv_timezone.h",
       "sha256": "258641a4ccbefa411158aadff2aa161281178d9980c2b5a8073e43c665e6bf0e"
     },
@@ -208,7 +212,7 @@
     },
     {
       "path": "tests/macos/HTTPSProbe.swift",
-      "sha256": "29ff5e843b9379e5f57a5a9c1bc1fca7916cea30a0126f465a29ff0847a7e856"
+      "sha256": "b020132e44d5b221e0212edff9c3d9fa0723ccc1320b5feb3443e1156f7e2897"
     },
     {
       "path": "tests/macos/Info.plist",
@@ -217,6 +221,10 @@
     {
       "path": "tests/macos/RawHTTPTests.swift",
       "sha256": "8d511bebb5965b643f7590a17084737e95158cb2158aba53d2f6c62c77e8f63b"
+    },
+    {
+      "path": "tests/macos/SessionPolicyTests.swift",
+      "sha256": "fafa136eb05327f1ef40098c82a447ceb65f322e92a8347dbb1c0d228b55f799"
     },
     {
       "path": "tests/macos/data_tests.h",
@@ -248,7 +256,7 @@
     },
     {
       "path": "tools/macos/check-https.sh",
-      "sha256": "ab4ee9305a32bba552d7655b19ac76838e720cefa58912930bffec7810c6af09"
+      "sha256": "d0e462c1b090e9ce247c7296e19f0c04a34c8a56da707526687d26306a5bf748"
     },
     {
       "path": "tools/macos/check-ui.sh",

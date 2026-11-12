@@ -20,6 +20,10 @@ typealias ProbeAttempt = MacHTTPSAttempt
             try runRawHTTPTests()
             return
         }
+        if CommandLine.arguments == [CommandLine.arguments[0], "--lifecycle"] {
+            try runSessionPolicyTests()
+            return
+        }
         #endif
         if CommandLine.arguments == [CommandLine.arguments[0], "--resources"] {
             let base = "/api/blackout-service/public/shutdowns/addresses/v2/"

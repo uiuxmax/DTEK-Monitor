@@ -24,9 +24,9 @@ production_sources=()
 extra_flags=()
 wire_flags=()
 if [[ "$candidate" == network ]]; then
-    extra_sources=("$repo/app/macos/Network/RawHTTPResponse.swift" "$repo/app/macos/Network/NetworkHTTPSAttempt.swift" "$repo/tests/macos/RawHTTPTests.swift")
-    production_sources=("$repo/app/macos/Network/RawHTTPResponse.swift" "$repo/app/macos/Network/NetworkHTTPSAttempt.swift")
-    inputs+=(app/macos/Network/RawHTTPResponse.swift app/macos/Network/NetworkHTTPSAttempt.swift tests/macos/RawHTTPTests.swift)
+    extra_sources=("$repo/app/macos/Network/RawHTTPResponse.swift" "$repo/app/macos/Network/NetworkHTTPSAttempt.swift" "$repo/tests/macos/RawHTTPTests.swift" "$repo/app/macos/Network/SessionPolicy.swift" "$repo/tests/macos/SessionPolicyTests.swift")
+    production_sources=("$repo/app/macos/Network/RawHTTPResponse.swift" "$repo/app/macos/Network/NetworkHTTPSAttempt.swift" "$repo/app/macos/Network/SessionPolicy.swift")
+    inputs+=(app/macos/Network/RawHTTPResponse.swift app/macos/Network/NetworkHTTPSAttempt.swift tests/macos/RawHTTPTests.swift app/macos/Network/SessionPolicy.swift tests/macos/SessionPolicyTests.swift)
     extra_flags=(-D DTEKMONITOR_NETWORK_CANDIDATE)
     wire_flags=(--network)
 fi
@@ -59,6 +59,8 @@ grep -q '^RESULT 16/16 resource and provider-guard checks passed$' "$run/resourc
 if [[ "$candidate" == network ]]; then
     "${valid[@]}" "$run/HTTPSProbe" --parser > "$run/parser.log" 2>&1 || exit 1
     grep -q '^RESULT 213/213 raw HTTP parser checks passed; 70 vectors with 3 segment sizes$' "$run/parser.log" || exit 1
+    "${valid[@]}" "$run/HTTPSProbe" --lifecycle > "$run/lifecycle.log" 2>&1 || exit 1
+    grep -q '^RESULT 49/49 lifecycle policy checks passed$' "$run/lifecycle.log" || exit 1
 fi
 python_path=$(command -v python3)
 "${valid[@]}" "$python_path" -B "$repo/tests/macos/https_wire_server.py" "$run/HTTPSProbe" "$run/profile" ${wire_flags[@]+"${wire_flags[@]}"} \
