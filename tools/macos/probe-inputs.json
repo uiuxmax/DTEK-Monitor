@@ -256,7 +256,7 @@
     },
     {
       "path": "tests/macos/https_wire_server.py",
-      "sha256": "5374bb8c15911f1084fd239fa89a06e2e54cbe847e9218f534cfa66808b5ff6a"
+      "sha256": "9e3e8068a82aab0c1b0a50a42ac6f7c134a6aa47a6d6b579c2c3c228ada0a4af"
     },
     {
       "path": "tests/macos/lookup_tests.h",

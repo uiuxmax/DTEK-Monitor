@@ -112,7 +112,7 @@ def main():
             ('localhost-duplicate', response('X-Synthetic: first\r\nX-Synthetic: second\r\n'), 'hostname-dns', 'invalid_response', 2000),
             ('localhost-framing', response(framing='Content-Length: 18\r\nTransfer-Encoding: chunked\r\n'), 'hostname-dns', 'invalid_response', 2000),
             ('localhost-pre-certificate-close', b'', 'raw-close-dns', 'failure', 2000),
-            ('first-unreachable', response(), 'first-unreachable', 'connection', 2000),
+            ('first-unreachable', response(), 'first-unreachable', 'failure', 2000),
             ('dns-deadline', None, 'dns-deadline', 'timeout', 250),
             ('dns-cancel', None, 'dns-cancel', 'cancelled', 2000),
             ('real-dns-cancel', None, 'real-dns-cancel', 'cancelled', 2000),
