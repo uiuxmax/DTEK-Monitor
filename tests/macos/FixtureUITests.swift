@@ -96,7 +96,7 @@ final class FixtureUITests: XCTestCase {
 
     static func makeRunRoot() throws -> URL {
         var repository = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { repository.deleteLastPathComponent() }
+        for _ in 0..<3 { repository.deleteLastPathComponent() }
         guard FileManager.default.fileExists(atPath: repository.appendingPathComponent("app/macos/FixtureWidget/Info.plist").path)
         else { throw NSError(domain: "Missing checkout", code: 1) }
         let root = repository.appendingPathComponent("out/macos/ui-tests-" + UUID().uuidString)
@@ -191,6 +191,19 @@ final class FixtureUITests: XCTestCase {
         XCTAssertTrue(last.isHittable)
         XCTAssertTrue(last.label.contains("24:00"))
         XCTAssertLessThanOrEqual(app.windows.firstMatch.frame.height, NSScreen.main!.visibleFrame.height)
+    }
+
+    func testMenuBarPanelAndEscape() {
+        app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
+        let item = app.menuBars.menuBarItems.matching(NSPredicate(format: "label CONTAINS %@", "ТЕСТ · DTEK")).firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 5), app.debugDescription)
+        item.click()
+        XCTAssertTrue(element("test-banner").waitForExistence(timeout: 5))
+        element("edit-address").click()
+        element("street").typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(element("street").exists)
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(element("test-banner").isHittable)
     }
 
     func testReopenUsesSameProcessAndQuit() throws {

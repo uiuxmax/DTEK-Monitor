@@ -25,7 +25,7 @@
         A10000000000000000000003 = {isa = PBXBuildFile; fileRef = B10000000000000000000003; };
         B10000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureWidget/TestEnvelope.swift; sourceTree = SOURCE_ROOT; };
         A10000000000000000000004 = {isa = PBXBuildFile; fileRef = B10000000000000000000004; };
-        B10000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureUITests/FixtureUITests.swift; sourceTree = SOURCE_ROOT; };
+        B10000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../../tests/macos/FixtureUITests.swift; sourceTree = SOURCE_ROOT; };
         A10000000000000000000005 = {isa = PBXBuildFile; fileRef = B10000000000000000000005; };
         A10000000000000000000006 = {isa = PBXBuildFile; fileRef = B10000000000000000000002; };
         A10000000000000000000007 = {isa = PBXBuildFile; fileRef = B10000000000000000000004; };

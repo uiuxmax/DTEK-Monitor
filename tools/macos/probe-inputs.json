@@ -44,7 +44,7 @@
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",
-      "sha256": "8a2000cdcdeea91c583888aabf3eb4da84af25e5c5eb63ca6981e18c0dd968f6"
+      "sha256": "08b16181bcb1ce6db05afe9f55747a16e976f1e757b322459d3da61422769d65"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme",
@@ -53,10 +53,6 @@
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKFixtureWidget.xcscheme",
       "sha256": "647c5179ec2b77e1a773eea6047f1becd1777c5cd941126c13b94aade0636397"
-    },
-    {
-      "path": "app/macos/FixtureUITests/FixtureUITests.swift",
-      "sha256": "9fe78a60e29aaccf2c7005fcc533d40d56dd9b1774eb70198c2a715cd52ac054"
     },
     {
       "path": "app/macos/FixtureWidget/FixtureModel.swift",
@@ -95,8 +91,12 @@
       "sha256": "257a6effb44bbc0ff8909a6154548b7f66b885c85f98ddc3a682cba4c5922f93"
     },
     {
+      "path": "tests/macos/FixtureUITests.swift",
+      "sha256": "daec81998d32c5a396486da48025beaf18d2151c8c8a0b2b3db3b3d770db4314"
+    },
+    {
       "path": "tools/macos/check-ui.sh",
-      "sha256": "336148197257a9adb023e1b52a8f9f9488de48edc7368112bb52a9f39766bcb1"
+      "sha256": "73f288732f2db7e45fd797f4f6931e42c25990ddf09d1da3ce7305bd44a21723"
     },
     {
       "path": "tools/macos/check.sh",

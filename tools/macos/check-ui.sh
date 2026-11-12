@@ -43,7 +43,7 @@ trap finish EXIT
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-before.json"
 inputs=(app/macos/FixtureWidget/FixtureWidgetApp.swift app/macos/FixtureWidget/FixtureModel.swift
     app/macos/FixtureWidget/TestEnvelope.swift app/macos/FixtureWidget/WidgetView.swift
-    app/macos/FixtureWidget/Info.plist app/macos/FixtureUITests/FixtureUITests.swift
+    app/macos/FixtureWidget/Info.plist tests/macos/FixtureUITests.swift
     app/macos/DTEKMonitor.xcodeproj/project.pbxproj
     app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKFixtureWidget.xcscheme
     tools/macos/check-ui.sh tools/macos/doctor.sh "$verifier" "$manifest")
@@ -77,13 +77,13 @@ expect_rejected network-enabled "${valid_env[@]}" DTEKMONITOR_DISABLE_PROVIDER=0
 "${build[@]}" test-without-building -resultBundlePath "$run/Tests.xcresult" > "$run/tests.log" 2>&1
 /usr/bin/xcrun xcresulttool get test-results summary --path "$run/Tests.xcresult" > "$run/test-summary.json"
 [[ "$(/usr/bin/plutil -extract failedTests raw "$run/test-summary.json")" == 0 ]]
-[[ "$(/usr/bin/plutil -extract passedTests raw "$run/test-summary.json")" == 12 ]]
+[[ "$(/usr/bin/plutil -extract passedTests raw "$run/test-summary.json")" == 13 ]]
 [[ "$(/usr/bin/plutil -extract skippedTests raw "$run/test-summary.json")" == 0 ]]
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json"
 cmp "$run/verified-before.json" "$run/verified-after.json"
 record model_tests 6
-record ui_tests 6
+record ui_tests 7
 record rejected_app_envelopes 3
 record architecture arm64
 record evidence 'Tests.xcresult, test-summary.json, tests.log, build.log, inputs.sha256, executable.sha256'
