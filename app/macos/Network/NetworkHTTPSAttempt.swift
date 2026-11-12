@@ -115,7 +115,10 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
             // also retires stalled queries, so it cannot outlive the attempt.
             let context=Unmanaged.passRetained(self).toOpaque(); self.dnsContext=context
             var reference: DNSServiceRef?
-            let code=DNSServiceGetAddrInfo(&reference,DNSServiceFlags(kDNSServiceFlagsTimeout),0,protocols,hostname,
+            // Without ReturnIntermediates, DNS-SD suppresses NXDOMAIN and keeps
+            // the query alive. Surface that native error within the same budget.
+            let flags=DNSServiceFlags(kDNSServiceFlagsTimeout | kDNSServiceFlagsReturnIntermediates)
+            let code=DNSServiceGetAddrInfo(&reference,flags,0,protocols,hostname,
                 { _, flags, _, error, _, address, _, context in
                     guard let context=context else { return }
                     let attempt=Unmanaged<NetworkHTTPSAttempt>.fromOpaque(context).takeUnretainedValue()

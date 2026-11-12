@@ -136,7 +136,7 @@
     },
     {
       "path": "app/macos/Network/NetworkHTTPSAttempt.swift",
-      "sha256": "57f21d146fef5b3698fb9a25ecd1b4063f510b0b499fb2c5dd2e5dabadf47c94"
+      "sha256": "2eacea938a7265efbe4a4464ecc9c260941ed450c706fdebeb2b3034ce3e8a64"
     },
     {
       "path": "app/macos/Network/RawHTTPResponse.swift",
