@@ -112,7 +112,7 @@ final class FixtureUITests: XCTestCase {
     static func envelope(_ root: URL) -> [String: String] {
         ["DTEKMONITOR_TEST_ROOT": root.path,
          "DTEKMONITOR_TEST_PROFILE": root.appendingPathComponent("profile").path,
-         "DTEKMONITOR_TEST_INSTANCE": root.lastPathComponent,
+         "DTEKMONITOR_TEST_INSTANCE": root.deletingLastPathComponent().lastPathComponent + "-" + root.lastPathComponent,
          "DTEKMONITOR_AUTOSTART_TEST_MODE": "1", "DTEKMONITOR_DISABLE_PROVIDER": "1"]
     }
 

@@ -92,7 +92,7 @@
     },
     {
       "path": "tests/macos/FixtureUITests.swift",
-      "sha256": "8603eed33c9396d55d772a39d584561ce849c0ea0ffae1c5f11ce294ca75f7a3"
+      "sha256": "d5e68c2354a197238ea01474a473d6880922d0a5900511afe19a5d798573b9a6"
     },
     {
       "path": "tests/macos/Info.plist",
