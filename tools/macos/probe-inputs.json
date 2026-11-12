@@ -184,7 +184,7 @@
     },
     {
       "path": "app/macos/Session/MonitorView.swift",
-      "sha256": "22b19a6f27af802c2577ba8f790047dd0974d08bd80d859384e14f874ff4b246"
+      "sha256": "eebc8e909db744f1a573f97eee37f38ad8f218e1a5a30450b039fa69617a7435"
     },
     {
       "path": "app/macos/Session/NativeLookupWorker.swift",

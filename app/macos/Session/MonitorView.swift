@@ -7,7 +7,9 @@ import AppKit
     let showSchedule: () -> Void
     let closeWindow: () -> Void
     @State private var editing=false
-    @State private var street="", house="", validation=""
+    @State private var street=""
+    @State private var house=""
+    @State private var validation=""
     @State private var choosing=false
     @FocusState private var focus: Field?
     private enum Field: Hashable { case street, house, suggestion(Int) }
