@@ -132,7 +132,8 @@ import AppKit
                     if choosing { choosing=false } else { searchingHouse=false; model.editStreet(value) }
                 }
                 .onSubmit {
-                    if suggestionsMatch, let first=model.state?.suggestions.first { choose(first) } else { focus = .house }
+                    guard focus == .street else { return }
+                    if !searchingHouse, suggestionsMatch, let first=model.state?.suggestions.first { choose(first) } else { focus = .house }
                 }
             if !searchingHouse { suggestionContent }
             Text("Будинок").font(.caption.bold())
@@ -140,7 +141,7 @@ import AppKit
                 .onChange(of:house) { value in
                     if choosingHouse { choosingHouse=false } else { searchingHouse=true; model.editHouse(street:street,house:value) }
                 }
-                .onSubmit { apply() }
+                .onSubmit { if focus == .house { apply() } }
             if searchingHouse { suggestionContent }
             if !validation.isEmpty { Text(validation).font(.caption).foregroundStyle(.red).accessibilityIdentifier("address-error") }
             HStack {
@@ -184,7 +185,8 @@ import AppKit
         focus = .house; model.editStreet(nil)
     }
     private func chooseSuggestion(_ value: String) {
-        if searchingHouse {
+        guard suggestionsMatch else { return }
+        if model.state?.suggestionKind == "house" {
             if value != house { choosingHouse=true; house=value }
             model.editStreet(nil); focus = .house
         } else { choose(value) }
