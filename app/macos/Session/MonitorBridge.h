@@ -29,6 +29,8 @@ typedef NSDictionary<NSString *, id> * _Nonnull (^DMGetTransport)(NSDictionary<N
     NS_SWIFT_NAME(select(street:house:epoch:));
 - (BOOL)acceptReply:(DMLookupReply *)reply epoch:(int64_t)epoch NS_SWIFT_NAME(accept(_:epoch:));
 - (BOOL)setTheme:(NSString *)theme;
+- (BOOL)recordEvent:(NSInteger)event status:(NSInteger)status reason:(NSInteger)reason epoch:(int64_t)epoch
+    NS_SWIFT_NAME(record(event:status:reason:epoch:));
 - (void)selectTomorrow:(BOOL)tomorrow;
 @end
 NS_ASSUME_NONNULL_END

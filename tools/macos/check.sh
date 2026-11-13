@@ -53,7 +53,7 @@ else
 fi
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-before.json"
 # Record every build input, including shared engine/tests, before compilation.
-inputs=(app/macos/Session/LoginItemModel.swift tests/macos/LoginItemTests.swift
+inputs=(tests/macos/diagnostics_tests.h tests/macos/diagnostics_tests.mm app/macos/Session/LoginItemModel.swift tests/macos/LoginItemTests.swift
     app/macos/Session/MonitorBridge.h app/macos/Session/MonitorBridge.mm
     app/macos/Session/MonitorSession.swift app/macos/Session/NativeLookupWorker.swift
     app/macos/Network/SessionPolicy.swift app/macos/Network/HTTPSAttempt.swift
@@ -119,12 +119,14 @@ grep -q '^RESULT 5/5 Foundation restart checks passed$' "$run/restart.log" || ex
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json"
 cmp "$run/verified-before.json" "$run/verified-after.json"
+grep -q '^RESULT 21/21 native diagnostic checks passed$' "$run/probe.log" || exit 1
 record portable_checks 67
 record bridge_scenarios 3
 record timezone_checks 60
 record data_checks 111
 record data_restart_checks 5
 record lookup_checks 92
+record diagnostics_checks 21
 record monitor_bridge_checks 26
 record rejected_envelopes 6
 if [[ "$scope" == private-checkout ]]; then record preserved_files 504; fi

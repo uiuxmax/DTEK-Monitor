@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "6b5b82e64dc7c0a65a79f29dac5e302b580cc8a6",
+  "source_base_commit": "a4f191650fa6057d54f2577d1a08121bbc80cb79",
   "files": [
     {
       "path": ".gitattributes",
@@ -24,7 +24,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "cab394245c0394095d952c4694acdaa003f384365c5307c526cdeec5274a2c92"
+      "sha256": "43a17d18ab70093b380149dc5e47eeb9a9f66074bc4ff1ae1213b40e0361505e"
     },
     {
       "path": "app/address_draft.h",
@@ -52,19 +52,19 @@
     },
     {
       "path": "app/macos/CoreProbe/CoreProbeBridge.h",
-      "sha256": "d0f013db0ea186c4c4f53bbfb9038e06da2ad2a6978641b6c18ee7dbf01f731b"
+      "sha256": "0c445e96361d695423c63425986fc2fb111f9f2d313005b25ac096c6448006e6"
     },
     {
       "path": "app/macos/CoreProbe/CoreProbeBridge.mm",
-      "sha256": "f981d37b313c392c726d5846c9a03b6a52159a737d6030fc46fe85728a03bce5"
+      "sha256": "c6fd9f7755f7adee31ae297fd9bb5451b9cbc3b39169b80a440603e94ccacac9"
     },
     {
       "path": "app/macos/CoreProbe/main.swift",
-      "sha256": "9c3f2a6bdc2688ddcae2a64a69c3070eb5b250bc3ca5dd0449953a748a7f7244"
+      "sha256": "c1e860f0980f318224d3def4ac90e1a03ca227ab944fec3c254c0635df0b2e4d"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",
-      "sha256": "11f6a94596f0d1d3762129daf10aece133aa4558c93619daa2fad0c68282e206"
+      "sha256": "b5e8e08b4e3db1118adc122fa2add5de7d7b8aed2c958ce38f25a070c63d22cf"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme",
@@ -96,11 +96,11 @@
     },
     {
       "path": "app/macos/Data/foundation_profile.h",
-      "sha256": "98b777e2a5383b90e1fc3c745a2552c1a18a7080740c9688dc5693ac658df4b7"
+      "sha256": "44440ae920460e0a281975728c5d35d263f2c9074800b53d72ca8fd8d3bd9890"
     },
     {
       "path": "app/macos/Data/foundation_profile.mm",
-      "sha256": "e6c1d63be64f50344b0ba2cafe9ed8bfaee0d26a4128d8e944f2c7d8a38ef77f"
+      "sha256": "69cbacb3e066ede8112e42816099f12fb640004f1684f47114a15fcade84ddac"
     },
     {
       "path": "app/macos/Data/foundation_yasno_adapter.mm",
@@ -168,19 +168,19 @@
     },
     {
       "path": "app/macos/Session/MonitorBridge.h",
-      "sha256": "06273d0bae8a9297668b0842c8aacc100611a999b47c558f8149f91b60aae80e"
+      "sha256": "d48c87d5f3c68bd2ace30b7aebfe01b5d3b62c3dca8a96a5589b658d89bb3713"
     },
     {
       "path": "app/macos/Session/MonitorBridge.mm",
-      "sha256": "1e5301a3ddd7be9138e453e4500a1c7a1e8386b844413157f2e60a41fe073d63"
+      "sha256": "5c471ffd65c522d0fd0ac710802ced30188d9b80b29a69d2927d29d40904edea"
     },
     {
       "path": "app/macos/Session/MonitorModel.swift",
-      "sha256": "0aec8bc5db63b032739b985a882f0d060255ebbb99e270b1b385b4df6a5554c3"
+      "sha256": "671792cdf79e2bf6d5a0c197318fbee7b256d1f71596c7b0c72614035a7dc36c"
     },
     {
       "path": "app/macos/Session/MonitorSession.swift",
-      "sha256": "67b73b9ab28a65112c4cb740c9e0d71aee5325f33394fab015dccf34c7137956"
+      "sha256": "25fe21a21b523eadccfa9852fd0f464533d4fcfced4014040cfeae867bcbf561"
     },
     {
       "path": "app/macos/Session/MonitorView.swift",
@@ -299,6 +299,14 @@
       "sha256": "41cb890c75f35563673792e056afff1178a65c7b96c9db89b507a1476a89f5b7"
     },
     {
+      "path": "tests/macos/diagnostics_tests.h",
+      "sha256": "e335055dca973348249a0a52f00ee75b7dd5541d3d25d593b016e7b40f6a8dba"
+    },
+    {
+      "path": "tests/macos/diagnostics_tests.mm",
+      "sha256": "82a70828f82b5272b59a6652a8ff4a273e125c25834b15b953deb33eb484bbc2"
+    },
+    {
       "path": "tests/macos/https_wire_server.py",
       "sha256": "9e3e8068a82aab0c1b0a50a42ac6f7c134a6aa47a6d6b579c2c3c228ada0a4af"
     },
@@ -348,7 +356,7 @@
     },
     {
       "path": "tools/macos/check.sh",
-      "sha256": "a3491d7daafda2ea607e10b8266e48098068328f37fa4f4e9669e470a552c21d"
+      "sha256": "e92757f8068fcf9fb8c8ea58b79c6d97df2a9cd4114bbce49968c4a3b04e26b8"
     },
     {
       "path": "tools/macos/doctor.sh",

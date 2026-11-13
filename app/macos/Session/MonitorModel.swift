@@ -40,7 +40,7 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         NSWorkspace.shared.notificationCenter.publisher(for:NSWorkspace.didWakeNotification)
             .receive(on:RunLoop.main).sink { [weak self] _ in self?.wake() }.store(in:&observers)
         NotificationCenter.default.publisher(for:.NSSystemClockDidChange)
-            .receive(on:RunLoop.main).sink { [weak self] _ in self?.wake() }.store(in:&observers)
+            .receive(on:RunLoop.main).sink { [weak self] _ in self?.clockChanged() }.store(in:&observers)
     }
     private func receive(_ snapshot: MonitorSnapshot) {
         guard snapshot.sequence > appliedSequence else { return }
@@ -50,6 +50,7 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         guard let session=session else { return }
         Task { await session.tick(wake:true) }
     }
+    private func clockChanged() { guard let session=session else { return }; Task { await session.tick(wake:true,clockChanged:true) } }
     private func send(_ action: @escaping @Sendable (MonitorSession) async -> Void) {
         guard let session=session else { return }
         let previous=commands

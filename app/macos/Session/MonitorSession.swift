@@ -1,5 +1,7 @@
 import Foundation
 
+private enum MonitorEvent: Int { case startup, addressApplied, lookupOK, lookupFailed, sourceStopped, wake, clockChanged, themeChanged, shutdown }
+
 struct MonitorMoment: Sendable { let milliseconds: Int64; let epoch: Int64 }
 struct MonitorClock: Sendable {
     private let elapsed = MacContinuousMilliseconds()
@@ -72,10 +74,15 @@ actor MonitorSession {
         let engine=DMMonitorEngine(profile:profile,epoch:clock.read()?.epoch ?? 0)
         self.engine=engine
         started = true
+        record(.startup)
         let value = engine.snapshot(epoch: clock.read()?.epoch ?? 0)
         street = value["street"] as? String ?? ""; house = value["house"] as? String ?? ""
         _ = policy.selectAddress(street.isEmpty || house.isEmpty ? nil : key(street,house))
         tick()
+    }
+    private func record(_ event: MonitorEvent,status: Int = 0,reason: Int = 0,epoch: Int64? = nil) {
+        guard let engine=engine else { return }
+        _ = engine.record(event:event.rawValue,status:status,reason:reason,epoch:epoch ?? clock.read()?.epoch ?? 0)
     }
     private func key(_ street: String, _ house: String) -> String { street + "\n" + house }
     private func cancel(_ ticket: MacSessionPolicy.Ticket?) {
@@ -93,11 +100,12 @@ actor MonitorSession {
             }
         active = (ticket,work)
     }
-    func tick(wake: Bool = false) {
+    func tick(wake: Bool = false, clockChanged: Bool = false) {
         guard started, !policy.closed, let engine=engine else { return }
         guard let now = clock.read() else {
             execute(policy.tick(nowMS:-1,kyivDay:nil)); emit(epoch:0); return
         }
+        if wake || clockChanged { record(clockChanged ? .clockChanged : .wake,epoch:now.epoch) }
         let snapshot = engine.snapshot(epoch:now.epoch)
         let day = snapshot["kyivDay"] as? String
         let expired = wake ? active?.1.revalidateDeadline() ?? false : false
@@ -123,6 +131,7 @@ actor MonitorSession {
               let normalizedStreet = normalized["street"], let normalizedHouse = normalized["house"],
               engine.select(street:normalizedStreet,house:normalizedHouse,epoch:now) else { lastFailure="invalid_address"; emit(epoch:now); return }
         self.street = normalizedStreet; self.house = normalizedHouse
+        record(.addressApplied,epoch:now)
         cancel(policy.selectAddress(key(normalizedStreet,normalizedHouse)))
         suggestions = []
         lastFailure = nil
@@ -130,7 +139,7 @@ actor MonitorSession {
     }
     func setTheme(_ theme: String) {
         guard started, !policy.closed, let engine=engine else { return }
-        _ = engine.setTheme(theme); emit(epoch:clock.read()?.epoch ?? 0)
+        _ = engine.setTheme(theme); record(.themeChanged); emit(epoch:clock.read()?.epoch ?? 0)
     }
     func selectTomorrow(_ value: Bool) {
         guard started, !policy.closed, let engine=engine else { return }
@@ -142,7 +151,7 @@ actor MonitorSession {
         engine.selectTomorrow(false)
         emit(epoch:clock.read()?.epoch ?? 0)
     }
-    func close() { cancel(policy.close()); emit(epoch:clock.read()?.epoch ?? 0) }
+    func close() { guard !policy.closed else { return }; record(.shutdown); cancel(policy.close()); emit(epoch:clock.read()?.epoch ?? 0) }
     private func received(_ ticket: MacSessionPolicy.Ticket, reply: MonitorReplyBox) {
         guard let engine=engine else { return }
         completedRequests += reply.requests
@@ -157,9 +166,12 @@ actor MonitorSession {
             if ticket.kind == .lookup {
                 let accepted = engine.accept(reply.value,epoch:clock.read()?.epoch ?? 0)
                 lastFailure = accepted ? nil : failure == "none" ? "schema" : failure
+                let status=(stages.last?["status"] as? NSNumber)?.intValue ?? 0
+                let reason=accepted ? 0 : (failure == "schema" || failure == "none") ? 12 : failure == "address_mismatch" ? 13 : (stages.last?["error"] as? NSNumber)?.intValue ?? 0
+                record(accepted ? .lookupOK : .lookupFailed,status:status,reason:reason)
             }
             else { suggestions = (metadata["suggestions"] as? [[String:Any]] ?? []).compactMap { $0["label"] as? String } }
-        } else if decision.disposition == .sourceStopped { lastFailure="source_stopped"; suggestions = [] }
+        } else if decision.disposition == .sourceStopped { lastFailure="source_stopped"; suggestions = []; record(.sourceStopped,status:blocked ?? 0,reason:5) }
         emit(epoch:clock.read()?.epoch ?? 0)
     }
     private func emit(epoch: Int64) {

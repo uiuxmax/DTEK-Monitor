@@ -82,7 +82,7 @@ struct EngineState {
 - (NSDictionary<NSString *,id> *)metadata {
     if(!_value)return @{@"failure":@"schema",@"stages":@[],@"suggestions":@[]};
     NSMutableArray *stages=[NSMutableArray array], *suggestions=[NSMutableArray array];
-    for(const auto& stage:_value->stages)[stages addObject:@{@"kind":resource_name(stage.resource),@"status":@(stage.status),@"bytes":@(stage.body_bytes)}];
+    for(const auto& stage:_value->stages)[stages addObject:@{@"kind":resource_name(stage.resource),@"status":@(stage.status),@"bytes":@(stage.body_bytes),@"error":@(static_cast<int>(stage.error))}];
     for(const auto& choice:_value->suggestions)[suggestions addObject:@{@"id":text(choice.id),@"label":text(choice.label)}];
     return @{@"failure":failure_name(_value->failure),@"stages":stages,@"suggestions":suggestions,@"hasSchedule":@(_value->schedule.has_value())};
 }
@@ -173,6 +173,10 @@ struct EngineState {
         _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
         return YES;
     } catch(...) { return NO; }
+}
+- (BOOL)recordEvent:(NSInteger)event status:(NSInteger)status reason:(NSInteger)reason epoch:(int64_t)epoch {
+    if(!_state || event<0 || event>8 || status<0 || status>599 || reason<0 || reason>13)return NO;
+    return mac_profile::append_event(_state->profile,static_cast<mac_profile::DiagnosticEvent>(event),schedule::UtcInstant{epoch},static_cast<int>(status),static_cast<int>(reason));
 }
 - (BOOL)setTheme:(NSString *)theme {
     if(!_state)return NO;

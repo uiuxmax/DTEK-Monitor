@@ -89,3 +89,7 @@ print("RESULT 92/92 Foundation lookup checks passed")
 let monitorTotals = DMCoreProbeBridge.runMonitorBridgeTests()
 guard monitorTotals["checks"]?.intValue == 26, monitorTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 26/26 monitor receipt bridge checks passed")
+
+let diagnosticTotals=DMCoreProbeBridge.runDiagnosticsTests()
+guard diagnosticTotals["checks"]?.intValue == 21, diagnosticTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 21/21 native diagnostic checks passed")

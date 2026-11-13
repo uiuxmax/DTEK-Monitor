@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <array>
+#include <chrono>
 #include <charconv>
 #include <limits>
 
@@ -218,9 +219,9 @@ bool save_receipt(const fs::path& profile, const Receipt& value, WriteFault faul
         } catch (...) { return false; }
     }
 }
-bool clean_logs(const fs::path& profile, fs::file_time_type now) {
-    if (!owned_profile(profile)) return false;
-    return log_retention::clean(profile / "logs", now, std::chrono::hours{7 * 24}, 5 * 1024 * 1024);
+bool clean_logs(const fs::path& profile, fs::file_time_type now, std::size_t reserve_bytes) {
+    if (!owned_profile(profile) || reserve_bytes > 5 * 1024 * 1024) return false;
+    return log_retention::clean(profile / "logs", now, std::chrono::hours{7 * 24}, 5 * 1024 * 1024 - reserve_bytes);
 }
 DayReceipt::DayReceipt(const schedule::KyivTimeZone& zone, schedule::FreshnessPolicy policy)
     : zone_(zone), incoming_(policy), retained_(zone, retention(policy)) {}
@@ -271,4 +272,58 @@ std::optional<schedule::Countdown> DayReceipt::estimate(schedule::UtcInstant now
     return result.kind == schedule::OutcomeKind::ready ? result.countdown : std::nullopt;
 }
 void DayReceipt::select_tomorrow(bool value) { retained_.select_tomorrow(value); }
+} // namespace mac_profile
+
+namespace mac_profile {
+bool append_event(const std::filesystem::path& profile, DiagnosticEvent event,
+                  schedule::UtcInstant now, int status, int reason) {
+    try {
+        const char *name=nullptr;
+        switch(event) {
+        case DiagnosticEvent::startup:name="startup";break;
+        case DiagnosticEvent::address_applied:name="address_applied";break;
+        case DiagnosticEvent::lookup_ok:name="lookup_ok";break;
+        case DiagnosticEvent::lookup_failed:name="lookup_failed";break;
+        case DiagnosticEvent::source_stopped:name="source_stopped";break;
+        case DiagnosticEvent::wake:name="wake";break;
+        case DiagnosticEvent::clock_changed:name="clock_changed";break;
+        case DiagnosticEvent::theme_changed:name="theme_changed";break;
+        case DiagnosticEvent::shutdown:name="shutdown";break;
+        }
+        if(!name || status<0 || status>599 || reason<0 || reason>13 ||
+           now.epoch_seconds < -11644473600LL || now.epoch_seconds > 253402300799LL)return false;
+        const std::chrono::sys_seconds instant{std::chrono::seconds{now.epoch_seconds}};
+        const auto day=std::chrono::floor<std::chrono::days>(instant);
+        const std::chrono::year_month_day date{day};
+        const std::chrono::hh_mm_ss time{instant-day};
+        std::array<char,26> leaf{};
+        if(std::snprintf(leaf.data(),leaf.size(),"diagnostic-%04d-%02u-%02u.log",int(date.year()),unsigned(date.month()),unsigned(date.day()))!=25)return false;
+        std::array<char,128> line{};
+        const auto length=std::snprintf(line.data(),line.size(),"%04d-%02u-%02uT%02lld:%02lld:%02lldZ %s status=%d reason=%d\n",
+            int(date.year()),unsigned(date.month()),unsigned(date.day()),
+            static_cast<long long>(time.hours().count()),static_cast<long long>(time.minutes().count()),
+            static_cast<long long>(time.seconds().count()),name,status,reason);
+        if(length<=0 || static_cast<std::size_t>(length)>=line.size())return false;
+        Descriptor root{open_profile(profile)};
+        if(root.value<0)return false;
+        if(::mkdirat(root.value,"logs",0700)!=0 && errno!=EEXIST)return false;
+        Descriptor logs{::openat(root.value,"logs",O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC)};
+        if(logs.value<0 || !clean_logs(profile,std::filesystem::file_time_type::clock::now(),static_cast<std::size_t>(length)))return false;
+        Descriptor file{::openat(logs.value,leaf.data(),O_WRONLY|O_CREAT|O_APPEND|O_NOFOLLOW|O_CLOEXEC,0600)};
+        struct stat info{};
+        if(file.value<0 || ::fstat(file.value,&info)!=0 || !S_ISREG(info.st_mode) || info.st_nlink!=1 ||
+           info.st_uid!=::geteuid() || info.st_size<0 ||
+           static_cast<std::uintmax_t>(info.st_size)>5*1024*1024-static_cast<std::size_t>(length) || ::fchmod(file.value,0600)!=0)return false;
+        std::size_t offset=0;
+        while(offset<static_cast<std::size_t>(length)) {
+            const auto written=::write(file.value,line.data()+offset,static_cast<std::size_t>(length)-offset);
+            if(written<0 && errno==EINTR)continue;
+            if(written<=0)return false;
+            offset+=static_cast<std::size_t>(written);
+        }
+        const bool synced=::fsync(file.value)==0;
+        const bool closed=::close(file.value)==0; file.value=-1;
+        return synced && closed;
+    } catch(...) { return false; }
+}
 } // namespace mac_profile
