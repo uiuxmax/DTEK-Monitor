@@ -99,6 +99,9 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
     func setTheme(_ theme: MonitorTheme) {
         send { await $0.setTheme(theme.rawValue) }
     }
+    func setFloating(visible: Bool, positioned: Bool, x: Int, y: Int, size: Int) {
+        send { await $0.setFloating(visible:visible,positioned:positioned,x:x,y:y,size:size) }
+    }
     func stop() async {
         ticks?.cancel(); debounce?.cancel(); observers.removeAll()
         let owned=session; session=nil

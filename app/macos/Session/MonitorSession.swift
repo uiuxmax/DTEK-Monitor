@@ -46,6 +46,11 @@ struct MonitorSnapshot: Sendable {
     let loading: Bool
     let stopped: Bool
     let storageWarning: Bool
+    let floatingVisible: Bool
+    let floatingPositioned: Bool
+    let floatingX: Int
+    let floatingY: Int
+    let floatingSize: Int
     let failure: String?
     let requestCount: Int
 }
@@ -166,6 +171,11 @@ actor MonitorSession {
         guard started, !policy.closed, let engine=engine else { return }
         _ = engine.setTheme(theme); record(.themeChanged); emit(epoch:clock.read()?.epoch ?? 0)
     }
+    func setFloating(visible: Bool, positioned: Bool, x: Int, y: Int, size: Int) {
+        guard started, !policy.closed, let engine=engine else { return }
+        _ = engine.setFloating(visible:visible,positioned:positioned,x:x,y:y,size:size)
+        emit(epoch:clock.read()?.epoch ?? 0)
+    }
     func selectTomorrow(_ value: Bool) {
         guard started, !policy.closed, let engine=engine else { return }
         engine.selectTomorrow(value); emit(epoch:clock.read()?.epoch ?? 0)
@@ -226,6 +236,11 @@ actor MonitorSession {
             totalOutageMinutes:(value["totalOutageMinutes"] as? NSNumber)?.intValue ?? 0,
             received:(value["received"] as? NSNumber)?.int64Value,editing:policy.editing,loading:policy.pending != nil,
             stopped:policy.stopped,storageWarning:(value["storageWarning"] as? NSNumber)?.boolValue == true,
+            floatingVisible:(value["floatingVisible"] as? NSNumber)?.boolValue == true,
+            floatingPositioned:(value["floatingPositioned"] as? NSNumber)?.boolValue == true,
+            floatingX:(value["floatingX"] as? NSNumber)?.intValue ?? 0,
+            floatingY:(value["floatingY"] as? NSNumber)?.intValue ?? 0,
+            floatingSize:(value["floatingSize"] as? NSNumber)?.intValue ?? 1,
             failure:lastFailure,requestCount:completedRequests+(active?.1.requests ?? 0)))
     }
 }

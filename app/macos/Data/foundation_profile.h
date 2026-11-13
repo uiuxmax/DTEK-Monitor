@@ -11,6 +11,11 @@ enum class ReadState { missing, loaded, unreadable, future_schema };
 struct Settings {
     address_draft::Draft draft;
     std::string theme = "system";
+    bool floating_visible = false;
+    bool floating_positioned = false;
+    int floating_x = 0;
+    int floating_y = 0;
+    int floating_size = 1;
     bool operator==(const Settings&) const = default;
 };
 struct SettingsRead { ReadState state; Settings value; };

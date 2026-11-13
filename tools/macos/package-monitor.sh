@@ -27,6 +27,9 @@ info=plistlib.loads((bundle/'Contents/Info.plist').read_bytes())
 assert info['CFBundleIdentifier']=='local.dtekmonitor.Monitor' and info['CFBundleExecutable']=='DTEKMonitor'
 assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='1'
 assert info['LSMinimumSystemVersion']=='13.0' and info['LSUIElement'] is True
+for name in ('power-on-v1.png','power-off-v1.png','notification-v1.png'):
+    icon=bundle/'Contents/Resources'/name
+    assert icon.is_file() and icon.stat().st_size > 0, name
 subprocess.run(['/usr/bin/codesign','--verify','--deep','--strict',str(bundle)],check=True,capture_output=True)
 signature=subprocess.run(['/usr/bin/codesign','-dv','--verbose=4',str(bundle)],check=True,capture_output=True,text=True).stderr
 assert 'Signature=adhoc' in signature

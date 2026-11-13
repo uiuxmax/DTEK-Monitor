@@ -1,10 +1,15 @@
 import SwiftUI
 import AppKit
 import Darwin
+import Combine
 
 #if !os(macOS) || !arch(arm64)
 #error("DTEK Monitor supports native Apple Silicon only")
 #endif
+
+private final class FloatingPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+}
 
 @MainActor final class MonitorAppDelegate: NSObject,NSApplicationDelegate,NSWindowDelegate {
     private var model: MonitorModel?
@@ -14,6 +19,11 @@ import Darwin
     private var item: NSStatusItem?
     private let popover=NSPopover()
     private var activationObserver: NSObjectProtocol?
+    private var screenObserver: NSObjectProtocol?
+    private var stateObserver: AnyCancellable?
+    private var floatingMoveTask: Task<Void,Never>?
+    private var restoredFloating=false
+    private var floatingSize=1
     private var quitting=false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -45,6 +55,14 @@ import Darwin
         activationObserver=NotificationCenter.default.addObserver(forName:NSApplication.didBecomeActiveNotification,object:nil,queue:.main) { [weak self] _ in
             Task { @MainActor in self?.login?.refresh() }
         }
+        screenObserver=NotificationCenter.default.addObserver(forName:NSApplication.didChangeScreenParametersNotification,object:nil,queue:.main) { [weak self] _ in
+            Task { @MainActor in self?.repositionFloatingIfNeeded() }
+        }
+        stateObserver=model?.$state.sink { [weak self] state in
+            guard let self=self, let state=state, !self.restoredFloating else { return }
+            self.restoredFloating=true; self.floatingSize=state.floatingSize
+            if state.floatingVisible { self.showFloating(restoring:true,initialState:state) }
+        }
         showSchedule()
     }
     private var panelHeight: CGFloat { max(300,min(680,(NSScreen.main?.visibleFrame.height ?? 800)-80)) }
@@ -53,18 +71,59 @@ import Darwin
         return MonitorView(model:model,login:login,showSchedule:{ [weak self] in self?.showSchedule() },
             showFloating:{ [weak self] in self?.showFloating() },closeWindow:close)
     }
-    private func showFloating() {
+    private func dimensions(_ size: Int) -> NSSize {
+        switch size { case 0:return NSSize(width:250,height:68); case 2:return NSSize(width:350,height:96); default:return NSSize(width:290,height:76) }
+    }
+    private func safeOrigin(_ origin: NSPoint, size: NSSize) -> NSPoint? {
+        let rect=NSRect(origin:origin,size:size)
+        let screens=NSScreen.screens
+        let screen=screens.first { $0.visibleFrame.intersects(rect) } ?? NSScreen.main ?? screens.first
+        guard let bounds=screen?.visibleFrame else { return nil }
+        return NSPoint(x:max(bounds.minX,min(origin.x,bounds.maxX-size.width)),
+                       y:max(bounds.minY,min(origin.y,bounds.maxY-size.height)))
+    }
+    private func persistFloating(visible: Bool) {
+        guard let panel=floating else { return }
+        let point=panel.frame.origin
+        guard point.x.isFinite, point.y.isFinite, abs(point.x)<=100000, abs(point.y)<=100000 else { return }
+        model?.setFloating(visible:visible,positioned:true,x:Int(point.x.rounded()),y:Int(point.y.rounded()),size:floatingSize)
+    }
+    private func repositionFloatingIfNeeded() {
+        guard let panel=floating, panel.isVisible, let origin=safeOrigin(panel.frame.origin,size:panel.frame.size), origin != panel.frame.origin else { return }
+        panel.setFrameOrigin(origin); persistFloating(visible:true)
+    }
+    private func setFloatingSize(_ size: Int) {
+        guard (0...2).contains(size), let panel=floating else { return }
+        floatingSize=size
+        let dimensions=dimensions(size)
+        let old=panel.frame
+        let desired=NSPoint(x:old.minX,y:old.maxY-dimensions.height)
+        let origin=safeOrigin(desired,size:dimensions) ?? desired
+        panel.setFrame(NSRect(origin:origin,size:dimensions),display:true)
+        persistFloating(visible:true)
+    }
+    private func hideFloating() { floatingMoveTask?.cancel(); floating?.orderOut(nil); persistFloating(visible:false) }
+    private func showFloating(restoring: Bool = false, initialState: MonitorSnapshot? = nil) {
         guard let model=model else { return }
         if floating == nil {
-            let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:280,height:165),
-                styleMask:[.titled,.closable,.utilityWindow,.nonactivatingPanel],backing:.buffered,defer:false)
+            let panel=FloatingPanel(contentRect:NSRect(origin:.zero,size:dimensions(floatingSize)),
+                styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
             panel.title="DTEK Monitor"; panel.identifier=NSUserInterfaceItemIdentifier("floating-monitor")
             panel.isReleasedWhenClosed=false; panel.isRestorable=false; panel.level = .floating
+            panel.isOpaque=false; panel.backgroundColor = .clear; panel.hasShadow=true
+            panel.isMovableByWindowBackground=true
             panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary]
-            panel.contentView=NSHostingView(rootView:FloatingMonitorView(model:model,showSchedule:{ [weak self] in self?.showSchedule() }))
-            panel.center(); floating=panel
+            panel.contentView=NSHostingView(rootView:FloatingMonitorView(model:model,
+                showSchedule:{ [weak self] in self?.showSchedule() },close:{ [weak self] in self?.hideFloating() },
+                setSize:{ [weak self] in self?.setFloatingSize($0) }))
+            panel.center()
+            if let state=initialState ?? model.state, state.floatingPositioned,
+               let origin=safeOrigin(NSPoint(x:CGFloat(state.floatingX),y:CGFloat(state.floatingY)),size:panel.frame.size) { panel.setFrameOrigin(origin) }
+            floating=panel; panel.delegate=self
         }
         floating?.orderFrontRegardless()
+        repositionFloatingIfNeeded()
+        if !restoring { persistFloating(visible:true) }
     }
     @objc private func togglePopover() {
         if popover.isShown { popover.performClose(nil); model?.cancelEditing(); return }
@@ -90,7 +149,17 @@ import Darwin
         window?.contentView=NSHostingView(rootView:view)
         window?.makeKeyAndOrderFront(nil); NSApplication.shared.activate(ignoringOtherApps:true)
     }
-    func windowWillClose(_ notification: Notification) { model?.cancelEditing() }
+    func windowWillClose(_ notification: Notification) {
+        if let value=notification.object as? NSWindow, value === window { model?.cancelEditing() }
+    }
+    func windowDidMove(_ notification: Notification) {
+        guard let value=notification.object as? NSWindow, value === floating, value.isVisible else { return }
+        floatingMoveTask?.cancel()
+        floatingMoveTask=Task { [weak self] in
+            do { try await Task.sleep(for:.milliseconds(300)) } catch { return }
+            self?.persistFloating(visible:true)
+        }
+    }
     func applicationShouldHandleReopen(_ sender: NSApplication,hasVisibleWindows flag: Bool) -> Bool { showSchedule(); return false }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { false }
@@ -98,6 +167,9 @@ import Darwin
         guard !quitting,let model=model else { return .terminateNow }
         quitting=true
         if let observer=activationObserver { NotificationCenter.default.removeObserver(observer); activationObserver=nil }
+        if let observer=screenObserver { NotificationCenter.default.removeObserver(observer); screenObserver=nil }
+        stateObserver=nil
+        floatingMoveTask?.cancel(); if floating?.isVisible == true { persistFloating(visible:true) }
         Task { await model.stop(); sender.reply(toApplicationShouldTerminate:true) }
         return .terminateLater
     }

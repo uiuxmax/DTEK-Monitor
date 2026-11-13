@@ -49,7 +49,8 @@ The UI data is synthetic. The separately tested Foundation Kyiv adapter handles
 strict Gregorian dates and DST gap/fold cases; this is not acceptance of
 networking, physical displays, VoiceOver, sleep/wake, Gatekeeper or sign-in behavior.
 
-The export excludes private Git history, historical binaries/settings/logs,
-provider samples and product images. Code is licensed under MIT.
+The export excludes private Git history, historical binaries/settings/logs and
+provider samples. It includes three current widget icons used by the Mac app.
+Code is licensed under MIT.
 
 No release or application update feed has been published by this probe.

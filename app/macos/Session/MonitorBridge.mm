@@ -189,6 +189,14 @@ struct EngineState {
     } catch(...) { return NO; }
 }
 - (void)selectTomorrow:(BOOL)tomorrow { if(_state && _state->receipt)_state->receipt->select_tomorrow(tomorrow); }
+- (BOOL)setFloatingVisible:(BOOL)visible positioned:(BOOL)positioned x:(NSInteger)x y:(NSInteger)y size:(NSInteger)size {
+    if (!_state || size < 0 || size > 2 || x < -100000 || x > 100000 || y < -100000 || y > 100000) return NO;
+    _state->settings.floating_visible=visible; _state->settings.floating_positioned=positioned;
+    _state->settings.floating_x=static_cast<int>(x); _state->settings.floating_y=static_cast<int>(y);
+    _state->settings.floating_size=static_cast<int>(size);
+    _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
+    return !_state->storage_warning;
+}
 - (BOOL)acceptReply:(DMLookupReply *)reply epoch:(int64_t)epoch {
     if(!_state || !_state->receipt || !reply->_value)return NO;
     const auto& result=*reply->_value;
@@ -238,7 +246,9 @@ struct EngineState {
             @"address":address,@"theme":text(_state->settings.theme),@"storageWarning":@(_state->storage_warning),
             @"kyivDay":dayKey,@"forecast":@(forecast),@"emergency":@(emergency),@"tomorrow":@(tomorrow),
             @"tomorrowAvailable":@(tomorrowAvailable),@"countdown":countdown,@"intervals":intervals,
-            @"totalOutageMinutes":@(total),@"received":received};
+            @"totalOutageMinutes":@(total),@"received":received,
+            @"floatingVisible":@(_state->settings.floating_visible), @"floatingPositioned":@(_state->settings.floating_positioned),
+            @"floatingX":@(_state->settings.floating_x), @"floatingY":@(_state->settings.floating_y), @"floatingSize":@(_state->settings.floating_size)};
     }
 }
 @end

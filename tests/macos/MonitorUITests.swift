@@ -72,6 +72,27 @@ final class MonitorUITests: XCTestCase {
         element("open-floating").click()
         XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
         waitText("floating-status","Додайте адресу")
+        element("floating-close").click()
+        XCTAssertFalse(element("floating-status").exists)
+        element("open-floating").click()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        waitText("request-count","0")
+        let settings=root.appendingPathComponent("profile/settings.json")
+        let saved=NSPredicate { _,_ in
+            guard let bytes=try? Data(contentsOf:settings),
+                  let value=(try? JSONSerialization.jsonObject(with:bytes)) as? [String:Any],
+                  let floating=value["floating"] as? [String:Any] else { return false }
+            return (floating["visible"] as? NSNumber)?.intValue == 1 && (floating["positioned"] as? NSNumber)?.intValue == 1
+        }
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:saved,object:nil)],timeout:8),.completed)
+        let floating=app.windows.matching(identifier:"floating-monitor").firstMatch
+        XCTAssertTrue(floating.waitForExistence(timeout:8))
+        let old=floating.frame.origin
+        app.terminate(); launch()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        XCTAssertTrue(floating.waitForExistence(timeout:8))
+        XCTAssertLessThanOrEqual(abs(floating.frame.origin.x-old.x),2)
+        XCTAssertLessThanOrEqual(abs(floating.frame.origin.y-old.y),2)
     }
     func testSuggestionsKeyboardApplyAndLocalTicks() {
         launch(); element("edit-address").click(); element("street").typeText("те")
@@ -79,6 +100,7 @@ final class MonitorUITests: XCTestCase {
         element("street").typeKey(.downArrow,modifierFlags:[]); app.typeKey(.return,modifierFlags:[])
         element("house").typeText("2-А\r"); ready()
         waitText("address","вул. Тестова, 2-А"); waitText("outage-total","3 г 30 хв")
+        XCTAssertTrue(element("schedule-timeline").exists)
         waitText("request-count","5"); XCTAssertTrue(element("received").exists)
         Thread.sleep(forTimeInterval:1.2); waitText("request-count","5")
     }

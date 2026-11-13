@@ -55,7 +55,8 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     await session.popupOpened()
     check("reopening selects today without refresh",box.load()?.tomorrow == false && box.load()?.requestCount == 4)
     await session.setTheme("dark")
-    check("theme saves through the actor",box.load()?.theme == "dark")
+    await session.setFloating(visible:true,positioned:true,x:-420,y:700,size:2)
+    check("theme and floating placement save through the actor",box.load()?.theme == "dark" && box.load()?.floatingVisible == true && box.load()?.floatingPositioned == true && box.load()?.floatingX == -420 && box.load()?.floatingY == 700 && box.load()?.floatingSize == 2)
     await session.editStreet("те")
     check("editing hides retained graph immediately",box.load()?.editing == true && box.load()?.forecast == false && box.load()?.rows.isEmpty == true)
     try? await Task.sleep(for:.milliseconds(480)); await session.tick()
@@ -78,7 +79,7 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     await restored.editStreet("те")
     try? await Task.sleep(for:.milliseconds(480)); await restored.tick()
     let failedSuggestion=await wait(restoredBox) { !$0.loading && $0.suggestionResult != nil }
-    check("restart retains receipt and reports suggestion transport failure",retained?.forecast == true && retained?.received == ready?.received && retained?.theme == "dark" && failedSuggestion?.suggestionResult == "transport")
+    check("restart retains receipt, floating placement and reports suggestion transport failure",retained?.forecast == true && retained?.received == ready?.received && retained?.theme == "dark" && retained?.floatingVisible == true && retained?.floatingX == -420 && retained?.floatingY == 700 && retained?.floatingSize == 2 && failedSuggestion?.suggestionResult == "transport")
     await restored.close()
     let stoppedBox=SnapshotBox()
     let stopped=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.synthetic("429"),publish:{ stoppedBox.store($0) })

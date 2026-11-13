@@ -32,8 +32,17 @@ import AppKit
             #endif
             ScrollView {
                 VStack(alignment:.leading,spacing:12) {
-                    Text(model.status).font(.title3.bold()).accessibilityIdentifier("status")
-                        .fixedSize(horizontal:false,vertical:true)
+                    HStack(alignment:.center,spacing:12) {
+                        MonitorStatusIcon(model:model,size:46)
+                        VStack(alignment:.leading,spacing:4) {
+                            Text(model.status).font(.headline).accessibilityIdentifier("status")
+                                .fixedSize(horizontal:false,vertical:true)
+                            if let countdown=model.state?.countdown, !countdown.isEmpty {
+                                Text(countdown + " · орієнтовно").font(.subheadline).monospacedDigit()
+                                    .accessibilityIdentifier("countdown")
+                            }
+                        }
+                    }.padding(.vertical,4)
                     HStack {
                         Text(model.state?.address ?? "Адресу не задано").lineLimit(2).accessibilityIdentifier("address")
                         Spacer()
@@ -48,6 +57,10 @@ import AppKit
                         Text("Налаштування або графік не вдалося зберегти. Перевірте доступ до папки даних.")
                             .font(.caption).foregroundStyle(.orange).accessibilityIdentifier("storage-warning")
                     }
+                    if model.state?.forecast == true && model.state?.failure != nil {
+                        Text("Оновити графік не вдалося. Показано останні підтверджені дані.")
+                            .font(.caption).foregroundStyle(.orange).accessibilityIdentifier("retained-warning")
+                    }
                     HStack {
                         Button("Сьогодні") { model.selectTomorrow(false) }.accessibilityIdentifier("today")
                             .accessibilityValue(model.state?.tomorrow == true ? "Не вибрано" : "Вибрано")
@@ -61,11 +74,8 @@ import AppKit
                     if model.state?.tomorrowAvailable != true {
                         Text("Завтра ще не підтверджене").font(.caption).foregroundStyle(.secondary)
                     }
-                    if let countdown=model.state?.countdown, !countdown.isEmpty {
-                        Text("Орієнтовно: " + countdown).font(.headline).monospacedDigit()
-                            .accessibilityIdentifier("countdown")
-                    }
                     if model.state?.forecast == true {
+                        ScheduleTimeline(rows:model.state?.rows ?? [])
                         Text("Груповий прогноз не підтверджує стан окремої лінії")
                             .font(.caption).foregroundStyle(.secondary)
                         ForEach(model.state?.rows ?? [],id:\.start) { row in
@@ -116,6 +126,7 @@ import AppKit
     }
     private var addressForm: some View {
         VStack(alignment:.leading,spacing:8) {
+            Text("Вулиця").font(.caption.bold())
             TextField("Вулиця в Києві",text:$street).focused($focus,equals:.street).accessibilityIdentifier("street")
                 .onChange(of:street) { value in
                     if choosing { choosing=false } else { searchingHouse=false; model.editStreet(value) }
@@ -124,6 +135,7 @@ import AppKit
                     if suggestionsMatch, let first=model.state?.suggestions.first { choose(first) } else { focus = .house }
                 }
             if !searchingHouse { suggestionContent }
+            Text("Будинок").font(.caption.bold())
             TextField("Будинок",text:$house).focused($focus,equals:.house).accessibilityIdentifier("house")
                 .onChange(of:house) { value in
                     if choosingHouse { choosingHouse=false } else { searchingHouse=true; model.editHouse(street:street,house:value) }
@@ -152,7 +164,9 @@ import AppKit
         }
         if suggestionsMatch, let choices=model.state?.suggestions, !choices.isEmpty {
             ForEach(Array(choices.prefix(8).enumerated()),id:\.offset) { index,label in
-                Button(label) { chooseSuggestion(label) }.buttonStyle(.plain).focused($focus,equals:.suggestion(index))
+                Button(action:{ chooseSuggestion(label) }) {
+                    Text(label).frame(maxWidth:.infinity,alignment:.leading).padding(.horizontal,9).padding(.vertical,6)
+                }.buttonStyle(.plain).background(.quaternary,in:RoundedRectangle(cornerRadius:6)).focused($focus,equals:.suggestion(index))
                     .accessibilityIdentifier("suggestion-\(index)")
             }
         }
@@ -198,30 +212,98 @@ import AppKit
     private func time(_ minute: Int) -> String { String(format:"%02d:%02d",minute/60,minute%60) }
 }
 
+// Render exact minute boundaries; the interval list remains the accessible,
+// text-based alternative and is also useful when colours are hard to distinguish.
+private struct MonitorStatusIcon: View {
+    @ObservedObject var model: MonitorModel
+    let size: CGFloat
+    var body: some View {
+        let countdown=model.state?.countdown ?? ""
+        let name = model.state?.emergency == true || countdown.hasPrefix("Відновлення") ? "power-off-v1" :
+            countdown.hasPrefix("Відключення") ? "power-on-v1" : "notification-v1"
+        Group {
+            if let image=NSImage(named:NSImage.Name(name)) {
+                Image(nsImage:image).resizable().scaledToFit()
+            } else {
+                Image(systemName:"bolt.circle.fill").resizable().scaledToFit().foregroundStyle(.orange)
+            }
+        }.frame(width:size,height:size).accessibilityHidden(true)
+    }
+}
+
+private struct ScheduleTimeline: View {
+    let rows: [MonitorSnapshot.Row]
+    private var accessibilitySummary: String {
+        let outages=rows.filter { !$0.power }
+        if outages.isEmpty { return "Планових відключень немає" }
+        return outages.map { row in
+            String(format:"%02d:%02d–%02d:%02d",row.start/60,row.start%60,row.end/60,row.end%60)
+        }.joined(separator:", ")
+    }
+    var body: some View {
+        VStack(alignment:.leading,spacing:9) {
+            Text("Планові відключення").font(.caption.bold())
+            HStack(spacing:0) {
+                ForEach(0..<9,id:\.self) { index in
+                    Text(String(format:"%02d",index*3)).font(.system(size:9)).foregroundStyle(.secondary)
+                        .frame(maxWidth:.infinity,alignment:index == 0 ? .leading : index == 8 ? .trailing : .center)
+                }
+            }.accessibilityHidden(true)
+            GeometryReader { geometry in
+                ZStack(alignment:.leading) {
+                    RoundedRectangle(cornerRadius:4).fill(Color.green.opacity(0.36))
+                    ForEach(rows.filter { !$0.power },id:\.start) { row in
+                        Rectangle().fill(Color.orange.opacity(0.75))
+                            .frame(width:geometry.size.width * CGFloat(row.end-row.start)/1440)
+                            .offset(x:geometry.size.width * CGFloat(row.start)/1440)
+                    }
+                }.clipShape(RoundedRectangle(cornerRadius:4))
+            }.frame(height:16).accessibilityHidden(true)
+            HStack(spacing:18) {
+                Label("За графіком зі світлом",systemImage:"circle.fill").foregroundStyle(.green)
+                Label("Відключення",systemImage:"circle.fill").foregroundStyle(.orange)
+            }.font(.system(size:10)).labelStyle(.titleAndIcon).accessibilityHidden(true)
+        }.padding(12).background(.quaternary,in:RoundedRectangle(cornerRadius:9))
+            .accessibilityElement(children:.ignore).accessibilityLabel("Шкала планових відключень")
+            .accessibilityValue(accessibilitySummary).accessibilityIdentifier("schedule-timeline")
+    }
+}
+
 // A compact, movable companion window shares the same session and countdown.
 @MainActor struct FloatingMonitorView: View {
     @ObservedObject var model: MonitorModel
     let showSchedule: () -> Void
+    let close: () -> Void
+    let setSize: (Int) -> Void
     var body: some View {
-        VStack(alignment:.leading,spacing:8) {
-            HStack {
-                Image(systemName:"bolt.circle.fill").foregroundStyle(.orange)
-                Text("DTEK Monitor").font(.headline)
-                Spacer()
-                Button("Графік",action:showSchedule).accessibilityIdentifier("floating-schedule")
-            }
+        HStack(spacing:10) {
+            MonitorStatusIcon(model:model,size:38)
+            VStack(alignment:.leading,spacing:3) {
             #if DTEKMONITOR_MAC_TEST_BUILD
-            Text("ТЕСТОВІ ДАНІ · не реальний графік").font(.caption.bold()).foregroundStyle(.orange)
+                Text("ТЕСТОВІ ДАНІ").font(.caption2.bold()).foregroundStyle(.orange)
             #endif
-            Text(model.status).font(.subheadline.bold()).fixedSize(horizontal:false,vertical:true)
-                .accessibilityIdentifier("floating-status")
-            if let countdown=model.state?.countdown, !countdown.isEmpty {
-                Text(countdown).font(.title3.bold()).monospacedDigit().accessibilityIdentifier("floating-countdown")
+                Text(model.status).font(.subheadline.bold()).lineLimit(2).accessibilityIdentifier("floating-status")
+                if let countdown=model.state?.countdown, !countdown.isEmpty {
+                    Text(countdown + (model.state?.failure == nil ? " · орієнтовно" : " · немає оновлення"))
+                        .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                        .accessibilityIdentifier("floating-countdown")
+                }
             }
-            Text(model.state?.address ?? "Адресу не задано").font(.caption).foregroundStyle(.secondary).lineLimit(2)
             Spacer(minLength:0)
-        }.padding(14).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.topLeading)
+            Button(action:showSchedule) { Image(systemName:"calendar") }
+                .buttonStyle(.plain).accessibilityLabel("Відкрити графік").accessibilityIdentifier("floating-schedule")
+            Menu {
+                Button("Компактний") { setSize(0) }
+                Button("Звичайний") { setSize(1) }
+                Button("Великий") { setSize(2) }
+            } label: { Image(systemName:"ellipsis") }
+                .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Розмір віджета")
+                .accessibilityIdentifier("floating-size")
+            Button(action:close) { Image(systemName:"xmark") }
+                .buttonStyle(.plain).accessibilityLabel("Приховати віджет").accessibilityIdentifier("floating-close")
+        }.padding(.horizontal,12).padding(.vertical,8).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
             .preferredColorScheme(model.theme.colorScheme)
+            .background(.regularMaterial,in:RoundedRectangle(cornerRadius:11))
     }
 }
 

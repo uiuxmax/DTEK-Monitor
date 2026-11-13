@@ -149,9 +149,12 @@ bool run_foundation_data_tests() {
         const bool volume_read = ::statfs(profile.c_str(),&volume) == 0;
         check_result("native profile filesystem is APFS", volume_read && std::strcmp(volume.f_fstypename,"apfs") == 0);
         check_result("missing settings read does not create a file", mac_profile::load_settings(profile).state == ReadState::missing && !fs::exists(profile/"settings.json"));
-        const mac_profile::Settings settings{draft,"dark"};
-        check_result("Unicode path settings save", mac_profile::save_settings(profile,settings));
-        check_result("settings save/restart round trip", mac_profile::load_settings(profile).value == settings);
+        const mac_profile::Settings settings{draft,"dark",true,true,-420,700,2};
+        write(profile/"settings.json",R"({"format":"dtek-monitor-macos-settings","version":1,"draftStreet":"вул. Тестова","draftHouse":"2-А","theme":"dark"})");
+        const auto legacy=mac_profile::load_settings(profile);
+        check_result("legacy settings load and Unicode path settings save", legacy.state==ReadState::loaded && legacy.value.draft==draft &&
+            !legacy.value.floating_visible && !legacy.value.floating_positioned && mac_profile::save_settings(profile,settings));
+        check_result("settings and floating window position round trip", mac_profile::load_settings(profile).value == settings);
         const auto original_settings = read(profile/"settings.json");
         for (const auto fault : {mac_profile::WriteFault::partial_write,mac_profile::WriteFault::close_error,mac_profile::WriteFault::replace_error}) {
             check_result("failed atomic write preserves original settings", !mac_profile::save_settings(profile,{draft,"light"},fault) && read(profile/"settings.json") == original_settings);
