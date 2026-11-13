@@ -34,8 +34,23 @@ def main():
         product = run / 'PersonalData/Build/Products/Release/DTEKMonitor.app'
         if not product.is_dir() or product.resolve() != product:
             raise SystemExit('Personal bundle is missing or redirected')
-        subprocess.run(['/usr/bin/shasum', '-a', '256', '-c', str(run / 'personal-files.sha256')],
-                       cwd=repo, check=True, stdout=subprocess.DEVNULL)
+        expected = {product / 'Contents/MacOS/DTEKMonitor'} | {
+            product / 'Contents/Resources' / name for name in
+            ('power-on-v1.png', 'power-off-v1.png', 'notification-v1.png')}
+        entries = (run / 'personal-files.sha256').read_text(encoding='utf-8').splitlines()
+        seen = set()
+        for entry in entries:
+            parts = entry.split('  ', 1)
+            if len(parts) != 2:
+                raise SystemExit('Invalid personal bundle hash entry')
+            path = Path(parts[1])
+            if path not in expected or path.resolve(strict=True) != path or path in seen:
+                raise SystemExit('Unexpected personal bundle hash path')
+            if hashlib.sha256(path.read_bytes()).hexdigest() != parts[0]:
+                raise SystemExit('Personal bundle changed after its test run')
+            seen.add(path)
+        if seen != expected:
+            raise SystemExit('Personal bundle hash list is incomplete')
     print(product)
 
 

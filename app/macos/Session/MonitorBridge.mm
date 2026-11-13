@@ -57,6 +57,7 @@ struct EngineState {
     std::filesystem::path profile;
     mac_profile::Settings settings;
     bool storage_warning=false;
+    bool disk_receipt=false;
     std::unique_ptr<schedule::KyivTimeZone> zone=schedule::make_foundation_kyiv_time_zone();
     std::unique_ptr<mac_profile::DayReceipt> receipt;
     explicit EngineState(NSString *path,schedule::UtcInstant now) : profile(mac_json::utf8(path)) {
@@ -65,7 +66,13 @@ struct EngineState {
         storage_warning=loaded.state==mac_profile::ReadState::unreadable || loaded.state==mac_profile::ReadState::future_schema;
         if(zone) {
             receipt=std::make_unique<mac_profile::DayReceipt>(*zone);
-            if(auto saved=mac_profile::load_receipt(profile))receipt->restore(std::move(*saved),settings.draft,now);
+            if(auto saved=mac_profile::load_receipt(profile)) {
+                disk_receipt=true;
+                if(!receipt->restore(std::move(*saved),settings.draft,now) && !storage_warning) {
+                    if(mac_profile::remove_receipt(profile))disk_receipt=false;
+                    else storage_warning=true;
+                }
+            }
         }
         mac_profile::clean_logs(profile,std::filesystem::file_time_type::clock::now());
     }
@@ -170,6 +177,7 @@ struct EngineState {
         if(!draft)return NO;
         if(_state->settings.draft!=*draft) {
             if(!mac_profile::remove_receipt(_state->profile)) { _state->storage_warning=true; return NO; }
+            _state->disk_receipt=false;
             if(_state->receipt)_state->receipt->clear(schedule::UtcInstant{epoch});
         }
         _state->settings.draft=*draft;
@@ -207,6 +215,7 @@ struct EngineState {
     mac_profile::Receipt receipt{_state->settings.draft,result.resolution,result.schedule->body,*result.schedule->received_at};
     if(!_state->receipt->accept(receipt,_state->settings.draft,schedule::UtcInstant{epoch}))return NO;
     if(!mac_profile::save_receipt(_state->profile,receipt))_state->storage_warning=true;
+    else _state->disk_receipt=true;
     return YES;
 }
 - (NSDictionary<NSString *,id> *)snapshotAtEpoch:(int64_t)epoch {
@@ -248,6 +257,9 @@ struct EngineState {
             if(const auto& saved=_state->receipt->saved(now)) {
                 received=@(saved->received.epoch_seconds);
                 address=[NSString stringWithFormat:@"%@, %@",text(saved->resolution.address.displayed_street),text(saved->resolution.address.displayed_house)];
+            } else if(_state->disk_receipt && !_state->storage_warning) {
+                if(mac_profile::remove_receipt(_state->profile))_state->disk_receipt=false;
+                else _state->storage_warning=true;
             }
         }
         return @{@"valid":@YES,@"street":wide_text(_state->settings.draft.street),@"house":wide_text(_state->settings.draft.house),

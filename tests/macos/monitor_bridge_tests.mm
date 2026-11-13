@@ -72,7 +72,8 @@ bool run_monitor_bridge_tests() {
         NSDictionary *restored=[restarted snapshotAtEpoch:now+2];
         check_result("bridge restart restores address and theme",[restored[@"street"] isEqual:@"вул. Тестова"] && [restored[@"theme"] isEqual:@"dark"]);
         check_result("bridge restart keeps the original receipt stamp",[restored[@"forecast"] boolValue] && [restored[@"received"] longLongValue]==now);
-        check_result("Kyiv midnight expires the restored receipt",![[restarted snapshotAtEpoch:utc(2026,10,17,21).epoch_seconds][@"forecast"] boolValue]);
+        check_result("Kyiv midnight expires and removes the restored receipt",![[restarted snapshotAtEpoch:utc(2026,10,17,21).epoch_seconds][@"forecast"] boolValue] && !std::filesystem::exists(profile/"receipt.json"));
+        if(![engine acceptReply:reply epoch:now+2])return false;
         std::filesystem::rename(profile/"receipt.json",profile/"receipt-owned.json");
         std::filesystem::create_symlink(profile/"receipt-owned.json",profile/"receipt.json");
         const bool protectedReceipt=![engine selectStreet:@"вул. Інша" house:@"2-А" epoch:now+2] &&

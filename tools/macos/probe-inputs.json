@@ -184,7 +184,7 @@
     },
     {
       "path": "app/macos/Session/MonitorBridge.mm",
-      "sha256": "b96e47eef318d17dd37d44187663c1bb1400a6d0f27cbb2276eeae5b84e6c65e"
+      "sha256": "d9cb80aa991e6d9347d492a0cf703485696cb294f80cd7b5e342372f728b3bf3"
     },
     {
       "path": "app/macos/Session/MonitorModel.swift",
@@ -296,7 +296,7 @@
     },
     {
       "path": "tests/macos/MonitorUITests.swift",
-      "sha256": "1e3828d2eae0f89ee653e60cb59d3cedb373d044f419fe903d760e5939b6bfef"
+      "sha256": "0ecee5447885334757fcdf8d382e3f47d85d597e6504358c598bc19341e198b4"
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
@@ -340,7 +340,7 @@
     },
     {
       "path": "tests/macos/monitor_bridge_tests.mm",
-      "sha256": "e7f0a2602bbcae75009f7684929a866cbe7b0cb55a96532be4fac3e37a124824"
+      "sha256": "a96233cf96acc73ace381b8efd088f87109513dffca89db9bd00282dbb171656"
     },
     {
       "path": "tests/macos/session_wire_server.py",
@@ -348,7 +348,7 @@
     },
     {
       "path": "tests/macos/test_select_prior_run.py",
-      "sha256": "33038daf291d2ed4c024859630e35054264ff7533bc976073358e0816b3ac744"
+      "sha256": "d4743b200c508da1e40bae6ceacb3d296e22c315ea215aecdcb8269d6617bed4"
     },
     {
       "path": "tests/macos/timezone_tests.h",
@@ -388,7 +388,7 @@
     },
     {
       "path": "tools/macos/select-prior-run.py",
-      "sha256": "7e31e613681e3cbae88c969259eaeb6af51fc3206679ee256de3ee70f8ab37ea"
+      "sha256": "7ff4bbcd60470228e85ad4a13894b61aa71703e39bedd73402c4d713789fa599"
     },
     {
       "path": "tools/macos/verify-probe-inputs.swift",

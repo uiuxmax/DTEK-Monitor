@@ -65,6 +65,30 @@ class SelectionTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.select()
 
+    def test_monitor_requires_every_expected_bundle_file(self):
+        run = self.repo / 'out/macos/monitor-ui-check-test'
+        app = run / 'PersonalData/Build/Products/Release/DTEKMonitor.app'
+        files = [app / 'Contents/MacOS/DTEKMonitor'] + [app / 'Contents/Resources' / name for name in
+                 ('power-on-v1.png', 'power-off-v1.png', 'notification-v1.png')]
+        for path in files:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(path.name.encode())
+        (run / 'inputs.sha256').write_text('fixture', encoding='utf-8')
+        report = run / 'results.json'
+        report.write_text(json.dumps({'result': 'PASS', 'checkout': str(self.repo), 'commit': 'head'}), encoding='utf-8')
+        lines = [hashlib.sha256(path.read_bytes()).hexdigest() + '  ' + str(path) for path in files]
+        hashes = run / 'personal-files.sha256'
+        def select():
+            with patch.object(module.sys, 'argv', ['selector', 'monitor', str(self.repo), str(report)]), \
+                 patch.object(module.subprocess, 'check_output', return_value='head\n'), \
+                 patch.object(module.subprocess, 'run'), contextlib.redirect_stdout(io.StringIO()):
+                module.main()
+        hashes.write_text('\n'.join(lines) + '\n', encoding='utf-8'); select()
+        hashes.write_text('\n'.join(lines[:-1]) + '\n', encoding='utf-8')
+        with self.assertRaises(SystemExit): select()
+        hashes.write_text('\n'.join(lines) + '\n', encoding='utf-8'); files[-1].write_bytes(b'changed')
+        with self.assertRaises(SystemExit): select()
+
 
 if __name__ == '__main__':
     unittest.main()

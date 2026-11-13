@@ -36,7 +36,8 @@ final class MonitorUITests: XCTestCase {
     private func waitText(_ id: String,_ expected: String) {
         let item=element(id)
         let predicate=NSPredicate { [weak self] _,_ in guard let self=self else { return false }; return item.exists && self.text(item).contains(expected) }
-        expectation(for:predicate,evaluatedWith:nil); waitForExpectations(timeout:8)
+        let result=XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:predicate,object:nil)],timeout:8)
+        XCTAssertEqual(result,.completed,"Expected \(id) to contain \(expected); actual: \(item.exists ? text(item) : "<missing>")")
     }
     private func applyAddress() {
         element("edit-address").click()
@@ -102,7 +103,7 @@ final class MonitorUITests: XCTestCase {
         element("house").typeText("2")
         XCTAssertTrue(element("suggestion-0").waitForExistence(timeout:8))
         element("house").typeKey(.downArrow,modifierFlags:[]); app.typeKey(.return,modifierFlags:[])
-        element("house").typeText("-А\r"); ready()
+        element("house").click(); element("house").typeText("-А\r"); ready()
         waitText("address","вул. Тестова, 2-А"); waitText("outage-total","3 г 30 хв")
         XCTAssertTrue(element("schedule-timeline").exists)
         waitText("request-count","7"); XCTAssertTrue(element("received").exists)
