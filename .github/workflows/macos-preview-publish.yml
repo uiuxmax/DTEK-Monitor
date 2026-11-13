@@ -1,0 +1,102 @@
+name: Publish reviewed macOS personal preview
+
+on:
+  push:
+    branches: [publish/macos-preview-0.1.0]
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Publish the reviewed ad-hoc personal preview ZIP publicly'
+        type: choice
+        required: true
+        options: [PUBLISH-REVIEWED-PREVIEW]
+
+# This workflow is prepared for a separately approved publication. Pushing
+# ordinary source changes to main does not activate it. No Actions artifacts.
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-personal-preview-publication
+  cancel-in-progress: false
+
+jobs:
+  reviewed-preview:
+    if: >-
+      github.repository == 'uiuxmax/DTEK-Monitor' && github.event.repository.private == false &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/publish/macos-preview-0.1.0') ||
+       (github.event_name == 'workflow_dispatch' && inputs.confirmation == 'PUBLISH-REVIEWED-PREVIEW'))
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check out reviewed synthetic source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require native Apple Silicon
+        shell: bash
+        run: test "$(uname -s)" = Darwin && test "$(uname -m)" = arm64
+      - name: Verify core and isolated data
+        shell: bash
+        run: /bin/bash tools/macos/check.sh --public-probe
+      - name: Verify controlled native HTTPS
+        shell: bash
+        run: /bin/bash tools/macos/check-https.sh --network-candidate --public-probe
+      - name: Verify baseline UI serially
+        shell: bash
+        run: /bin/bash tools/macos/check-ui.sh --public-probe
+      - name: Verify native session
+        shell: bash
+        run: /bin/bash tools/macos/check-session.sh --public-probe
+      - name: Verify connected UI and compile personal configuration
+        shell: bash
+        run: /bin/bash tools/macos/check-monitor.sh --public-probe
+      - name: Audit ZIP round trip
+        shell: bash
+        run: /bin/bash tools/macos/package-monitor.sh
+      - name: Publish this reviewed personal preview
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: uiuxmax/DTEK-Monitor
+        run: |
+          set -euo pipefail
+          tag=macos-v0.1.0-preview.1
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo 'This preview already exists; assets and tags will not be overwritten.' >&2
+            exit 1
+          fi
+          reports=(out/macos/package-check-*/results.json)
+          test "${#reports[@]}" -eq 1 && test -f "${reports[0]}" || exit 1
+          package_root=$(dirname "${reports[0]}")
+          python3 - "${reports[0]}" "$GITHUB_SHA" <<'PY'
+          import json,sys
+          from pathlib import Path
+          report=json.loads(Path(sys.argv[1]).read_bytes())
+          assert report['result']=='PASS' and report['commit']==sys.argv[2]
+          assert report['architecture']=='arm64' and report['signature']=='ad-hoc' and report['notarized'] is False
+          PY
+          cat > "$package_root/release-notes.uk.md" <<'NOTES'
+          Особиста preview-версія 0.1.0 для Apple Silicon, один arm64 app; Intel не підтримується.
+
+          ZIP пройшов native core/data/network/session/UI checks, fake Login Item tests,
+          перевірку підпису/залежностей і точне звірення file hashes після розпакування.
+          Signature — ad-hoc, без Developer ID/notarization. Gatekeeper first launch,
+          macOS 13 runtime, фізичні дисплеї/VoiceOver, actual sleep/wake, live lookup/30 хвилин
+          та реальний sign-in ще не прийняті. Початковий автозапуск вимкнений.
+
+          Дані й налаштування Windows не входять у пакет. Канал auto-update не активний.
+          Інструкція: docs/engineering/macos-personal-preview.uk.md у source цього випуску.
+          NOTES
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+            --title 'macOS Apple Silicon — personal preview 0.1.0' \
+            --notes-file "$package_root/release-notes.uk.md" \
+            "$package_root/DTEKMonitor-0.1.0-macos-arm64.zip" \
+            "$package_root/SHA256SUMS.txt" "$package_root/results.json" "$package_root/extracted-audit.json"
+      - name: Print verification summary
+        if: always()
+        shell: bash
+        run: |
+          for report in out/macos/check-*/results.json out/macos/https-check-*/results.json out/macos/session-check-*/results.json out/macos/ui-check-*/test-summary.json out/macos/monitor-ui-check-*/test-summary.json out/macos/package-check-*/results.json; do
+            if test -f "$report"; then printf '\nReport: %s\n' "$report"; cat "$report"; fi
+          done
