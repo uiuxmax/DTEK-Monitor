@@ -11,6 +11,10 @@
       "sha256": "9f0e10d15a2d20e2ecf087c054e94921a17c795f02b8acab6e0b6abf902f31f6"
     },
     {
+      "path": ".github/workflows/macos-preview-publish.yml",
+      "sha256": "943ee9478b75e96f4f85a0bed09c2af2dd0520656feffa6934f743dc62ab6d64"
+    },
+    {
       "path": ".gitignore",
       "sha256": "2ea7cc8c7a35ab3be9bb7a61bab07ac55c44c062042a7b891024243bab6ce7e9"
     },
@@ -241,6 +245,10 @@
     {
       "path": "docs/engineering/macos-personal-preview.uk.md",
       "sha256": "8cf08429a554da2ece4dbfee0e637a786c9d3d0a88b398ddca69fd0970fdf994"
+    },
+    {
+      "path": "docs/engineering/macos-preview2.uk.md",
+      "sha256": "c79dbe857e2dbb38223bcd0091553dcbe0772e23c4e6fdcc93d46173470fdc02"
     },
     {
       "path": "research/schedule-engine/kyiv_time_projection.h",
