@@ -5,12 +5,15 @@ import AppKit
     @ObservedObject var model: MonitorModel
     @ObservedObject var login: LoginItemModel
     let showSchedule: () -> Void
+    let showFloating: () -> Void
     let closeWindow: () -> Void
     @State private var editing=false
     @State private var street=""
     @State private var house=""
     @State private var validation=""
     @State private var choosing=false
+    @State private var choosingHouse=false
+    @State private var searchingHouse=false
     @FocusState private var focus: Field?
     private enum Field: Hashable { case street, house, suggestion(Int) }
 
@@ -20,6 +23,7 @@ import AppKit
                 Image(systemName:"bolt.circle.fill").foregroundStyle(.orange)
                 Text("DTEK Monitor").font(.headline)
                 Spacer()
+                Button("Віджет",action:showFloating).accessibilityIdentifier("open-floating")
                 Button("Графік",action:showSchedule).accessibilityIdentifier("open-schedule")
             }
             #if DTEKMONITOR_MAC_TEST_BUILD
@@ -114,25 +118,48 @@ import AppKit
         VStack(alignment:.leading,spacing:8) {
             TextField("Вулиця в Києві",text:$street).focused($focus,equals:.street).accessibilityIdentifier("street")
                 .onChange(of:street) { value in
-                    if choosing { choosing=false } else { model.editStreet(value) }
+                    if choosing { choosing=false } else { searchingHouse=false; model.editStreet(value) }
                 }
                 .onSubmit {
-                    if let first=model.state?.suggestions.first { choose(first) } else { focus = .house }
+                    if suggestionsMatch, let first=model.state?.suggestions.first { choose(first) } else { focus = .house }
                 }
-            if let choices=model.state?.suggestions, !choices.isEmpty {
-                ForEach(Array(choices.prefix(8).enumerated()),id:\.offset) { index,label in
-                    Button(label) { choose(label) }.buttonStyle(.plain).focused($focus,equals:.suggestion(index))
-                        .accessibilityIdentifier("suggestion-\(index)")
-                }
-            }
+            if !searchingHouse { suggestionContent }
             TextField("Будинок",text:$house).focused($focus,equals:.house).accessibilityIdentifier("house")
+                .onChange(of:house) { value in
+                    if choosingHouse { choosingHouse=false } else { searchingHouse=true; model.editHouse(street:street,house:value) }
+                }
                 .onSubmit { apply() }
+            if searchingHouse { suggestionContent }
             if !validation.isEmpty { Text(validation).font(.caption).foregroundStyle(.red).accessibilityIdentifier("address-error") }
             HStack {
                 Button("Застосувати",action:apply).accessibilityIdentifier("apply-address")
                 Button("Скасувати",action:cancelEditing).accessibilityIdentifier("cancel-address")
             }
         }.textFieldStyle(.roundedBorder)
+    }
+    @ViewBuilder private var suggestionContent: some View {
+        if model.state?.stopped == true {
+            Text("Пошук зупинено джерелом до наступного запуску програми.")
+                .font(.caption).foregroundStyle(.orange)
+        } else if model.state?.loading == true {
+            Text(searchingHouse ? "Пошук будинку…" : "Пошук вулиці…").font(.caption).foregroundStyle(.secondary)
+        } else if suggestionsMatch, let result=model.state?.suggestionResult, result != "ready" {
+            Text(result == "empty" ? (searchingHouse ? "Будинок не знайдено. Перевірте номер." : "Вулицю не знайдено. Спробуйте іншу назву.") :
+                 result == "address_mismatch" ? "Оберіть точну назву вулиці зі списку." :
+                 result == "schema" ? "Джерело повернуло незрозумілу відповідь. Спробуйте пізніше." :
+                 "Не вдалося отримати підказки. Перевірте з’єднання та спробуйте ще раз.")
+                .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("suggestion-message")
+        }
+        if suggestionsMatch, let choices=model.state?.suggestions, !choices.isEmpty {
+            ForEach(Array(choices.prefix(8).enumerated()),id:\.offset) { index,label in
+                Button(label) { chooseSuggestion(label) }.buttonStyle(.plain).focused($focus,equals:.suggestion(index))
+                    .accessibilityIdentifier("suggestion-\(index)")
+            }
+        }
+    }
+    private var suggestionsMatch: Bool {
+        model.state?.suggestionKind == (searchingHouse ? "house" : "street") &&
+            model.state?.suggestionInput == (searchingHouse ? street + "\n" + house : street)
     }
     private func beginEditing() {
         street=model.state?.street ?? ""; house=model.state?.house ?? ""
@@ -142,6 +169,12 @@ import AppKit
         if value != street { choosing=true; street=value }
         focus = .house; model.editStreet(nil)
     }
+    private func chooseSuggestion(_ value: String) {
+        if searchingHouse {
+            if value != house { choosingHouse=true; house=value }
+            model.editStreet(nil); focus = .house
+        } else { choose(value) }
+    }
     private func apply() {
         if let error=model.apply(street:street,house:house) { validation=error }
         else { editing=false; validation=""; focus=nil }
@@ -149,20 +182,47 @@ import AppKit
     private func cancelEditing() { editing=false; validation=""; focus=nil; model.cancelEditing() }
     private func escape() { if editing { cancelEditing() } else { closeWindow() } }
     private func suggestionKey(_ key: UInt16) -> Bool {
-        guard editing,let choices=model.state?.suggestions,!choices.isEmpty else { return false }
+        guard editing, suggestionsMatch, let choices=model.state?.suggestions,!choices.isEmpty else { return false }
         if key==125 {
-            if focus == .street { focus = .suggestion(0); return true }
+            if focus == .street || focus == .house { focus = .suggestion(0); return true }
             if case .some(.suggestion(let index))=focus { focus = .suggestion(min(index+1,min(8,choices.count)-1)); return true }
         }
         if key==126,case .some(.suggestion(let index))=focus {
-            focus = index>0 ? .suggestion(index-1) : .street; return true
+            focus = index>0 ? .suggestion(index-1) : (searchingHouse ? .house : .street); return true
         }
         if (key==36 || key==76),case .some(.suggestion(let index))=focus,choices.indices.contains(index) {
-            choose(choices[index]); return true
+            chooseSuggestion(choices[index]); return true
         }
         return false
     }
     private func time(_ minute: Int) -> String { String(format:"%02d:%02d",minute/60,minute%60) }
+}
+
+// A compact, movable companion window shares the same session and countdown.
+@MainActor struct FloatingMonitorView: View {
+    @ObservedObject var model: MonitorModel
+    let showSchedule: () -> Void
+    var body: some View {
+        VStack(alignment:.leading,spacing:8) {
+            HStack {
+                Image(systemName:"bolt.circle.fill").foregroundStyle(.orange)
+                Text("DTEK Monitor").font(.headline)
+                Spacer()
+                Button("Графік",action:showSchedule).accessibilityIdentifier("floating-schedule")
+            }
+            #if DTEKMONITOR_MAC_TEST_BUILD
+            Text("ТЕСТОВІ ДАНІ · не реальний графік").font(.caption.bold()).foregroundStyle(.orange)
+            #endif
+            Text(model.status).font(.subheadline.bold()).fixedSize(horizontal:false,vertical:true)
+                .accessibilityIdentifier("floating-status")
+            if let countdown=model.state?.countdown, !countdown.isEmpty {
+                Text(countdown).font(.title3.bold()).monospacedDigit().accessibilityIdentifier("floating-countdown")
+            }
+            Text(model.state?.address ?? "Адресу не задано").font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            Spacer(minLength:0)
+        }.padding(14).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.topLeading)
+            .preferredColorScheme(model.theme.colorScheme)
+    }
 }
 
 // App-local keyboard handling is limited to the owning visible window.

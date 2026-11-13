@@ -72,7 +72,13 @@ LookupResult lookup_once(LookupRequest request, Get get, StopToken stop) {
     const auto houses = fetch({https::ResourceKind::houses, request.house, street->id});
     if (!houses) return result;
     std::optional<AddressChoice> house;
-    try { house = exact_address_choice(houses->body, request.house); }
+    try {
+        if (request.suggest_houses) {
+            result.suggestions = address_choices(houses->body);
+            return result;
+        }
+        house = exact_address_choice(houses->body, request.house);
+    }
     catch (const std::exception&) { result.failure = LookupFailure::schema; return result; }
     if (!house) { result.failure = LookupFailure::address_mismatch; return result; }
     const auto group = fetch({https::ResourceKind::group, {}, street->id, house->id});

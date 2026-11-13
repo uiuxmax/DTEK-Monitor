@@ -10,6 +10,7 @@ import Darwin
     private var model: MonitorModel?
     private var login: LoginItemModel?
     private var window: NSWindow?
+    private var floating: NSPanel?
     private var item: NSStatusItem?
     private let popover=NSPopover()
     private var activationObserver: NSObjectProtocol?
@@ -49,7 +50,21 @@ import Darwin
     private var panelHeight: CGFloat { max(300,min(680,(NSScreen.main?.visibleFrame.height ?? 800)-80)) }
     private func content(close: @escaping () -> Void) -> MonitorView? {
         guard let model=model,let login=login else { return nil }
-        return MonitorView(model:model,login:login,showSchedule:{ [weak self] in self?.showSchedule() },closeWindow:close)
+        return MonitorView(model:model,login:login,showSchedule:{ [weak self] in self?.showSchedule() },
+            showFloating:{ [weak self] in self?.showFloating() },closeWindow:close)
+    }
+    private func showFloating() {
+        guard let model=model else { return }
+        if floating == nil {
+            let panel=NSPanel(contentRect:NSRect(x:0,y:0,width:280,height:165),
+                styleMask:[.titled,.closable,.utilityWindow,.nonactivatingPanel],backing:.buffered,defer:false)
+            panel.title="DTEK Monitor"; panel.identifier=NSUserInterfaceItemIdentifier("floating-monitor")
+            panel.isReleasedWhenClosed=false; panel.isRestorable=false; panel.level = .floating
+            panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary]
+            panel.contentView=NSHostingView(rootView:FloatingMonitorView(model:model,showSchedule:{ [weak self] in self?.showSchedule() }))
+            panel.center(); floating=panel
+        }
+        floating?.orderFrontRegardless()
     }
     @objc private func togglePopover() {
         if popover.isShown { popover.performClose(nil); model?.cancelEditing(); return }

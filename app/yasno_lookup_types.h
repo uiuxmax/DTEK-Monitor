@@ -8,6 +8,7 @@ struct LookupRequest {
     std::string street;
     std::string house;
     bool suggest_streets = false;
+    bool suggest_houses = false;
 };
 struct StageReceipt {
     https::ResourceKind resource;

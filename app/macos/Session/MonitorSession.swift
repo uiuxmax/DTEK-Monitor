@@ -37,6 +37,9 @@ struct MonitorSnapshot: Sendable {
     let countdown: String
     let rows: [Row]
     let suggestions: [String]
+    let suggestionResult: String?
+    let suggestionKind: String?
+    let suggestionInput: String?
     let totalOutageMinutes: Int
     let received: Int64?
     let editing: Bool
@@ -64,6 +67,9 @@ actor MonitorSession {
     private var lastFailure: String?
     private var street = "", house = ""
     private var suggestions: [String] = []
+    private var suggestionResult: String?
+    private var suggestionKind: String?
+    private var suggestionInput: String?
 
     init(profile: String, clock: MonitorClock, mode: MonitorTransportMode,
          publish: @escaping @Sendable (MonitorSnapshot) -> Void) {
@@ -92,8 +98,9 @@ actor MonitorSession {
         cancel(action.cancel)
         guard let ticket = action.start else { return }
         let clock = self.clock
-        let requestStreet = ticket.kind == .suggestions ? ticket.selection : street
-        let requestHouse = ticket.kind == .suggestions ? "" : house
+        let parts = ticket.kind == .houseSuggestions ? ticket.selection.split(separator:"\n",maxSplits:1).map(String.init) : []
+        let requestStreet = ticket.kind == .suggestions ? ticket.selection : ticket.kind == .houseSuggestions ? (parts.first ?? "") : street
+        let requestHouse = ticket.kind == .suggestions ? "" : ticket.kind == .houseSuggestions ? (parts.count == 2 ? parts[1] : "") : house
         let work = worker.start(ticket:ticket,street:requestStreet,house:requestHouse,mode:mode,
             epoch:{ clock.read()?.epoch ?? 0 }) { [weak self] reply in
                 Task { await self?.received(ticket, reply: reply) }
@@ -118,11 +125,26 @@ actor MonitorSession {
         let query = input.flatMap { DMMonitorEngine.streetQuery($0) }
         cancel(policy.editStreetQuery(query,nowMS:now?.milliseconds ?? -1))
         suggestions = []
+        suggestionResult = nil
+        suggestionKind = "street"
+        suggestionInput = input
+        emit(epoch:now?.epoch ?? 0)
+    }
+    func editHouse(street: String, house: String) {
+        guard started, !policy.closed else { return }
+        let now = clock.read()
+        let normalized = DMMonitorEngine.normalize(street:street,house:house)
+        let query = normalized.flatMap { value -> String? in
+            guard let street=value["street"], let house=value["house"] else { return nil }
+            return key(street,house)
+        }
+        cancel(policy.editHouseQuery(query,nowMS:now?.milliseconds ?? -1))
+        suggestions = []; suggestionResult = nil; suggestionKind = "house"; suggestionInput = key(street,house)
         emit(epoch:now?.epoch ?? 0)
     }
     func cancelEditing() {
         guard started, !policy.closed, policy.editing else { return }
-        cancel(policy.cancelEditing()); suggestions = []; emit(epoch:clock.read()?.epoch ?? 0)
+        cancel(policy.cancelEditing()); suggestions = []; suggestionResult = nil; suggestionKind = nil; suggestionInput = nil; emit(epoch:clock.read()?.epoch ?? 0)
     }
     func applyAddress(street: String, house: String) {
         guard started, !policy.closed, let engine=engine else { return }
@@ -134,6 +156,9 @@ actor MonitorSession {
         record(.addressApplied,epoch:now)
         cancel(policy.selectAddress(key(normalizedStreet,normalizedHouse)))
         suggestions = []
+        suggestionResult = nil
+        suggestionKind = nil
+        suggestionInput = nil
         lastFailure = nil
         tick()
     }
@@ -170,7 +195,10 @@ actor MonitorSession {
                 let reason=accepted ? 0 : (failure == "schema" || failure == "none") ? 12 : failure == "address_mismatch" ? 13 : (stages.last?["error"] as? NSNumber)?.intValue ?? 0
                 record(accepted ? .lookupOK : .lookupFailed,status:status,reason:reason)
             }
-            else { suggestions = (metadata["suggestions"] as? [[String:Any]] ?? []).compactMap { $0["label"] as? String } }
+            else {
+                suggestions = (metadata["suggestions"] as? [[String:Any]] ?? []).compactMap { $0["label"] as? String }
+                suggestionResult = failure == "none" ? (suggestions.isEmpty ? "empty" : "ready") : failure
+            }
         } else if decision.disposition == .sourceStopped { lastFailure="source_stopped"; suggestions = []; record(.sourceStopped,status:blocked ?? 0,reason:5) }
         emit(epoch:clock.read()?.epoch ?? 0)
     }
@@ -192,6 +220,9 @@ actor MonitorSession {
             tomorrowAvailable:(value["tomorrowAvailable"] as? NSNumber)?.boolValue == true && !policy.editing,
             countdown:policy.editing ? "" : value["countdown"] as? String ?? "",rows:policy.editing ? [] : rows,
             suggestions:suggestions,
+            suggestionResult:suggestionResult,
+            suggestionKind:suggestionKind,
+            suggestionInput:suggestionInput,
             totalOutageMinutes:(value["totalOutageMinutes"] as? NSNumber)?.intValue ?? 0,
             received:(value["received"] as? NSNumber)?.int64Value,editing:policy.editing,loading:policy.pending != nil,
             stopped:policy.stopped,storageWarning:(value["storageWarning"] as? NSNumber)?.boolValue == true,

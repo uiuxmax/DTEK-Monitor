@@ -74,6 +74,15 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         debounce?.cancel()
         send { await $0.cancelEditing() }
     }
+    func editHouse(street: String, house: String) {
+        debounce?.cancel()
+        send { await $0.editHouse(street:street,house:house) }
+        debounce=Task { [weak self] in
+            do { try await Task.sleep(for:.milliseconds(450)) } catch { return }
+            guard !Task.isCancelled else { return }
+            self?.send { await $0.tick() }
+        }
+    }
     func apply(street: String, house: String) -> String? {
         guard let normalized=DMMonitorEngine.normalize(street:street,house:house),
               let street=normalized["street"], let house=normalized["house"] else {
@@ -105,6 +114,9 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         if value.forecast { return "Орієнтовний груповий графік" }
         if value.stopped { return "Джерело тимчасово обмежило запити" }
         if value.loading { return "Завантаження графіка…" }
+        if value.failure == "address_mismatch" { return "Адресу не знайдено" }
+        if value.failure == "transport" { return "Не вдалося з’єднатися з джерелом" }
+        if value.failure == "schema" { return "Не вдалося прочитати відповідь джерела" }
         return "Підтвердженого графіка немає"
     }
     var receivedText: String? {

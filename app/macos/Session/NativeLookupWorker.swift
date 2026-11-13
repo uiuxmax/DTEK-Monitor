@@ -47,7 +47,8 @@ final class MonitorWork: @unchecked Sendable {
          epoch: @escaping @Sendable () -> Int64, sourceGate: MonitorSourceGate) {
         self.sourceGate=sourceGate
         self.ticket = ticket; self.street = street; self.house = house; self.mode = mode; self.epoch = epoch
-        operation = DMLookupOperation(street: street, house: house, token: ticket.generation, suggestions: ticket.kind == .suggestions)
+        operation = DMLookupOperation(street: street, house: house, token: ticket.generation,
+            suggestions: ticket.kind == .suggestions, houseSuggestions: ticket.kind == .houseSuggestions)
     }
     func cancel() {
         lock.lock(); stopped = true; let current = attempt; lock.unlock()

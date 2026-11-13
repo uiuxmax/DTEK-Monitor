@@ -1,8 +1,8 @@
 # Особиста macOS-збірка: встановлення та приймання
 
-Інструкція для підготовленого `DTEKMonitor.app`. Актуальні докази, стан пакета
-й посилання на нього — у [STATUS](../../STATUS.md). Публікація binary ще не
-прийнята цим документом; source export і перевірений ZIP — різні результати.
+Інструкція для підготовленого `DTEKMonitor.app`. Попередню версію опубліковано
+в [GitHub Releases](https://github.com/uiuxmax/DTEK-Monitor/releases/tag/macos-v0.1.0-preview.1);
+актуальні докази й стан приймання — у [STATUS](../../STATUS.md).
 
 Це **одна arm64-версія для Apple Silicon**, без Intel/Universal. M0–M8 у
 плані — етапи розробки. Версія пакета 0.1.0, build 1; мінімальна macOS 13
@@ -10,7 +10,7 @@
 систем від 13 і фізичних Mac ще відкрите. На Mac для запуску не потрібні
 Xcode, Command Line Tools чи агент розробки.
 
-## Після появи погодженого ZIP
+## Встановлення погодженого ZIP
 
 1. Завантажити лише Mac arm64 ZIP і SHA256SUMS із погодженого випуску.
    За потреби звірити його штатним `shasum -a 256 <ZIP>` у Terminal.
@@ -82,5 +82,5 @@ Standard hosted runner у public repository безкоштовний; artifact s
 [Умови GitHub Actions](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 Release assets мають окрему модель зберігання без загального size/bandwidth
 ліміту за [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases).
-Публікація preview ZIP потребує окремого погодженого кроку; платна Apple
-ідентичність/notarization не додається мовчки до безкоштовного варіанта.
+Preview ZIP опубліковано після окремої згоди власника; платна Apple
+ідентичність/notarization не входить до безкоштовного варіанта.

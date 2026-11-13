@@ -60,7 +60,13 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     check("editing hides retained graph immediately",box.load()?.editing == true && box.load()?.forecast == false && box.load()?.rows.isEmpty == true)
     try? await Task.sleep(for:.milliseconds(480)); await session.tick()
     let suggested=await wait(box) { !$0.loading && !$0.suggestions.isEmpty }
-    check("debounced suggestions use a real TLS street GET",suggested?.suggestions == ["вул. Тестова"] && suggested?.requestCount == 5)
+    let houseBox=SnapshotBox()
+    let houseSession=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.synthetic("ready"),publish:{ houseBox.store($0) })
+    await houseSession.start(); await houseSession.editHouse(street:"вул. Тестова",house:"2")
+    try? await Task.sleep(for:.milliseconds(480)); await houseSession.tick()
+    let houseSuggested=await wait(houseBox) { !$0.loading && $0.suggestionResult != nil }
+    check("debounced street and house suggestions",suggested?.suggestions == ["вул. Тестова"] && suggested?.suggestionResult == "ready" && suggested?.requestCount == 5 && houseSuggested?.suggestions == ["2"] && houseSuggested?.requestCount == 2)
+    await houseSession.close()
     await session.cancelEditing()
     check("cancel restores confirmed graph without lookup",box.load()?.forecast == true && box.load()?.requestCount == 5 && box.load()?.suggestions.isEmpty == true)
     await session.close()
@@ -69,7 +75,10 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     let restored=MonitorSession(profile:path,clock:MonitorClock(),mode:.synthetic("unavailable"),publish:{ restoredBox.store($0) })
     await restored.start()
     let retained=await wait(restoredBox) { !$0.loading && $0.requestCount == 1 }
-    check("restart retains receipt after failed refresh",retained?.forecast == true && retained?.received == ready?.received && retained?.theme == "dark")
+    await restored.editStreet("те")
+    try? await Task.sleep(for:.milliseconds(480)); await restored.tick()
+    let failedSuggestion=await wait(restoredBox) { !$0.loading && $0.suggestionResult != nil }
+    check("restart retains receipt and reports suggestion transport failure",retained?.forecast == true && retained?.received == ready?.received && retained?.theme == "dark" && failedSuggestion?.suggestionResult == "transport")
     await restored.close()
     let stoppedBox=SnapshotBox()
     let stopped=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.synthetic("429"),publish:{ stoppedBox.store($0) })

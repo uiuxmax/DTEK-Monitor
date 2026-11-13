@@ -91,12 +91,12 @@ struct EngineState {
 @interface DMLookupOperation () { std::unique_ptr<OperationState> _state; }
 @end
 @implementation DMLookupOperation
-- (instancetype)initWithStreet:(NSString *)street house:(NSString *)house token:(uint64_t)token suggestions:(BOOL)suggestions {
+- (instancetype)initWithStreet:(NSString *)street house:(NSString *)house token:(uint64_t)token suggestions:(BOOL)suggestions houseSuggestions:(BOOL)houseSuggestions {
     if((self=[super init])) {
         _state=std::make_unique<OperationState>(); _state->request.selection=token;
         try {
             _state->request.street=mac_json::utf8(street); _state->request.house=mac_json::utf8(house);
-            _state->request.suggest_streets=suggestions; _state->valid=true;
+            _state->request.suggest_streets=suggestions; _state->request.suggest_houses=houseSuggestions; _state->valid=true;
         } catch(...) { _state->valid=false; }
     }
     return self;

@@ -69,6 +69,9 @@ final class MonitorUITests: XCTestCase {
         let window=app.windows.firstMatch
         XCTAssertLessThanOrEqual(window.frame.height,NSScreen.main!.visibleFrame.height)
         XCTAssertLessThanOrEqual(window.frame.width,NSScreen.main!.visibleFrame.width)
+        element("open-floating").click()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        waitText("floating-status","Додайте адресу")
     }
     func testSuggestionsKeyboardApplyAndLocalTicks() {
         launch(); element("edit-address").click(); element("street").typeText("те")
