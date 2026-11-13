@@ -72,7 +72,10 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
                 guard self.active() else { return }; self.armDeadline()
                 if resolverMode == "dns-deadline" { return }
                 if resolverMode == "dns-cancel" {
-                    self.owner.asyncAfter(deadline:.now() + .milliseconds(150)) {
+                    // Exercise cancellation before a late simulated resolver
+                    // result without depending on two unrelated timer queues.
+                    self.cancel()
+                    self.owner.async {
                         guard self.active() else { return }
                         self.start(endpoint:.hostPort(host:.ipv4(.loopback),port:port),serverName:name,authority:"\(name):\(testPort)",path:path,anchorDER:anchorDER)
                     }

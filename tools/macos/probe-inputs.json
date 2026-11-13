@@ -152,7 +152,7 @@
     },
     {
       "path": "app/macos/Network/NetworkHTTPSAttempt.swift",
-      "sha256": "2eacea938a7265efbe4a4464ecc9c260941ed450c706fdebeb2b3034ce3e8a64"
+      "sha256": "43a1ea32f10293c4b85dd5aa778fb62470adb11adba5affe9e6daf20f740f28a"
     },
     {
       "path": "app/macos/Network/RawHTTPResponse.swift",
@@ -276,7 +276,7 @@
     },
     {
       "path": "tests/macos/HTTPSProbe.swift",
-      "sha256": "b81924b739df6fc54df935060d2592f5fe144ee761c53aa64c5e8cd1a844178c"
+      "sha256": "0d183c8dd9ea02c80da47b91f491265c0554ca37c9019125650570900240122e"
     },
     {
       "path": "tests/macos/Info.plist",
