@@ -85,8 +85,9 @@ final class MonitorUITests: XCTestCase {
             return (floating["visible"] as? NSNumber)?.intValue == 1 && (floating["positioned"] as? NSNumber)?.intValue == 1
         }
         XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:saved,object:nil)],timeout:8),.completed)
-        let floating=app.windows.matching(identifier:"floating-monitor").firstMatch
-        XCTAssertTrue(floating.waitForExistence(timeout:8))
+        // Borderless NSPanel is exposed through its accessible contents rather
+        // than consistently appearing in XCUIApplication.windows.
+        let floating=element("floating-status")
         let old=floating.frame.origin
         app.terminate(); launch()
         XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
