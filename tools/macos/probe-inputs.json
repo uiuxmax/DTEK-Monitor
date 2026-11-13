@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "a4f191650fa6057d54f2577d1a08121bbc80cb79",
+  "source_base_commit": "9aca49b89136fc3840d616f81d8eec4f25a295aa",
   "files": [
     {
       "path": ".gitattributes",
@@ -8,7 +8,7 @@
     },
     {
       "path": ".github/workflows/macos-core.yml",
-      "sha256": "30b46d5355c04e497272d267eb5a1ffa31f527c62f9d31dd67e0c7aab335df67"
+      "sha256": "9f0e10d15a2d20e2ecf087c054e94921a17c795f02b8acab6e0b6abf902f31f6"
     },
     {
       "path": ".gitignore",
@@ -227,6 +227,10 @@
       "sha256": "c7f1f1c1daf5ea0154544c4b90fc4c0247b6722aad7801ee264abbdb0fbfa860"
     },
     {
+      "path": "docs/engineering/macos-personal-preview.uk.md",
+      "sha256": "f1d420ac71eff55f33eef3337dfdd5dbbc7d2cbdceb5c1096b3deb25660c097d"
+    },
+    {
       "path": "research/schedule-engine/kyiv_time_projection.h",
       "sha256": "85fdb57ec2aef75fe36e528682b263d74799110bba48a4a59656315d0560480d"
     },
@@ -361,6 +365,10 @@
     {
       "path": "tools/macos/doctor.sh",
       "sha256": "9feb334b40f3843c2b55be98180764685df4ca4d92e4017110b191626aeff0e5"
+    },
+    {
+      "path": "tools/macos/package-monitor.sh",
+      "sha256": "a9fa319b9ac2b2cab32eca74411cbc8cfddeb1a27d9181b9d192463192f4a591"
     },
     {
       "path": "tools/macos/verify-probe-inputs.swift",

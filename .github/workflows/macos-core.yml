@@ -45,6 +45,9 @@ jobs:
       - name: Check connected synthetic monitor UI and fake Login Items
         shell: bash
         run: /bin/bash tools/macos/check-monitor.sh --public-probe
+      - name: Audit personal app ZIP without publication
+        shell: bash
+        run: /bin/bash tools/macos/package-monitor.sh
       - name: Verify primary XCTest result independently
         shell: bash
         run: |
@@ -92,4 +95,7 @@ jobs:
                 */build.log|*/release-build.log|*/tests.log) awk '/error:|Test Case .* failed/ { if (++count <= 40) print }' "$report" ;;
               esac
             fi
+          done
+          for report in out/macos/package-check-*/results.json out/macos/package-check-*/SHA256SUMS.txt; do
+            if test -f "$report"; then printf '\nReport: %s\n' "$report"; cat "$report"; fi
           done
