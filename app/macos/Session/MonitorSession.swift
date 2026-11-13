@@ -35,6 +35,9 @@ struct MonitorSnapshot: Sendable {
     let tomorrow: Bool
     let tomorrowAvailable: Bool
     let countdown: String
+    let currentForecast: Bool
+    let currentEmergency: Bool
+    let currentCountdown: String
     let rows: [Row]
     let suggestions: [String]
     let suggestionResult: String?
@@ -45,6 +48,7 @@ struct MonitorSnapshot: Sendable {
     let editing: Bool
     let loading: Bool
     let stopped: Bool
+    let cleanupStopped: Bool
     let storageWarning: Bool
     let floatingVisible: Bool
     let floatingPositioned: Bool
@@ -190,6 +194,10 @@ actor MonitorSession {
     private func received(_ ticket: MacSessionPolicy.Ticket, reply: MonitorReplyBox) {
         guard let engine=engine else { return }
         completedRequests += reply.requests
+        if reply.cleanupUnsafe {
+            cancel(policy.stopForCleanup()); lastFailure="cleanup_failed"; suggestions=[]
+            emit(epoch:clock.read()?.epoch ?? 0); return
+        }
         let metadata = reply.value.metadata
         let stages = metadata["stages"] as? [[String:Any]] ?? []
         let blocked = stages.compactMap { ($0["status"] as? NSNumber)?.intValue }.first { $0 == 403 || $0 == 429 }
@@ -228,14 +236,19 @@ actor MonitorSession {
             emergency:(value["emergency"] as? NSNumber)?.boolValue == true,
             tomorrow:(value["tomorrow"] as? NSNumber)?.boolValue == true,
             tomorrowAvailable:(value["tomorrowAvailable"] as? NSNumber)?.boolValue == true && !policy.editing,
-            countdown:policy.editing ? "" : value["countdown"] as? String ?? "",rows:policy.editing ? [] : rows,
+            countdown:policy.editing ? "" : value["countdown"] as? String ?? "",
+            currentForecast:(value["currentForecast"] as? NSNumber)?.boolValue == true && policy.displayAllowed,
+            currentEmergency:(value["currentEmergency"] as? NSNumber)?.boolValue == true && policy.displayAllowed,
+            currentCountdown:policy.displayAllowed ? value["currentCountdown"] as? String ?? "" : "",
+            rows:policy.editing ? [] : rows,
             suggestions:suggestions,
             suggestionResult:suggestionResult,
             suggestionKind:suggestionKind,
             suggestionInput:suggestionInput,
             totalOutageMinutes:(value["totalOutageMinutes"] as? NSNumber)?.intValue ?? 0,
             received:(value["received"] as? NSNumber)?.int64Value,editing:policy.editing,loading:policy.pending != nil,
-            stopped:policy.stopped,storageWarning:(value["storageWarning"] as? NSNumber)?.boolValue == true,
+            stopped:policy.stopped,cleanupStopped:policy.cleanupStopped,
+            storageWarning:(value["storageWarning"] as? NSNumber)?.boolValue == true,
             floatingVisible:(value["floatingVisible"] as? NSNumber)?.boolValue == true,
             floatingPositioned:(value["floatingPositioned"] as? NSNumber)?.boolValue == true,
             floatingX:(value["floatingX"] as? NSNumber)?.intValue ?? 0,

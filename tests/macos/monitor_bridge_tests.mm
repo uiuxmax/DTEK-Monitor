@@ -73,7 +73,13 @@ bool run_monitor_bridge_tests() {
         check_result("bridge restart restores address and theme",[restored[@"street"] isEqual:@"вул. Тестова"] && [restored[@"theme"] isEqual:@"dark"]);
         check_result("bridge restart keeps the original receipt stamp",[restored[@"forecast"] boolValue] && [restored[@"received"] longLongValue]==now);
         check_result("Kyiv midnight expires the restored receipt",![[restarted snapshotAtEpoch:utc(2026,10,17,21).epoch_seconds][@"forecast"] boolValue]);
-        check_result("address change clears the prior graph",[engine selectStreet:@"вул. Інша" house:@"2-А" epoch:now+2] && ![[engine snapshotAtEpoch:now+2][@"forecast"] boolValue]);
+        std::filesystem::rename(profile/"receipt.json",profile/"receipt-owned.json");
+        std::filesystem::create_symlink(profile/"receipt-owned.json",profile/"receipt.json");
+        const bool protectedReceipt=![engine selectStreet:@"вул. Інша" house:@"2-А" epoch:now+2] &&
+            std::filesystem::exists(profile/"receipt-owned.json") && [[engine snapshotAtEpoch:now+2][@"storageWarning"] boolValue];
+        std::filesystem::remove(profile/"receipt.json");
+        std::filesystem::rename(profile/"receipt-owned.json",profile/"receipt.json");
+        check_result("address change refuses symlink and clears the prior receipt",protectedReceipt && [engine selectStreet:@"вул. Інша" house:@"2-А" epoch:now+2] && ![[engine snapshotAtEpoch:now+2][@"forecast"] boolValue] && !std::filesystem::exists(profile/"receipt.json"));
         const auto settingsBefore=read(profile/"settings.json");
         check_result("invalid address cannot overwrite settings",![engine selectStreet:@"" house:@"" epoch:now+2] && read(profile/"settings.json")==settingsBefore);
         return true;

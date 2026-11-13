@@ -50,7 +50,7 @@ import AppKit
                     }
                     if editing { addressForm }
                     if model.state?.stopped == true {
-                        Text("Автоматичні запити зупинено до наступного запуску програми")
+                        Text(model.state?.cleanupStopped == true ? "Не вдалося завершити попереднє з’єднання. Запити зупинено до наступного запуску програми." : "Автоматичні запити зупинено до наступного запуску програми")
                             .font(.caption).foregroundStyle(.orange).accessibilityIdentifier("source-stop")
                     }
                     if model.state?.storageWarning == true {
@@ -151,7 +151,7 @@ import AppKit
     }
     @ViewBuilder private var suggestionContent: some View {
         if model.state?.stopped == true {
-            Text("Пошук зупинено джерелом до наступного запуску програми.")
+            Text(model.state?.cleanupStopped == true ? "Пошук зупинено: попереднє з’єднання не завершилося." : "Пошук зупинено джерелом до наступного запуску програми.")
                 .font(.caption).foregroundStyle(.orange)
         } else if model.state?.loading == true {
             Text(searchingHouse ? "Пошук будинку…" : "Пошук вулиці…").font(.caption).foregroundStyle(.secondary)
@@ -217,9 +217,11 @@ import AppKit
 private struct MonitorStatusIcon: View {
     @ObservedObject var model: MonitorModel
     let size: CGFloat
+    var current = false
     var body: some View {
-        let countdown=model.state?.countdown ?? ""
-        let name = model.state?.emergency == true || countdown.hasPrefix("Відновлення") ? "power-off-v1" :
+        let countdown=(current ? model.state?.currentCountdown : model.state?.countdown) ?? ""
+        let emergency=current ? model.state?.currentEmergency : model.state?.emergency
+        let name = emergency == true || countdown.hasPrefix("Відновлення") ? "power-off-v1" :
             countdown.hasPrefix("Відключення") ? "power-on-v1" : "notification-v1"
         Group {
             if let image=NSImage(named:NSImage.Name(name)) {
@@ -277,13 +279,13 @@ private struct ScheduleTimeline: View {
     let setSize: (Int) -> Void
     var body: some View {
         HStack(spacing:10) {
-            MonitorStatusIcon(model:model,size:38)
+            MonitorStatusIcon(model:model,size:38,current:true)
             VStack(alignment:.leading,spacing:3) {
             #if DTEKMONITOR_MAC_TEST_BUILD
                 Text("ТЕСТОВІ ДАНІ").font(.caption2.bold()).foregroundStyle(.orange)
             #endif
-                Text(model.status).font(.subheadline.bold()).lineLimit(2).accessibilityIdentifier("floating-status")
-                if let countdown=model.state?.countdown, !countdown.isEmpty {
+                Text(model.floatingStatus).font(.subheadline.bold()).lineLimit(2).accessibilityIdentifier("floating-status")
+                if let countdown=model.state?.currentCountdown, !countdown.isEmpty {
                     Text(countdown + (model.state?.failure == nil ? " · орієнтовно" : " · немає оновлення"))
                         .font(.caption).monospacedDigit().foregroundStyle(.secondary)
                         .accessibilityIdentifier("floating-countdown")

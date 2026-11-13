@@ -115,6 +115,21 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         if value.street.isEmpty { return "Додайте адресу в Києві" }
         if value.emergency { return "Екстрені відключення — графік не діє" }
         if value.forecast { return "Орієнтовний груповий графік" }
+        if value.cleanupStopped { return "Не вдалося завершити попереднє з’єднання" }
+        if value.stopped { return "Джерело тимчасово обмежило запити" }
+        if value.loading { return "Завантаження графіка…" }
+        if value.failure == "address_mismatch" { return "Адресу не знайдено" }
+        if value.failure == "transport" { return "Не вдалося з’єднатися з джерелом" }
+        if value.failure == "schema" { return "Не вдалося прочитати відповідь джерела" }
+        return "Підтвердженого графіка немає"
+    }
+    var floatingStatus: String {
+        guard let value=state else { return "Завантаження…" }
+        if value.editing { return "Редагування адреси" }
+        if value.street.isEmpty { return "Додайте адресу в Києві" }
+        if value.currentEmergency { return "Екстрені відключення — графік не діє" }
+        if value.currentForecast { return "Орієнтовний груповий графік" }
+        if value.cleanupStopped { return "Не вдалося завершити попереднє з’єднання" }
         if value.stopped { return "Джерело тимчасово обмежило запити" }
         if value.loading { return "Завантаження графіка…" }
         if value.failure == "address_mismatch" { return "Адресу не знайдено" }

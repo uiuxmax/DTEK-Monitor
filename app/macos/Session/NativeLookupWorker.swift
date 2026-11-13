@@ -3,7 +3,8 @@ import Foundation
 final class MonitorReplyBox: @unchecked Sendable {
     let value: DMLookupReply
     let requests: Int
-    init(_ value: DMLookupReply, requests: Int) { self.value = value; self.requests = requests }
+    let cleanupUnsafe: Bool
+    init(_ value: DMLookupReply, requests: Int, cleanupUnsafe: Bool = false) { self.value = value; self.requests = requests; self.cleanupUnsafe = cleanupUnsafe }
 }
 
 enum MonitorTransportMode: Sendable {
@@ -22,7 +23,7 @@ final class NativeLookupWorker: @unchecked Sendable {
     func start(ticket: MacSessionPolicy.Ticket, street: String, house: String, mode: MonitorTransportMode,
                epoch: @escaping @Sendable () -> Int64, completed: @escaping @Sendable (MonitorReplyBox) -> Void) -> MonitorWork {
         let work = MonitorWork(ticket: ticket, street: street, house: house, mode: mode, epoch: epoch, sourceGate:sourceGate)
-        queue.async { let reply = work.run(); completed(MonitorReplyBox(reply, requests: work.requests)) }
+        queue.async { let reply = work.run(); completed(MonitorReplyBox(reply, requests: work.requests, cleanupUnsafe:self.sourceGate.cleanupUnsafe)) }
         return work
     }
 }
@@ -61,6 +62,21 @@ final class MonitorWork: @unchecked Sendable {
         return expired
     }
     private var isStopped: Bool { lock.lock(); defer { lock.unlock() }; return stopped }
+    private func waitForCompletion(_ completed: DispatchSemaphore, origin: ContinuousClock.Instant,
+                                   timeoutMS: Int, graceMS: Int = 2000, pollMS: Int = 100,
+                                   cancel: () -> Void) -> Bool {
+        var cancellationSent=false
+        while completed.wait(timeout:.now() + .milliseconds(pollMS)) != .success {
+            if isStopped && !cancellationSent { cancellationSent=true; cancel() }
+            if origin.duration(to:.now) >= .milliseconds(timeoutMS + graceMS) {
+                cancel(); sourceGate.markCleanupUnsafe(); return false
+            }
+        }
+        return true
+    }
+    private func uncleanFailure(_ request: [String:Any], _ error: String) -> [String:Any] {
+        var value=failure(request,error); value["cleanupFailed"]=true; return value
+    }
     func run() -> DMLookupReply {
         operation.perform { [self] request in get(request) }
     }
@@ -69,10 +85,14 @@ final class MonitorWork: @unchecked Sendable {
          "status": 0, "mime": "", "body": Data(), "received": NSNull()]
     }
     private func get(_ request: [String:Any]) -> [String:Any] {
+        if sourceGate.cleanupUnsafe {
+            var value=failure(request,"cleanup"); value["cleanupFailed"]=true; return value
+        }
         if let status=sourceGate.status {
             var value=failure(request,"http"); value["status"]=status; return value
         }
         let value=performGet(request)
+        if (value["cleanupFailed"] as? NSNumber)?.boolValue == true { sourceGate.markCleanupUnsafe() }
         sourceGate.observe((value["status"] as? NSNumber)?.intValue ?? 0)
         return value
     }
@@ -80,6 +100,10 @@ final class MonitorWork: @unchecked Sendable {
         guard !isStopped else { return failure(request, "cancelled") }
         lock.lock(); requestCount += 1; lock.unlock()
         #if DTEKMONITOR_MAC_TEST_BUILD
+        if case .synthetic("cleanup_timeout") = mode {
+            let finished=waitForCompletion(DispatchSemaphore(value:0),origin:.now,timeoutMS:0,graceMS:0,pollMS:1,cancel:{})
+            return finished ? failure(request,"invalid_response") : uncleanFailure(request,"timeout")
+        }
         if case .synthetic(let scenario) = mode { return synthetic(request, scenario: scenario) }
         #endif
         guard let kind = request["kind"] as? String, let query = request["query"] as? String,
@@ -116,17 +140,13 @@ final class MonitorWork: @unchecked Sendable {
         lock.lock(); attempt = native; began = origin; budget = timeout.intValue; let cancelNow = stopped; lock.unlock()
         if cancelNow { native.cancel() }
         defer { lock.lock(); attempt = nil; began = nil; lock.unlock() }
-        var cancellationSent=cancelNow
-        while completed.wait(timeout: .now() + .milliseconds(100)) != .success {
-            if isStopped && !cancellationSent { cancellationSent=true; native.cancel() }
-            // Network deadline remains unchanged; this grace only lets native
-            // cancellation/its bounded cleanup report finish before next work.
-            if origin.duration(to: .now) >= .milliseconds(timeout.intValue + 2000) {
-                native.cancel(); return failure(request,isStopped ? "cancelled" : "timeout")
-            }
+        // The grace lets bounded native cancellation report before the next work.
+        if !waitForCompletion(completed,origin:origin,timeoutMS:timeout.intValue,cancel:{ native.cancel() }) {
+            return uncleanFailure(request,isStopped ? "cancelled" : "timeout")
         }
         guard let result = box.load(), result.token == ticket.generation, result.address == ticket.selection else {
-            return failure(request,"invalid_response")
+            sourceGate.markCleanupUnsafe()
+            return uncleanFailure(request,"invalid_response")
         }
         var output: [String: Any] = ["token": NSNumber(value: result.token), "error": result.error,
             "status": result.status, "cleanupFailed":result.cleanupFailed, "mime": result.headers["content-type"] ?? "", "body": result.body, "received": NSNull()]
@@ -143,6 +163,7 @@ final class MonitorWork: @unchecked Sendable {
             return output
         }
         if scenario == "unavailable" { return failure(request,"connection") }
+        if scenario == "cleanup" { var value=failure(request,"cleanup"); value["cleanupFailed"]=true; return value }
         let body: Any
         switch request["kind"] as? String {
         case "streets": body = [["id":101,"value":ticket.kind == .suggestions ? "вул. Тестова" : street]]
@@ -183,6 +204,9 @@ private final class WorkerResultBox: @unchecked Sendable {
 fileprivate final class MonitorSourceGate: @unchecked Sendable {
     private let lock=NSLock()
     private var value: Int?
+    private var unsafe = false
+    var cleanupUnsafe: Bool { lock.lock(); defer { lock.unlock() }; return unsafe }
+    func markCleanupUnsafe() { lock.lock(); unsafe=true; lock.unlock() }
     var status: Int? { lock.lock(); defer { lock.unlock() }; return value }
     func observe(_ status: Int) {
         guard status==403 || status==429 else { return }

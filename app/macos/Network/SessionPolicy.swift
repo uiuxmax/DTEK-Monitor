@@ -21,6 +21,7 @@ struct MacSessionPolicy {
     private(set) var pending: Ticket?
     private(set) var editing = false
     private(set) var stopped = false
+    private(set) var cleanupStopped = false
     private(set) var sourceStatus: Int?
     private(set) var closed = false
     private(set) var clockBroken = false
@@ -86,6 +87,11 @@ struct MacSessionPolicy {
         let old = retire()
         editing = false; draftQuery = nil; editedMS = nil; editGeneration = nil
         return old
+    }
+    mutating func stopForCleanup() -> Ticket? {
+        guard !closed else { return nil }
+        cleanupStopped=true; stopped=true
+        return retire()
     }
     // Popup presentation deliberately issues no work. Refresh belongs to tick.
     func popupOpened() -> Action { Action() }

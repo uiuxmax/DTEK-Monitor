@@ -168,7 +168,10 @@ struct EngineState {
     try {
         const auto draft=address_draft::normalize(mac_json::wide(street),mac_json::wide(house));
         if(!draft)return NO;
-        if(_state->receipt && _state->settings.draft!=*draft)_state->receipt->clear(schedule::UtcInstant{epoch});
+        if(_state->settings.draft!=*draft) {
+            if(!mac_profile::remove_receipt(_state->profile)) { _state->storage_warning=true; return NO; }
+            if(_state->receipt)_state->receipt->clear(schedule::UtcInstant{epoch});
+        }
         _state->settings.draft=*draft;
         _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
         return YES;
@@ -214,14 +217,18 @@ struct EngineState {
         if(_state->zone)if(const auto day=_state->zone->local_date_at(now))
             dayKey=[NSString stringWithFormat:@"%04d-%02u-%02u",day->year,day->month,day->day];
         NSMutableArray *intervals=[NSMutableArray array];
-        bool forecast=false,tomorrow=false,tomorrowAvailable=false,emergency=false;
-        NSString *countdown=@"",*address=@"Адресу не задано";
+        bool forecast=false,tomorrow=false,tomorrowAvailable=false,emergency=false,currentForecast=false,currentEmergency=false;
+        NSString *countdown=@"",*currentCountdown=@"",*address=@"Адресу не задано";
         id received=NSNull.null;
         unsigned total=0;
         if(!_state->settings.draft.street.empty())address=[NSString stringWithFormat:@"%@, %@",wide_text(_state->settings.draft.street),wide_text(_state->settings.draft.house)];
         if(_state->receipt) {
             const auto& window=_state->receipt->view(now);
             tomorrow=window.viewing_tomorrow(); tomorrowAvailable=window.has_tomorrow();
+            if(const auto& today=window.today()) {
+                currentEmergency=today->state==popup_schedule::State::emergency;
+                currentForecast=today->state==popup_schedule::State::published && today->verified;
+            }
             if(const auto day=window.selected()) {
                 emergency=day->state==popup_schedule::State::emergency;
                 forecast=day->state==popup_schedule::State::published && day->verified;
@@ -236,7 +243,8 @@ struct EngineState {
                     total=popup_schedule::total_outage_minutes(day);
                 }
             }
-            if(!tomorrow)if(const auto estimate=_state->receipt->estimate(now))countdown=text(estimate->ukrainian_text);
+            if(const auto estimate=_state->receipt->estimate(now))currentCountdown=text(estimate->ukrainian_text);
+            if(!tomorrow)countdown=currentCountdown;
             if(const auto& saved=_state->receipt->saved(now)) {
                 received=@(saved->received.epoch_seconds);
                 address=[NSString stringWithFormat:@"%@, %@",text(saved->resolution.address.displayed_street),text(saved->resolution.address.displayed_house)];
@@ -245,6 +253,7 @@ struct EngineState {
         return @{@"valid":@YES,@"street":wide_text(_state->settings.draft.street),@"house":wide_text(_state->settings.draft.house),
             @"address":address,@"theme":text(_state->settings.theme),@"storageWarning":@(_state->storage_warning),
             @"kyivDay":dayKey,@"forecast":@(forecast),@"emergency":@(emergency),@"tomorrow":@(tomorrow),
+            @"currentForecast":@(currentForecast),@"currentEmergency":@(currentEmergency),@"currentCountdown":currentCountdown,
             @"tomorrowAvailable":@(tomorrowAvailable),@"countdown":countdown,@"intervals":intervals,
             @"totalOutageMinutes":@(total),@"received":received,
             @"floatingVisible":@(_state->settings.floating_visible), @"floatingPositioned":@(_state->settings.floating_positioned),

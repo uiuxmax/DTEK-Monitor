@@ -11,7 +11,7 @@ private final class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
-@MainActor final class MonitorAppDelegate: NSObject,NSApplicationDelegate,NSWindowDelegate {
+@MainActor final class MonitorAppDelegate: NSObject,NSApplicationDelegate,NSWindowDelegate,NSPopoverDelegate {
     private var model: MonitorModel?
     private var login: LoginItemModel?
     private var window: NSWindow?
@@ -51,7 +51,7 @@ private final class FloatingPanel: NSPanel {
             button.setAccessibilityIdentifier("monitor-menubar"); button.setAccessibilityLabel("DTEK Monitor")
             button.target=self; button.action=#selector(togglePopover)
         }
-        item=status; popover.behavior = .transient; popover.animates=false
+        item=status; popover.behavior = .transient; popover.animates=false; popover.delegate=self
         activationObserver=NotificationCenter.default.addObserver(forName:NSApplication.didBecomeActiveNotification,object:nil,queue:.main) { [weak self] _ in
             Task { @MainActor in self?.login?.refresh() }
         }
@@ -77,7 +77,11 @@ private final class FloatingPanel: NSPanel {
     private func safeOrigin(_ origin: NSPoint, size: NSSize) -> NSPoint? {
         let rect=NSRect(origin:origin,size:size)
         let screens=NSScreen.screens
-        let screen=screens.first { $0.visibleFrame.intersects(rect) } ?? NSScreen.main ?? screens.first
+        let screen=screens.max { a,b in
+            let x=a.visibleFrame.intersection(rect), y=b.visibleFrame.intersection(rect)
+            let ax=x.isNull ? 0 : x.width*x.height, ay=y.isNull ? 0 : y.width*y.height
+            return ax < ay
+        }.flatMap { $0.visibleFrame.intersects(rect) ? $0 : nil } ?? NSScreen.main ?? screens.first
         guard let bounds=screen?.visibleFrame else { return nil }
         return NSPoint(x:max(bounds.minX,min(origin.x,bounds.maxX-size.width)),
                        y:max(bounds.minY,min(origin.y,bounds.maxY-size.height)))
@@ -151,6 +155,9 @@ private final class FloatingPanel: NSPanel {
     }
     func windowWillClose(_ notification: Notification) {
         if let value=notification.object as? NSWindow, value === window { model?.cancelEditing() }
+    }
+    func popoverDidClose(_ notification: Notification) {
+        if window?.isVisible != true { model?.cancelEditing() }
     }
     func windowDidMove(_ notification: Notification) {
         guard let value=notification.object as? NSWindow, value === floating, value.isVisible else { return }

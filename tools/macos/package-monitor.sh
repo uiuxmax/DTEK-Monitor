@@ -3,11 +3,15 @@
 set -euo pipefail
 [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 && "$#" -eq 0 ]] || exit 64
 repo=$(cd "$(dirname "$0")/../.." && pwd -P)
-reports=("$repo"/out/macos/monitor-ui-check-*/results.json)
-[[ "${#reports[@]}" -eq 1 && -f "${reports[0]}" ]] || exit 64
-build_root=$(dirname "${reports[0]}")
-source_app="$build_root/PersonalData/Build/Products/Release/DTEKMonitor.app"
-python3 - "${reports[0]}" "$repo" "$source_app" <<'PY'
+if [[ -n "${DTEKMONITOR_MONITOR_RESULTS:-}" ]]; then
+    report="$DTEKMONITOR_MONITOR_RESULTS"
+else
+    reports=("$repo"/out/macos/monitor-ui-check-*/results.json)
+    [[ "${#reports[@]}" -eq 1 && -f "${reports[0]}" ]] || exit 64
+    report="${reports[0]}"
+fi
+source_app=$(python3 -B "$repo/tools/macos/select-prior-run.py" monitor "$repo" "$report") || exit 1
+python3 - "$report" "$repo" "$source_app" <<'PY'
 import json,subprocess,sys
 from pathlib import Path
 report=json.loads(Path(sys.argv[1]).read_bytes())

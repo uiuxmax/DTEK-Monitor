@@ -32,6 +32,7 @@ struct Receipt {
 };
 std::optional<Receipt> load_receipt(const std::filesystem::path& profile);
 bool save_receipt(const std::filesystem::path& profile, const Receipt& receipt, WriteFault fault = WriteFault::none);
+bool remove_receipt(const std::filesystem::path& profile);
 bool clean_logs(const std::filesystem::path& profile, std::filesystem::file_time_type now, std::size_t reserve_bytes = 0);
 enum class DiagnosticEvent { startup, address_applied, lookup_ok, lookup_failed, source_stopped, wake, clock_changed, theme_changed, shutdown };
 // Fixed event/status/reason only: no address, URL, body or arbitrary log text.

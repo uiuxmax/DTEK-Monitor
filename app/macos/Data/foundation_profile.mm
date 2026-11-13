@@ -232,6 +232,18 @@ bool save_receipt(const fs::path& profile, const Receipt& value, WriteFault faul
         } catch (...) { return false; }
     }
 }
+bool remove_receipt(const fs::path& profile) {
+    Descriptor directory{open_profile(profile)};
+    if (directory.value < 0) return false;
+    struct stat info{};
+    if (::fstatat(directory.value, "receipt.json", &info, AT_SYMLINK_NOFOLLOW) != 0) return errno == ENOENT;
+    if (!S_ISREG(info.st_mode)) return false;
+    // Do not destroy an unreadable or future-schema receipt automatically.
+    if (!receipt(read_file(directory.value, "receipt.json", 2'010'000))) return false;
+    if (::unlinkat(directory.value, "receipt.json", 0) != 0) return false;
+    ::fsync(directory.value);
+    return true;
+}
 bool clean_logs(const fs::path& profile, fs::file_time_type now, std::size_t reserve_bytes) {
     if (!owned_profile(profile) || reserve_bytes > 5 * 1024 * 1024) return false;
     return log_retention::clean(profile / "logs", now, std::chrono::hours{7 * 24}, 5 * 1024 * 1024 - reserve_bytes);

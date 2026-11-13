@@ -93,10 +93,10 @@ def main():
             capture_output=True,text=True,encoding='utf-8',timeout=60)
     finally: stop.set(); listener.close(); thread.join(timeout=4)
     (profile.parent/'session.log').write_text(result.stdout+result.stderr,encoding='utf-8')
-    report=dict(result='PASS' if result.returncode==0 and 17<=len(requests)<=21 and not errors else 'FAIL',
+    report=dict(result='PASS' if result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout and 17<=len(requests)<=21 and not errors and len(requests)<=accepted<=len(requests)+1 else 'FAIL',
         checks=24,accepted_connections=accepted,http_gets=len(requests),resources=requests,server_errors=errors,
         scope='Real TLS loopback, synthetic provider JSON, no public provider, no Login Items')
-    (profile.parent/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    (profile.parent/'runner-results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(result.stdout)
     assert result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout,result.stderr
     assert 17<=len(requests)<=21 and not errors,report

@@ -99,11 +99,14 @@ final class MonitorUITests: XCTestCase {
         launch(); element("edit-address").click(); element("street").typeText("те")
         XCTAssertTrue(element("suggestion-0").waitForExistence(timeout:8))
         element("street").typeKey(.downArrow,modifierFlags:[]); app.typeKey(.return,modifierFlags:[])
-        element("house").typeText("2-А\r"); ready()
+        element("house").typeText("2")
+        XCTAssertTrue(element("suggestion-0").waitForExistence(timeout:8))
+        element("house").typeKey(.downArrow,modifierFlags:[]); app.typeKey(.return,modifierFlags:[])
+        element("house").typeText("-А\r"); ready()
         waitText("address","вул. Тестова, 2-А"); waitText("outage-total","3 г 30 хв")
         XCTAssertTrue(element("schedule-timeline").exists)
-        waitText("request-count","5"); XCTAssertTrue(element("received").exists)
-        Thread.sleep(forTimeInterval:1.2); waitText("request-count","5")
+        waitText("request-count","7"); XCTAssertTrue(element("received").exists)
+        Thread.sleep(forTimeInterval:1.2); waitText("request-count","7")
     }
     func testValidationDoesNotStartLookup() {
         launch(); element("edit-address").click(); element("apply-address").click()
@@ -122,6 +125,8 @@ final class MonitorUITests: XCTestCase {
         launch(); applyAddress(); ready(); XCTAssertTrue(element("tomorrow").isEnabled)
         element("tomorrow").click(); waitText("selected-day","Завтра")
         XCTAssertFalse(element("countdown").exists)
+        element("open-floating").click()
+        XCTAssertTrue(element("floating-countdown").waitForExistence(timeout:8))
         let original=pid
         app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
         XCTAssertTrue(app.state == .runningBackground || app.state == .runningForeground)
