@@ -152,7 +152,7 @@
     },
     {
       "path": "app/macos/Network/NetworkHTTPSAttempt.swift",
-      "sha256": "9acad3cbd6b0e9a1ab092650929fb4e8a9e29d31b3e86e799f37a468965131da"
+      "sha256": "2cec6ff7c0dfccc13253db26d78992d53d69722632b0d8ef5b6a72ded965f4ce"
     },
     {
       "path": "app/macos/Network/RawHTTPResponse.swift",
@@ -340,7 +340,7 @@
     },
     {
       "path": "tests/macos/monitor_bridge_tests.mm",
-      "sha256": "7ba37fefb78a8c8297158da23c194f43b501a3e9fd00b7f2d7337e43b55cec49"
+      "sha256": "faaf3a1d405b322d80da3f3a65f008df98fc36335be005470c8bd5b1c68dda76"
     },
     {
       "path": "tests/macos/session_wire_server.py",

@@ -81,7 +81,7 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
                     // DNS-SD can report a missing A/AAAA record before the
                     // other family returns a usable address. Error arguments
                     // are deliberately nil: production must not inspect them.
-                    self.resolved(flags:0,error:kDNSServiceErr_NoSuchRecord,address:nil)
+                    self.resolved(flags:0,error:DNSServiceErrorType(kDNSServiceErr_NoSuchRecord),address:nil)
                     if resolverMode == "negative-only" { return }
                     if resolverMode == "negative-cancel" { self.cancel() }
                     self.owner.async {
@@ -121,7 +121,7 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
             guard inet_pton(AF_INET6,"::1",&address.sin6_addr)==1 else { finish("dns"); return }
             withUnsafePointer(to:&address) { pointer in
                 pointer.withMemoryRebound(to:sockaddr.self,capacity:1) {
-                    resolved(flags:DNSServiceFlags(kDNSServiceFlagsAdd),error:kDNSServiceErr_NoError,address:$0)
+                    resolved(flags:DNSServiceFlags(kDNSServiceFlagsAdd),error:DNSServiceErrorType(kDNSServiceErr_NoError),address:$0)
                 }
             }
         } else {
@@ -130,7 +130,7 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
             guard inet_pton(AF_INET,"127.0.0.1",&address.sin_addr)==1 else { finish("dns"); return }
             withUnsafePointer(to:&address) { pointer in
                 pointer.withMemoryRebound(to:sockaddr.self,capacity:1) {
-                    resolved(flags:DNSServiceFlags(kDNSServiceFlagsAdd),error:kDNSServiceErr_NoError,address:$0)
+                    resolved(flags:DNSServiceFlags(kDNSServiceFlagsAdd),error:DNSServiceErrorType(kDNSServiceErr_NoError),address:$0)
                 }
             }
         }

@@ -76,7 +76,7 @@ bool run_monitor_bridge_tests() {
             DMLookupReply *response=[failed performWithTransport:^NSDictionary *(NSDictionary *request) {
                 return @{@"token":request[@"token"],@"error":failure[0],@"status":@0,@"mime":@"",@"body":NSData.data,@"received":NSNull.null};
             }];
-            check_result(std::string{"bridge preserves bounded transport code: "}+failure[0].UTF8String,
+            check_result((std::string{"bridge preserves bounded transport code: "}+failure[0].UTF8String).c_str(),
                 [response.metadata[@"failure"] isEqual:@"transport"] && [response.metadata[@"stages"][0][@"errorName"] isEqual:failure[1]]);
         }
         DMMonitorEngine *restarted=[[DMMonitorEngine alloc] initWithProfile:path epoch:now+2];
