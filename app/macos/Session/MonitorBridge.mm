@@ -39,6 +39,17 @@ Error error_code(NSString *value) {
     if(code=="cleanup")return Error::cleanup; if(code=="invalid_request")return Error::invalid_request;
     return Error::invalid_response;
 }
+NSString *error_name(Error value) {
+    switch(value) {
+    case Error::none:return @"none"; case Error::invalid_request:return @"invalid_request";
+    case Error::dns:return @"dns"; case Error::tls:return @"tls";
+    case Error::connection:return @"connection"; case Error::http:return @"http";
+    case Error::timeout:return @"timeout"; case Error::cancelled:return @"cancelled";
+    case Error::invalid_response:return @"invalid_response"; case Error::body_too_large:return @"body_too_large";
+    case Error::incomplete_body:return @"incomplete_body"; case Error::cleanup:return @"cleanup";
+    }
+    return @"invalid_response";
+}
 std::uint64_t token_number(id value) {
     mac_json::number(value); // Reject booleans/non-finite values before decimal conversion.
     const auto bytes=mac_json::utf8([(NSNumber *)value stringValue]);
@@ -89,7 +100,7 @@ struct EngineState {
 - (NSDictionary<NSString *,id> *)metadata {
     if(!_value)return @{@"failure":@"schema",@"stages":@[],@"suggestions":@[]};
     NSMutableArray *stages=[NSMutableArray array], *suggestions=[NSMutableArray array];
-    for(const auto& stage:_value->stages)[stages addObject:@{@"kind":resource_name(stage.resource),@"status":@(stage.status),@"bytes":@(stage.body_bytes),@"error":@(static_cast<int>(stage.error))}];
+    for(const auto& stage:_value->stages)[stages addObject:@{@"kind":resource_name(stage.resource),@"status":@(stage.status),@"bytes":@(stage.body_bytes),@"error":@(static_cast<int>(stage.error)),@"errorName":error_name(stage.error)}];
     for(const auto& choice:_value->suggestions)[suggestions addObject:@{@"id":text(choice.id),@"label":text(choice.label)}];
     return @{@"failure":failure_name(_value->failure),@"stages":stages,@"suggestions":suggestions,@"hasSchedule":@(_value->schedule.has_value())};
 }
@@ -186,7 +197,7 @@ struct EngineState {
     } catch(...) { return NO; }
 }
 - (BOOL)recordEvent:(NSInteger)event status:(NSInteger)status reason:(NSInteger)reason epoch:(int64_t)epoch {
-    if(!_state || event<0 || event>8 || status<0 || status>599 || reason<0 || reason>13)return NO;
+    if(!_state || event<0 || event>10 || status<0 || status>599 || reason<0 || reason>13)return NO;
     return mac_profile::append_event(_state->profile,static_cast<mac_profile::DiagnosticEvent>(event),schedule::UtcInstant{epoch},static_cast<int>(status),static_cast<int>(reason));
 }
 - (BOOL)setTheme:(NSString *)theme {

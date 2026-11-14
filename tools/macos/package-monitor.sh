@@ -29,7 +29,7 @@ from pathlib import Path
 bundle=Path(sys.argv[1]).resolve(strict=True)
 info=plistlib.loads((bundle/'Contents/Info.plist').read_bytes())
 assert info['CFBundleIdentifier']=='local.dtekmonitor.Monitor' and info['CFBundleExecutable']=='DTEKMonitor'
-assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='1'
+assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='3'
 assert info['LSMinimumSystemVersion']=='13.0' and info['LSUIElement'] is True
 for name in ('power-on-v1.png','power-off-v1.png','notification-v1.png'):
     icon=bundle/'Contents/Resources'/name

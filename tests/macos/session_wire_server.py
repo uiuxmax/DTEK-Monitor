@@ -99,12 +99,12 @@ def main():
             capture_output=True,text=True,encoding='utf-8',timeout=60)
     finally: stop.set(); listener.close(); thread.join(timeout=4)
     (profile.parent/'session.log').write_text(result.stdout+result.stderr,encoding='utf-8')
-    report=dict(result='PASS' if result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout and 19<=len(requests)<=23 and not errors and len(requests)<=accepted<=len(requests)+1 else 'FAIL',
-        checks=24,accepted_connections=accepted,http_gets=len(requests),resources=requests,server_errors=errors,
+    report=dict(result='PASS' if result.returncode==0 and 'RESULT 29/29 connected session checks passed' in result.stdout and 19<=len(requests)<=23 and not errors and len(requests)<=accepted<=len(requests)+1 else 'FAIL',
+        checks=29,accepted_connections=accepted,http_gets=len(requests),resources=requests,server_errors=errors,
         scope='Real TLS loopback, synthetic provider JSON, no public provider, no Login Items')
     (profile.parent/'runner-results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(result.stdout)
-    assert result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout,result.stderr
+    assert result.returncode==0 and 'RESULT 29/29 connected session checks passed' in result.stdout,result.stderr
     assert 19<=len(requests)<=23 and not errors,report
     assert len(requests)<=accepted<=len(requests)+1,report
     print('PASS: 19..23 owned TLS GETs: lookup, street/house suggestions, A B A and close cancellation with CDN-style cookies')

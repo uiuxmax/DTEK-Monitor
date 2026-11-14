@@ -65,6 +65,7 @@ final class MonitorUITests: XCTestCase {
     }
     func testInitialProfileAndBounds() {
         launch(); waitText("status","Додайте адресу"); waitText("request-count","0")
+        waitText("app-version","0.1.0 (3)")
         XCTAssertFalse(element("tomorrow").isEnabled)
         XCTAssertFalse(element("fixture-scenario").exists)
         let window=app.windows.firstMatch

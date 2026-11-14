@@ -54,7 +54,8 @@ typealias ProbeAttempt = MacHTTPSAttempt
               let port = UInt16(CommandLine.arguments[1]), port != 0,
               let milliseconds = Int(CommandLine.arguments[3]), (1...30_000).contains(milliseconds),
               ["trusted", "untrusted", "mismatch", "cancel", "dns", "hostname-dns", "cancel-header", "cancel-body",
-               "first-unreachable", "dns-deadline", "dns-cancel", "real-dns-cancel", "ipv6"].contains(CommandLine.arguments[2]),
+               "first-unreachable", "dns-deadline", "dns-cancel", "real-dns-cancel", "ipv6",
+               "negative-then-ipv4","negative-then-ipv6","negative-only","negative-cancel"].contains(CommandLine.arguments[2]),
               let profile = env["DTEKMONITOR_TEST_PROFILE"] else { exit(64) }
         let certificate = URL(fileURLWithPath: profile).appendingPathComponent("root.der")
         guard certificate.resolvingSymlinksInPath().path == certificate.path else { exit(64) }
@@ -74,7 +75,8 @@ typealias ProbeAttempt = MacHTTPSAttempt
             anchorDER: mode == "untrusted" ? nil : data, totalMilliseconds: milliseconds,
             testDNS: mode == "dns", localhostDNS: mode == "hostname-dns",
             cancelAt: mode == "cancel-header" ? "header" : mode == "cancel-body" ? "body" : "none",
-            resolverMode: ["first-unreachable","dns-deadline","dns-cancel","real-dns-cancel","ipv6"].contains(mode) ? mode : "normal",
+            resolverMode: ["first-unreachable","dns-deadline","dns-cancel","real-dns-cancel","ipv6",
+                "negative-then-ipv4","negative-then-ipv6","negative-only","negative-cancel"].contains(mode) ? mode : "normal",
             completed: completion)
         #else
         guard ["trusted", "untrusted", "mismatch", "cancel"].contains(mode) else { exit(64) }

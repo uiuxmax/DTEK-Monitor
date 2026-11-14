@@ -163,6 +163,7 @@ final class MonitorWork: @unchecked Sendable {
             return output
         }
         if scenario == "unavailable" { return failure(request,"connection") }
+        if ["dns","tls","timeout","invalid_response"].contains(scenario) { return failure(request,scenario) }
         if scenario == "cleanup" { var value=failure(request,"cleanup"); value["cleanupFailed"]=true; return value }
         let body: Any
         switch request["kind"] as? String {

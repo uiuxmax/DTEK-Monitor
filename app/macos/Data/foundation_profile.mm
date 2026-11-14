@@ -314,6 +314,8 @@ bool append_event(const std::filesystem::path& profile, DiagnosticEvent event,
         case DiagnosticEvent::clock_changed:name="clock_changed";break;
         case DiagnosticEvent::theme_changed:name="theme_changed";break;
         case DiagnosticEvent::shutdown:name="shutdown";break;
+        case DiagnosticEvent::street_suggestions_failed:name="street_suggestions_failed";break;
+        case DiagnosticEvent::house_suggestions_failed:name="house_suggestions_failed";break;
         }
         if(!name || status<0 || status>599 || reason<0 || reason>13 ||
            now.epoch_seconds < -11644473600LL || now.epoch_seconds > 253402300799LL)return false;

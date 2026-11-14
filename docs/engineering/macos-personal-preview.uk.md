@@ -1,16 +1,24 @@
 # Особиста macOS-збірка: встановлення та приймання
 
-Інструкція для підготовленого `DTEKMonitor.app`. Попередню версію опубліковано
-в [GitHub Releases](https://github.com/uiuxmax/DTEK-Monitor/releases/tag/macos-v0.1.0-preview.1);
+Інструкція для `DTEKMonitor.app` **preview 0.1.0 (3)** із виправленням
+завантаження графіка та підказок адреси. Завантаження —
+[GitHub Releases](https://github.com/uiuxmax/DTEK-Monitor/releases/tag/macos-v0.1.0-preview.3);
 актуальні докази й стан приймання — у [STATUS](../../STATUS.md).
 
 Це **одна arm64-версія для Apple Silicon**, без Intel/Universal. M0–M8 у
-плані — етапи розробки. Версія пакета 0.1.0, build 1; мінімальна macOS 13
+плані — етапи розробки. Версія пакета 0.1.0, build 3; мінімальна macOS 13
 задекларована в build, а runtime CI працює на macOS 15.8.2. Приймання всіх
 систем від 13 і фізичних Mac ще відкрите. На Mac для запуску не потрібні
 Xcode, Command Line Tools чи агент розробки.
 
 ## Встановлення погодженого ZIP
+
+Якщо встановлено попередній preview, спочатку виберіть у його меню **«Вийти»**.
+Закриття плаваючого віджета саме собою не завершує програму. Потім замініть
+стару `.app` новою копією в тому самому місці й запустіть її. Папку даних
+видаляти не потрібно: адреса, тема й інші налаштування використовуються з
+наявного профілю. Номер нової збірки — 3; його можна прочитати в
+`Contents/Info.plist` → `CFBundleVersion`.
 
 1. Завантажити лише Mac arm64 ZIP і SHA256SUMS із погодженого випуску.
    За потреби звірити його штатним `shasum -a 256 <ZIP>` у Terminal.
@@ -19,13 +27,17 @@ Xcode, Command Line Tools чи агент розробки.
    використовувати одну копію, не запускати її з тимчасової папки ZIP.
 3. Відкрити `.app`. Це personal preview з ad-hoc signature, без Developer ID
    та notarization. Статичне `codesign --verify` не доводить Gatekeeper first
-   launch. Для свідомо погодженого preview Apple описує разовий **Open Anyway**
-   у [Privacy & Security](https://support.apple.com/102445).
+   launch. Якщо macOS блокує запуск, скористайтеся **Open Anyway / «Відкрити
+   однаково»** у System Settings → Privacy & Security за
+   [інструкцією Apple](https://support.apple.com/102445).
 4. Натиснути значок блискавки у menu bar. Якщо він недоступний через notch
    або переповнення рядка, повторно відкрити `.app` у Finder — має з'явитися
    вікно графіка в тому самому процесі. Закриття вікна залишає програму активною;
    **Вийти** завершує її.
-5. Задати свою повну київську адресу. Підказка не підтверджує будинок або лінію:
+5. Перевірити збережену адресу або задати свою повну київську адресу. Для
+   перевірки виправлення натиснути «Змінити», ввести щонайменше дві літери
+   вулиці, дочекатися підказок, обрати вулицю й будинок та застосувати адресу.
+   Підказка не підтверджує будинок або лінію:
    lookup окремо перевіряє street/house/group/schedule. Enter у списку обирає
    вулицю, Enter у полі будинку застосовує адресу; Escape скасовує форму.
 
@@ -66,6 +78,7 @@ macOS. Справжні `register/unregister`, logout/login, external disable т
 - [ ] Записати macOS/модель; перевірити отриманий ZIP, first launch і Gatekeeper.
 - [ ] Зберегти адресу/тему, завершити та запустити `.app`; перевірити receipt.
 - [ ] Окремо погодити live startup lookup і реальне 30-хвилинне спостереження.
+- [ ] Підказки вулиці/будинку та завантаження графіка працюють у build 3.
 - [ ] Sleep/wake в межах тієї ж доби, offline/online, київська північ та інша
   системна timezone — без паралельних або catch-up lookup.
 - [ ] Keyboard/VoiceOver, Retina, зовнішній монітор, fullscreen/notch та
@@ -74,6 +87,13 @@ macOS. Справжні `register/unregister`, logout/login, external disable т
   вимкнення, заміна `.app` і duplicate-copy scenario.
 
 Ці пункти не закриваються source checks, screenshots або synthetic CI PASS.
+
+Якщо помилка з'єднання залишилася, запишіть build 3, версію macOS і час помилки.
+Діагностичні журнали розташовані в
+`~/Library/Application Support/local.dtekmonitor.Monitor/logs/`;
+файли мають назви `diagnostic-YYYY-MM-DD.log`. Вони містять фіксовані коди
+подій без адрес і тіл відповідей. Перевіряйте й передавайте лише потрібні
+рядки журналу; `settings.json` і `receipt.json` надсилати не потрібно.
 
 ## Безкоштовна збірка
 

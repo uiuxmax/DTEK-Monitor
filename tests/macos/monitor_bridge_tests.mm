@@ -68,6 +68,17 @@ bool run_monitor_bridge_tests() {
         }];
         check_result("bridge preserves source stop metadata",[blocked.metadata[@"failure"] isEqual:@"forbidden"] && [blocked.metadata[@"stages"][0][@"status"] intValue]==429);
         check_result("blocked lookup cannot replace the receipt",![engine acceptReply:blocked epoch:now+1] && [[engine snapshotAtEpoch:now+1][@"forecast"] boolValue]);
+        NSArray<NSArray<NSString *> *> *failures=@[@[@"dns",@"dns"],@[@"tls",@"tls"],
+            @[@"timeout",@"timeout"],@[@"connection",@"connection"],@[@"http",@"http"],
+            @[@"invalid_response",@"invalid_response"],@[@"unrecognized",@"invalid_response"]];
+        for(NSArray<NSString *> *failure in failures) {
+            DMLookupOperation *failed=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"" token:55 suggestions:YES houseSuggestions:NO];
+            DMLookupReply *response=[failed performWithTransport:^NSDictionary *(NSDictionary *request) {
+                return @{@"token":request[@"token"],@"error":failure[0],@"status":@0,@"mime":@"",@"body":NSData.data,@"received":NSNull.null};
+            }];
+            check_result(std::string{"bridge preserves bounded transport code: "}+failure[0].UTF8String,
+                [response.metadata[@"failure"] isEqual:@"transport"] && [response.metadata[@"stages"][0][@"errorName"] isEqual:failure[1]]);
+        }
         DMMonitorEngine *restarted=[[DMMonitorEngine alloc] initWithProfile:path epoch:now+2];
         NSDictionary *restored=[restarted snapshotAtEpoch:now+2];
         check_result("bridge restart restores address and theme",[restored[@"street"] isEqual:@"вул. Тестова"] && [restored[@"theme"] isEqual:@"dark"]);

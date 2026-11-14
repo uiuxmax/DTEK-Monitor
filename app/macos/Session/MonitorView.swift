@@ -120,6 +120,8 @@ import AppKit
                 Button("Вийти") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q").accessibilityIdentifier("quit")
             }
             Text("Тема: \(model.theme.title)").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("selected-theme")
+            Text("Версія \(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "—") (\(Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "—"))")
+                .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("app-version")
         }.padding(16).frame(width:380).frame(maxHeight:.infinity).preferredColorScheme(model.theme.colorScheme)
             .background(MonitorWindowReader(onEscape:escape,onSuggestionKey:suggestionKey).frame(width:0,height:0).accessibilityHidden(true))
             .onExitCommand(perform:escape)
@@ -157,10 +159,7 @@ import AppKit
         } else if model.state?.loading == true {
             Text(searchingHouse ? "Пошук будинку…" : "Пошук вулиці…").font(.caption).foregroundStyle(.secondary)
         } else if suggestionsMatch, let result=model.state?.suggestionResult, result != "ready" {
-            Text(result == "empty" ? (searchingHouse ? "Будинок не знайдено. Перевірте номер." : "Вулицю не знайдено. Спробуйте іншу назву.") :
-                 result == "address_mismatch" ? "Оберіть точну назву вулиці зі списку." :
-                 result == "schema" ? "Джерело повернуло незрозумілу відповідь. Спробуйте пізніше." :
-                 "Не вдалося отримати підказки. Перевірте з’єднання та спробуйте ще раз.")
+            Text(suggestionMessage(result))
                 .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("suggestion-message")
         }
         if suggestionsMatch, let choices=model.state?.suggestions, !choices.isEmpty {
@@ -170,6 +169,19 @@ import AppKit
                 }.buttonStyle(.plain).background(.quaternary,in:RoundedRectangle(cornerRadius:6)).focused($focus,equals:.suggestion(index))
                     .accessibilityIdentifier("suggestion-\(index)")
             }
+        }
+    }
+    private func suggestionMessage(_ result: String) -> String {
+        switch result {
+        case "empty": return searchingHouse ? "Будинок не знайдено. Перевірте номер." : "Вулицю не знайдено. Спробуйте іншу назву."
+        case "address_mismatch": return "Оберіть точну назву вулиці зі списку."
+        case "schema": return "Джерело повернуло незрозумілу відповідь. Спробуйте пізніше."
+        case "dns": return "Не вдалося знайти сервер джерела. Перевірте з’єднання."
+        case "tls": return "Не вдалося встановити захищене з’єднання з джерелом."
+        case "timeout": return "Джерело не відповіло вчасно. Спробуйте ще раз."
+        case "invalid_response","incomplete_body","body_too_large": return "Не вдалося прочитати відповідь джерела для підказок."
+        case "http": return "Джерело тимчасово недоступне. Спробуйте пізніше."
+        default: return "Не вдалося отримати підказки. Перевірте з’єднання та спробуйте ще раз."
         }
     }
     private var suggestionsMatch: Bool {

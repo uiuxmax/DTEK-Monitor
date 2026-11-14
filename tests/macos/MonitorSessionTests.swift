@@ -79,8 +79,24 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     await restored.editStreet("те")
     try? await Task.sleep(for:.milliseconds(480)); await restored.tick()
     let failedSuggestion=await wait(restoredBox) { !$0.loading && $0.suggestionResult != nil }
-    check("restart retains receipt, floating placement and reports suggestion transport failure",retained?.forecast == true && retained?.received == ready?.received && retained?.theme == "dark" && retained?.floatingVisible == true && retained?.floatingX == -420 && retained?.floatingY == 700 && retained?.floatingSize == 2 && failedSuggestion?.suggestionResult == "transport")
+    check("restart retains receipt, floating placement and reports suggestion transport failure",retained?.forecast == true && retained?.received == ready?.received && retained?.theme == "dark" && retained?.floatingVisible == true && retained?.floatingX == -420 && retained?.floatingY == 700 && retained?.floatingSize == 2 && failedSuggestion?.suggestionResult == "connection")
+    await restored.editHouse(street:"вул. Тестова",house:"2")
+    try? await Task.sleep(for:.milliseconds(480)); await restored.tick()
+    let failedHouse=await wait(restoredBox) { !$0.loading && $0.suggestionKind == "house" && $0.suggestionResult != nil }
+    let logDirectory=URL(fileURLWithPath:path).appendingPathComponent("logs")
+    let diagnosticFiles=(try? FileManager.default.contentsOfDirectory(at:logDirectory,includingPropertiesForKeys:nil)) ?? []
+    let diagnostics=diagnosticFiles.compactMap { try? String(contentsOf:$0,encoding:.utf8) }.joined()
+    check("street and house suggestion failures are logged without address data",failedHouse?.suggestionResult == "connection" && diagnostics.contains("street_suggestions_failed status=0 reason=4") && diagnostics.contains("house_suggestions_failed status=0 reason=4") && !diagnostics.contains("Тестова"))
     await restored.close()
+    for failure in ["dns","tls","timeout","invalid_response"] {
+        let failureBox=SnapshotBox()
+        let failureSession=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.synthetic(failure),publish:{ failureBox.store($0) })
+        await failureSession.start(); await failureSession.editStreet("те")
+        try? await Task.sleep(for:.milliseconds(480)); await failureSession.tick()
+        let typed=await wait(failureBox) { !$0.loading && $0.suggestionResult != nil }
+        check("suggestion failure remains typed: \(failure)",typed?.suggestionResult == failure)
+        await failureSession.close()
+    }
     let stoppedBox=SnapshotBox()
     let stopped=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.synthetic("429"),publish:{ stoppedBox.store($0) })
     await stopped.start(); await stopped.applyAddress(street:"вул. Тестова",house:"2-А")
@@ -139,5 +155,5 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     check("worker blocks replacement independently of actor notification",replacement.load()?.requests == 0 && replacement.load()?.value.metadata["failure"] as? String == "forbidden")
     withExtendedLifetime(firstWork) {}; withExtendedLifetime(nextWork) {}
     print("RESULT \(checks-failures)/\(checks) connected session checks passed")
-    return checks == 24 && failures == 0
+    return checks == 29 && failures == 0
 }

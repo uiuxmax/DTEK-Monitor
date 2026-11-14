@@ -69,6 +69,8 @@ bool run_foundation_diagnostics_tests() {
     check_result("retention leaves unrelated files untouched",append_event(profile,DiagnosticEvent::theme_changed,now) && diagnostic_read(logs/"owner-note.txt")=="KEEP");
     const std::string settings="{\"format\":\"future-kept-by-diagnostics\",\"address\":\"private-input\"}"; diagnostic_write(profile/"settings.json",settings);
     check_result("diagnostics cannot overwrite future settings",append_event(profile,DiagnosticEvent::shutdown,now) && diagnostic_read(profile/"settings.json")==settings);
+    check_result("street suggestion DNS failure has a fixed redacted event",append_event(profile,DiagnosticEvent::street_suggestions_failed,now,0,2) && diagnostic_read(leaf).find("street_suggestions_failed status=0 reason=2")!=std::string::npos);
+    check_result("house suggestion TLS failure has a fixed redacted event",append_event(profile,DiagnosticEvent::house_suggestions_failed,now,0,3) && diagnostic_read(leaf).find("house_suggestions_failed status=0 reason=3")!=std::string::npos);
     check_result("diagnostics do not contain address or provider payload",diagnostic_read(leaf).find("private-input")==std::string::npos && diagnostic_read(leaf).find("{\"")==std::string::npos && diagnostic_read(leaf).find("shutdown status=0 reason=0")!=std::string::npos);
     return true;
 }

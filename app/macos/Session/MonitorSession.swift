@@ -1,6 +1,7 @@
 import Foundation
 
-private enum MonitorEvent: Int { case startup, addressApplied, lookupOK, lookupFailed, sourceStopped, wake, clockChanged, themeChanged, shutdown }
+private enum MonitorEvent: Int { case startup, addressApplied, lookupOK, lookupFailed, sourceStopped, wake, clockChanged, themeChanged, shutdown,
+                                    streetSuggestionsFailed, houseSuggestionsFailed }
 
 struct MonitorMoment: Sendable { let milliseconds: Int64; let epoch: Int64 }
 struct MonitorClock: Sendable {
@@ -215,7 +216,13 @@ actor MonitorSession {
             }
             else {
                 suggestions = (metadata["suggestions"] as? [[String:Any]] ?? []).compactMap { $0["label"] as? String }
-                suggestionResult = failure == "none" ? (suggestions.isEmpty ? "empty" : "ready") : failure
+                suggestionResult = failure == "none" ? (suggestions.isEmpty ? "empty" : "ready") :
+                    failure == "transport" ? stages.last?["errorName"] as? String ?? "transport" : failure
+                if failure != "none" {
+                    let reason=failure == "schema" ? 12 : failure == "address_mismatch" ? 13 : (stages.last?["error"] as? NSNumber)?.intValue ?? 0
+                    record(ticket.kind == .suggestions ? .streetSuggestionsFailed : .houseSuggestionsFailed,
+                        status:(stages.last?["status"] as? NSNumber)?.intValue ?? 0,reason:reason)
+                }
             }
         } else if decision.disposition == .sourceStopped { lastFailure="source_stopped"; suggestions = []; record(.sourceStopped,status:blocked ?? 0,reason:5) }
         emit(epoch:clock.read()?.epoch ?? 0)

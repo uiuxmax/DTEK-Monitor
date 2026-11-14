@@ -119,12 +119,17 @@ def main():
             ('dns-cancel', None, 'dns-cancel', 'cancelled', 2000),
             ('real-dns-cancel', None, 'real-dns-cancel', 'cancelled', 2000),
             ('ipv6', response(), 'ipv6', 'none', 2000),
+            ('negative-then-ipv4', response(), 'negative-then-ipv4', 'none', 2000),
+            ('negative-then-ipv6', response(), 'negative-then-ipv6', 'none', 2000),
+            ('negative-only', None, 'negative-only', 'dns', 250),
+            ('negative-cancel', None, 'negative-cancel', 'cancelled', 2000),
         ]
         stalls = {'header-deadline', 'body-deadline', 'header-cancel', 'body-cancel'}
     results = []
     for name, wire, mode, expected, budget in cases:
-        listener = socket.socket(socket.AF_INET6 if mode == 'ipv6' else socket.AF_INET)
-        listener.bind(('::1' if mode == 'ipv6' else '127.0.0.1', 0)); listener.listen(8); listener.settimeout(0.05)
+        ipv6 = mode in ('ipv6', 'negative-then-ipv6')
+        listener = socket.socket(socket.AF_INET6 if ipv6 else socket.AF_INET)
+        listener.bind(('::1' if ipv6 else '127.0.0.1', 0)); listener.listen(8); listener.settimeout(0.05)
         port = listener.getsockname()[1]
         stopping = threading.Event()
         stats = {'connections': 0, 'requests': [], 'tlsErrors': 0}
@@ -195,7 +200,7 @@ def main():
         assert result['address'] == 'synthetic-address' and not result['proxy']
         if network:
             assert 'set-cookie' not in result['headers'], (name, result)
-            no_tcp={'dns','dns-deadline','dns-cancel','real-dns-cancel'}
+            no_tcp={'dns','dns-deadline','dns-cancel','real-dns-cancel','negative-only','negative-cancel'}
             assert stats['connections'] == (0 if name in no_tcp or name == 'first-unreachable' else 1), (name, stats)
             assert result['connectionAttempts'] == (0 if name in no_tcp else 1), (name,result)
             assert result['cleanupFailed'] is False, (name,result)
