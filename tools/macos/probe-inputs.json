@@ -300,7 +300,7 @@
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
-      "sha256": "8405cc8c1d986f56db9a690219cb69a53669c0019dc8eb4357f323aecde427a6"
+      "sha256": "89cdb74972e656b6eb2e164bd31adad5c3489a6d6367bb4fe0f74cc54956bfa9"
     },
     {
       "path": "tests/macos/SessionPolicyTests.swift",

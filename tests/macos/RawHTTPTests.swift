@@ -34,10 +34,10 @@ func runRawHTTPTests() throws {
         .init("duplicate unrelated field", prefix + "X-Test: first\r\nx-test: second\r\n\r\n{}", "invalid_response"),
         .init("repeatable cookies ignored", prefix + "Set-Cookie: a=b\r\nSet-Cookie: c=d\r\n\r\n{}"),
         .init("single cookie ignored", prefix + "Set-Cookie: a=b\r\nContent-Length: 2\r\n\r\n{}"),
-        .init("CDN cookies with chunked JSON", chunk + "Set-Cookie: a=b; Secure; HttpOnly\r\nset-cookie: c=d; Path=/\r\nSET-COOKIE: e=f; Expires=Wed, 18 Nov 2026 00:00:00 GMT\r\n\r\n2\r\n{}\r\n0\r\n\r\n"),
+        .init("CDN cookies with chunked JSON", prefix + "Transfer-Encoding: chunked\r\nSet-Cookie: a=b; Secure; HttpOnly\r\nset-cookie: c=d; Path=/\r\nSET-COOKIE: e=f; Expires=Wed, 18 Nov 2026 00:00:00 GMT\r\n\r\n2\r\n{}\r\n0\r\n\r\n"),
         .init("cookies cannot hide duplicate type", prefix + "Set-Cookie: a=b\r\nContent-Type: application/json\r\nSet-Cookie: c=d\r\n\r\n{}", "invalid_response"),
         .init("cookies cannot hide duplicate length", prefix + "Set-Cookie: a=b\r\nContent-Length: 2\r\nset-cookie: c=d\r\ncontent-length: 2\r\n\r\n{}", "invalid_response"),
-        .init("cookies cannot hide conflicting framing", chunk + "Set-Cookie: a=b\r\nContent-Length: 2\r\n\r\n{}", "invalid_response"),
+        .init("cookies cannot hide conflicting framing", prefix + "Transfer-Encoding: chunked\r\nSet-Cookie: a=b\r\nContent-Length: 2\r\n\r\n{}", "invalid_response"),
         .init("cookies cannot hide duplicate metadata", prefix + "Set-Cookie: a=b\r\nX-Test: first\r\nset-cookie: c=d\r\nx-test: second\r\n\r\n{}", "invalid_response"),
         .init("cookie control rejected", prefix + "Set-Cookie: a=\u{1}b\r\n\r\n{}", "invalid_response"),
         .init("cookie folding rejected", prefix + "Set-Cookie: a=b\r\n c=d\r\n\r\n{}", "invalid_response"),
@@ -111,7 +111,7 @@ func runRawHTTPTests() throws {
                 parser.feed(item.wire.subdata(in: offset..<offset+size)); offset += size
             }
             let valid = parser.eof()
-            try demand(parser.error == item.error, item.name+": unexpected error \(parser.error ?? "none")")
+            try demand(parser.error == item.error, item.name+": segment \(segment), unexpected error \(parser.error ?? "none"), diagnostic \(parser.diagnostic)")
             try demand(valid == (item.error == nil), item.name+": EOF validity")
             try demand(parser.body == (valid ? Data("{}".utf8) : Data()), item.name+": body")
             try demand(parser.headers["set-cookie"] == nil, item.name+": cookies never retained")
