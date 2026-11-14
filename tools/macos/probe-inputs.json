@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "9aca49b89136fc3840d616f81d8eec4f25a295aa",
+  "source_base_commit": "14da596b67a46b15be3a022de807a23b24b3ece0",
   "files": [
     {
       "path": ".gitattributes",
@@ -16,7 +16,7 @@
     },
     {
       "path": "AGENTS.md",
-      "sha256": "354ce662318fd25bc793db88f32a476ba579f7f3361cec9bbc177c736e06e816"
+      "sha256": "b6da2430a2f1abda5ff0022b28c70d4fd5e7a0b59478fe3a6e69ad1b1d7d7ae1"
     },
     {
       "path": "LICENSE",
@@ -24,11 +24,23 @@
     },
     {
       "path": "README.md",
-      "sha256": "43a17d18ab70093b380149dc5e47eeb9a9f66074bc4ff1ae1213b40e0361505e"
+      "sha256": "3eea14d0ba70015f7e42979ef7a6b12f7579673b3dc68558b6e6e0271e34af0d"
     },
     {
       "path": "app/address_draft.h",
       "sha256": "dda9a0a29542ce80f9cb4ff7e398f792fda7f4cca48d979e24f4021b1e08da21"
+    },
+    {
+      "path": "app/assets/notification-v1.png",
+      "sha256": "baf41a2fcfade117cd0e346aaa88a3ec57ba924eb20bac4b4e381a14d6d1dfe5"
+    },
+    {
+      "path": "app/assets/power-off-v1.png",
+      "sha256": "fd204c73550bd42cea5325f695d866ebe17bec30fe820fcd4a86553df39044df"
+    },
+    {
+      "path": "app/assets/power-on-v1.png",
+      "sha256": "48f1f8784a8cbfe631874b5aec3d8d94fd4e28b16949cce2470a1935e6a3abf1"
     },
     {
       "path": "app/https_contract.h",
@@ -64,7 +76,7 @@
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",
-      "sha256": "b5e8e08b4e3db1118adc122fa2add5de7d7b8aed2c958ce38f25a070c63d22cf"
+      "sha256": "98eed6f34b4da521b8362cad05373849f25646b6e20208595a82b88b2d3938db"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/xcshareddata/xcschemes/DTEKCoreProbe.xcscheme",
@@ -96,11 +108,11 @@
     },
     {
       "path": "app/macos/Data/foundation_profile.h",
-      "sha256": "44440ae920460e0a281975728c5d35d263f2c9074800b53d72ca8fd8d3bd9890"
+      "sha256": "9fe442f050b457b18058b36160c6640cd7d174e7ace415e558983aa59df1ea5f"
     },
     {
       "path": "app/macos/Data/foundation_profile.mm",
-      "sha256": "69cbacb3e066ede8112e42816099f12fb640004f1684f47114a15fcade84ddac"
+      "sha256": "461f4540e0d88dc138234ec0e1d33f2e52a0fce6917b5fbec50efb156f8ad006"
     },
     {
       "path": "app/macos/Data/foundation_yasno_adapter.mm",
@@ -112,7 +124,7 @@
     },
     {
       "path": "app/macos/Data/foundation_yasno_lookup.mm",
-      "sha256": "16d5b64c7e6f5791ad0865511167a5ece47a2c58e28efb3876bfbd770322ed51"
+      "sha256": "dfe39462c7f7c9dcec04d00668243cfbbe302a5992f74176c7ab64af5760f449"
     },
     {
       "path": "app/macos/FixtureWidget/FixtureModel.swift",
@@ -140,15 +152,15 @@
     },
     {
       "path": "app/macos/Network/NetworkHTTPSAttempt.swift",
-      "sha256": "2eacea938a7265efbe4a4464ecc9c260941ed450c706fdebeb2b3034ce3e8a64"
+      "sha256": "43a1ea32f10293c4b85dd5aa778fb62470adb11adba5affe9e6daf20f740f28a"
     },
     {
       "path": "app/macos/Network/RawHTTPResponse.swift",
-      "sha256": "8a79a784f45d151baba140f564543db7114b725449d451fe9e4cff0893cd5e5d"
+      "sha256": "c28b59fbb89ff5ef1d70ceadbed2f28c62ded43407a75246c1502a93a514c4f4"
     },
     {
       "path": "app/macos/Network/SessionPolicy.swift",
-      "sha256": "ac68f381f481e07c3ec107c6e11d9615812875e875f9af7ac33a9ed73ed07f8b"
+      "sha256": "1164b7c0e1588ffd0e43ff7e2e45e43c064c02d9be70dddf0e25be23cb908a30"
     },
     {
       "path": "app/macos/Session/BridgingHeader.h",
@@ -164,31 +176,31 @@
     },
     {
       "path": "app/macos/Session/MonitorApp.swift",
-      "sha256": "a2d6a80969cf6d59b06e958517f51fd248848c522e4a0879aa0701b0bd40436c"
+      "sha256": "939169486633c82417822d0e6bb9f79ba63b9f7599e0339e3a45fdbb5800b20f"
     },
     {
       "path": "app/macos/Session/MonitorBridge.h",
-      "sha256": "d48c87d5f3c68bd2ace30b7aebfe01b5d3b62c3dca8a96a5589b658d89bb3713"
+      "sha256": "adf59d18e1e966ab0be879c9cba32ca75c6096e2329bb2ccfe365c12f4369def"
     },
     {
       "path": "app/macos/Session/MonitorBridge.mm",
-      "sha256": "5c471ffd65c522d0fd0ac710802ced30188d9b80b29a69d2927d29d40904edea"
+      "sha256": "d9cb80aa991e6d9347d492a0cf703485696cb294f80cd7b5e342372f728b3bf3"
     },
     {
       "path": "app/macos/Session/MonitorModel.swift",
-      "sha256": "671792cdf79e2bf6d5a0c197318fbee7b256d1f71596c7b0c72614035a7dc36c"
+      "sha256": "52351ef5211282f885e5886dc0a303cdd9fc3f81f5eb29ac15710a2d2da95c49"
     },
     {
       "path": "app/macos/Session/MonitorSession.swift",
-      "sha256": "25fe21a21b523eadccfa9852fd0f464533d4fcfced4014040cfeae867bcbf561"
+      "sha256": "23ac8033fdd962a9a5f94fe64c9eec9f4f57406c39ab00fe83266203b4413706"
     },
     {
       "path": "app/macos/Session/MonitorView.swift",
-      "sha256": "40a00186b4d22d22495be857451e2a420cb9670aa2a85ed77858c9c242541364"
+      "sha256": "cc21f1b3737e02733595ac74f7264af10c539cbaa9d7d3d62b3266e85738af1d"
     },
     {
       "path": "app/macos/Session/NativeLookupWorker.swift",
-      "sha256": "ecf5f481d79107cd795fffa0d83da1a0a06cd8581f4c9b0814f5d6ea3add7a12"
+      "sha256": "6b4365b6aebc9416476ddb1fe64590ab68d221e8376cbc38cff9b43f1d24ef29"
     },
     {
       "path": "app/macos/Session/ProfileBootstrap.swift",
@@ -220,7 +232,7 @@
     },
     {
       "path": "app/yasno_lookup_types.h",
-      "sha256": "43e66fd8ce21b4a8e2249bf0e4cecaf196bd16d18d4d60a8a755d13724a89395"
+      "sha256": "57c3353f32a1786a6c8d9e66e99d79327d2890fee552fbba6b09ac7f385a9707"
     },
     {
       "path": "app/yasno_schedule_adapter.h",
@@ -228,7 +240,7 @@
     },
     {
       "path": "docs/engineering/macos-personal-preview.uk.md",
-      "sha256": "f1d420ac71eff55f33eef3337dfdd5dbbc7d2cbdceb5c1096b3deb25660c097d"
+      "sha256": "8cf08429a554da2ece4dbfee0e637a786c9d3d0a88b398ddca69fd0970fdf994"
     },
     {
       "path": "research/schedule-engine/kyiv_time_projection.h",
@@ -264,7 +276,7 @@
     },
     {
       "path": "tests/macos/HTTPSProbe.swift",
-      "sha256": "b81924b739df6fc54df935060d2592f5fe144ee761c53aa64c5e8cd1a844178c"
+      "sha256": "0d183c8dd9ea02c80da47b91f491265c0554ca37c9019125650570900240122e"
     },
     {
       "path": "tests/macos/Info.plist",
@@ -280,19 +292,19 @@
     },
     {
       "path": "tests/macos/MonitorSessionTests.swift",
-      "sha256": "d4693e243e43aa2295c284697257b2706c9f38c552b749f8418cda59d871bcdb"
+      "sha256": "539fd00668d5ea7e7850a678634a3816656f630ba09834891dff0eb123e64083"
     },
     {
       "path": "tests/macos/MonitorUITests.swift",
-      "sha256": "f0d179bdd739f222e0b63ddae71c1288f162b5d3b103459099b7bb63b84b6934"
+      "sha256": "0ecee5447885334757fcdf8d382e3f47d85d597e6504358c598bc19341e198b4"
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
-      "sha256": "8d511bebb5965b643f7590a17084737e95158cb2158aba53d2f6c62c77e8f63b"
+      "sha256": "89cdb74972e656b6eb2e164bd31adad5c3489a6d6367bb4fe0f74cc54956bfa9"
     },
     {
       "path": "tests/macos/SessionPolicyTests.swift",
-      "sha256": "fafa136eb05327f1ef40098c82a447ceb65f322e92a8347dbb1c0d228b55f799"
+      "sha256": "fd0eed5b9bb8a2f3e29ff5e359b08b1abacc47618be4d2fd1ba54753212585c6"
     },
     {
       "path": "tests/macos/data_tests.h",
@@ -300,7 +312,7 @@
     },
     {
       "path": "tests/macos/data_tests.mm",
-      "sha256": "41cb890c75f35563673792e056afff1178a65c7b96c9db89b507a1476a89f5b7"
+      "sha256": "0895c1c47874167a19e63e05eb0215ca09e6126ef30c05f5c228525366fabb9a"
     },
     {
       "path": "tests/macos/diagnostics_tests.h",
@@ -312,7 +324,7 @@
     },
     {
       "path": "tests/macos/https_wire_server.py",
-      "sha256": "9e3e8068a82aab0c1b0a50a42ac6f7c134a6aa47a6d6b579c2c3c228ada0a4af"
+      "sha256": "1c503f19c870a992e29cd880172594b5ff19f3514fb31163e917eba23a553620"
     },
     {
       "path": "tests/macos/lookup_tests.h",
@@ -320,7 +332,7 @@
     },
     {
       "path": "tests/macos/lookup_tests.mm",
-      "sha256": "d99e6f0f867bb103337e70e6b389033fa73282d088a5f423aefdd78f267c7c11"
+      "sha256": "3c2ee18b8b6f7b8f278e98b94a2f545f3a9e4b721462127c3213c7c64d3a2e60"
     },
     {
       "path": "tests/macos/monitor_bridge_tests.h",
@@ -328,11 +340,15 @@
     },
     {
       "path": "tests/macos/monitor_bridge_tests.mm",
-      "sha256": "1ce1040e9afb4a9aece5b2a791b2003b24b5094ec4914e42d14c4d685c1bb2c1"
+      "sha256": "a96233cf96acc73ace381b8efd088f87109513dffca89db9bd00282dbb171656"
     },
     {
       "path": "tests/macos/session_wire_server.py",
-      "sha256": "6bf6d449c80b043ec8baebc2eee75425a212a20cbc58ef4c7509b75a08d83750"
+      "sha256": "a18511f93cb79f74dbd14a04fe581e6ae1e2716f9e7809d55d30b39dbbfe75ae"
+    },
+    {
+      "path": "tests/macos/test_select_prior_run.py",
+      "sha256": "d4743b200c508da1e40bae6ceacb3d296e22c315ea215aecdcb8269d6617bed4"
     },
     {
       "path": "tests/macos/timezone_tests.h",
@@ -344,15 +360,15 @@
     },
     {
       "path": "tools/macos/check-https.sh",
-      "sha256": "f02b52c93fec1a36887008576fd822876757b417aaa0aaad3699d4b3f7b3ff94"
+      "sha256": "7c4b7df38d22a08307ab4e6531f442e836715abe5dcf3f3c8702d024176536a4"
     },
     {
       "path": "tools/macos/check-monitor.sh",
-      "sha256": "d1ed625ddb02cc8e5710d239b6365ead7ef1513e8c83601e75e66cb5914b510e"
+      "sha256": "2b7d98840318bd9dada16fdaaf20fb41b204ce70c852311a3aca706e58a1fe45"
     },
     {
       "path": "tools/macos/check-session.sh",
-      "sha256": "367bd3e4b93aa20fae9b184f83d2321a3cae6b8a6e8b3b07183a6dd0e186fb05"
+      "sha256": "0cf9a5db5722b534611d1cfaf39aa5dc36fa8b43da30a743015035cdcac86c48"
     },
     {
       "path": "tools/macos/check-ui.sh",
@@ -368,7 +384,11 @@
     },
     {
       "path": "tools/macos/package-monitor.sh",
-      "sha256": "a9fa319b9ac2b2cab32eca74411cbc8cfddeb1a27d9181b9d192463192f4a591"
+      "sha256": "b855b50df28a51da6f929453de5788966c54a1ef65aa86c6ca1a52b01405593a"
+    },
+    {
+      "path": "tools/macos/select-prior-run.py",
+      "sha256": "7ff4bbcd60470228e85ad4a13894b61aa71703e39bedd73402c4d713789fa599"
     },
     {
       "path": "tools/macos/verify-probe-inputs.swift",

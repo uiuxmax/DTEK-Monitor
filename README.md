@@ -32,8 +32,9 @@ the parser identifies its source; no captured provider payload is included.
 An isolated M5 URLSession candidate is measured against a generated loopback TLS
 server with per-trust-object anchors, without changing system trust stores.
 Its recorded header/retry contract failures motivated a Network.framework
-candidate with bounded raw HTTP/1 parsing. The workflow now checks 213 parser
-cases and 36 controlled TLS/wire/DNS cases; native acceptance remains pending
+candidate with bounded raw HTTP/1 parsing. The workflow now checks 248 parser
+cases and 37 controlled TLS/wire/DNS cases, including repeated CDN Set-Cookie
+fields that are validated and discarded without cookie storage or replay; native acceptance remains pending
 until their primary results are reviewed. Only a fixed reserved .invalid name
 is used for the DNS failure test, in addition to owned loopback TLS.
 An isolated 49-case lifecycle policy suite covers request generations, refresh,
@@ -49,7 +50,8 @@ The UI data is synthetic. The separately tested Foundation Kyiv adapter handles
 strict Gregorian dates and DST gap/fold cases; this is not acceptance of
 networking, physical displays, VoiceOver, sleep/wake, Gatekeeper or sign-in behavior.
 
-The export excludes private Git history, historical binaries/settings/logs,
-provider samples and product images. Code is licensed under MIT.
+The export excludes private Git history, historical binaries/settings/logs and
+provider samples. It includes three current widget icons used by the Mac app.
+Code is licensed under MIT.
 
 No release or application update feed has been published by this probe.

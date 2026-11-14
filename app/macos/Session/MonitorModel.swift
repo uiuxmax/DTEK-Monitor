@@ -74,6 +74,15 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         debounce?.cancel()
         send { await $0.cancelEditing() }
     }
+    func editHouse(street: String, house: String) {
+        debounce?.cancel()
+        send { await $0.editHouse(street:street,house:house) }
+        debounce=Task { [weak self] in
+            do { try await Task.sleep(for:.milliseconds(450)) } catch { return }
+            guard !Task.isCancelled else { return }
+            self?.send { await $0.tick() }
+        }
+    }
     func apply(street: String, house: String) -> String? {
         guard let normalized=DMMonitorEngine.normalize(street:street,house:house),
               let street=normalized["street"], let house=normalized["house"] else {
@@ -90,6 +99,9 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
     func setTheme(_ theme: MonitorTheme) {
         send { await $0.setTheme(theme.rawValue) }
     }
+    func setFloating(visible: Bool, positioned: Bool, x: Int, y: Int, size: Int) {
+        send { await $0.setFloating(visible:visible,positioned:positioned,x:x,y:y,size:size) }
+    }
     func stop() async {
         ticks?.cancel(); debounce?.cancel(); observers.removeAll()
         let owned=session; session=nil
@@ -103,8 +115,26 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         if value.street.isEmpty { return "Додайте адресу в Києві" }
         if value.emergency { return "Екстрені відключення — графік не діє" }
         if value.forecast { return "Орієнтовний груповий графік" }
+        if value.cleanupStopped { return "Не вдалося завершити попереднє з’єднання" }
         if value.stopped { return "Джерело тимчасово обмежило запити" }
         if value.loading { return "Завантаження графіка…" }
+        if value.failure == "address_mismatch" { return "Адресу не знайдено" }
+        if value.failure == "transport" { return "Не вдалося з’єднатися з джерелом" }
+        if value.failure == "schema" { return "Не вдалося прочитати відповідь джерела" }
+        return "Підтвердженого графіка немає"
+    }
+    var floatingStatus: String {
+        guard let value=state else { return "Завантаження…" }
+        if value.editing { return "Редагування адреси" }
+        if value.street.isEmpty { return "Додайте адресу в Києві" }
+        if value.currentEmergency { return "Екстрені відключення — графік не діє" }
+        if value.currentForecast { return "Орієнтовний груповий графік" }
+        if value.cleanupStopped { return "Не вдалося завершити попереднє з’єднання" }
+        if value.stopped { return "Джерело тимчасово обмежило запити" }
+        if value.loading { return "Завантаження графіка…" }
+        if value.failure == "address_mismatch" { return "Адресу не знайдено" }
+        if value.failure == "transport" { return "Не вдалося з’єднатися з джерелом" }
+        if value.failure == "schema" { return "Не вдалося прочитати відповідь джерела" }
         return "Підтвердженого графіка немає"
     }
     var receivedText: String? {

@@ -36,7 +36,8 @@ final class MonitorUITests: XCTestCase {
     private func waitText(_ id: String,_ expected: String) {
         let item=element(id)
         let predicate=NSPredicate { [weak self] _,_ in guard let self=self else { return false }; return item.exists && self.text(item).contains(expected) }
-        expectation(for:predicate,evaluatedWith:nil); waitForExpectations(timeout:8)
+        let result=XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:predicate,object:nil)],timeout:8)
+        XCTAssertEqual(result,.completed,"Expected \(id) to contain \(expected); actual: \(item.exists ? text(item) : "<missing>")")
     }
     private func applyAddress() {
         element("edit-address").click()
@@ -69,15 +70,44 @@ final class MonitorUITests: XCTestCase {
         let window=app.windows.firstMatch
         XCTAssertLessThanOrEqual(window.frame.height,NSScreen.main!.visibleFrame.height)
         XCTAssertLessThanOrEqual(window.frame.width,NSScreen.main!.visibleFrame.width)
+        element("open-floating").click()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        waitText("floating-status","Додайте адресу")
+        element("floating-close").click()
+        XCTAssertFalse(element("floating-status").exists)
+        element("open-floating").click()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        waitText("request-count","0")
+        let settings=root.appendingPathComponent("profile/settings.json")
+        let saved=NSPredicate { _,_ in
+            guard let bytes=try? Data(contentsOf:settings),
+                  let value=(try? JSONSerialization.jsonObject(with:bytes)) as? [String:Any],
+                  let floating=value["floating"] as? [String:Any] else { return false }
+            return (floating["visible"] as? NSNumber)?.intValue == 1 && (floating["positioned"] as? NSNumber)?.intValue == 1
+        }
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:saved,object:nil)],timeout:8),.completed)
+        // Borderless NSPanel is exposed through its accessible contents rather
+        // than consistently appearing in XCUIApplication.windows.
+        let floating=element("floating-status")
+        let old=floating.frame.origin
+        app.terminate(); launch()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        XCTAssertTrue(floating.waitForExistence(timeout:8))
+        XCTAssertLessThanOrEqual(abs(floating.frame.origin.x-old.x),2)
+        XCTAssertLessThanOrEqual(abs(floating.frame.origin.y-old.y),2)
     }
     func testSuggestionsKeyboardApplyAndLocalTicks() {
         launch(); element("edit-address").click(); element("street").typeText("те")
         XCTAssertTrue(element("suggestion-0").waitForExistence(timeout:8))
         element("street").typeKey(.downArrow,modifierFlags:[]); app.typeKey(.return,modifierFlags:[])
-        element("house").typeText("2-А\r"); ready()
+        element("house").typeText("2")
+        XCTAssertTrue(element("suggestion-0").waitForExistence(timeout:8))
+        element("house").typeKey(.downArrow,modifierFlags:[]); app.typeKey(.return,modifierFlags:[])
+        element("house").click(); element("house").typeText("-А\r"); ready()
         waitText("address","вул. Тестова, 2-А"); waitText("outage-total","3 г 30 хв")
-        waitText("request-count","5"); XCTAssertTrue(element("received").exists)
-        Thread.sleep(forTimeInterval:1.2); waitText("request-count","5")
+        XCTAssertTrue(element("schedule-timeline").exists)
+        waitText("request-count","7"); XCTAssertTrue(element("received").exists)
+        Thread.sleep(forTimeInterval:1.2); waitText("request-count","7")
     }
     func testValidationDoesNotStartLookup() {
         launch(); element("edit-address").click(); element("apply-address").click()
@@ -96,6 +126,8 @@ final class MonitorUITests: XCTestCase {
         launch(); applyAddress(); ready(); XCTAssertTrue(element("tomorrow").isEnabled)
         element("tomorrow").click(); waitText("selected-day","Завтра")
         XCTAssertFalse(element("countdown").exists)
+        element("open-floating").click()
+        XCTAssertTrue(element("floating-countdown").waitForExistence(timeout:8))
         let original=pid
         app.windows.firstMatch.buttons[XCUIIdentifierCloseWindow].click()
         XCTAssertTrue(app.state == .runningBackground || app.state == .runningForeground)

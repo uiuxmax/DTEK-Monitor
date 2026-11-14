@@ -32,7 +32,18 @@ func runRawHTTPTests() throws {
         .init("duplicate encoding", prefix + "Content-Encoding: identity\r\nContent-Encoding: identity\r\n\r\n{}", "invalid_response"),
         .init("duplicate transfer", prefix + "Transfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n\r\n", "invalid_response"),
         .init("duplicate unrelated field", prefix + "X-Test: first\r\nx-test: second\r\n\r\n{}", "invalid_response"),
-        .init("duplicate cookie rejected by narrow contract", prefix + "Set-Cookie: a=b\r\nSet-Cookie: c=d\r\n\r\n{}", "invalid_response"),
+        .init("repeatable cookies ignored", prefix + "Set-Cookie: a=b\r\nSet-Cookie: c=d\r\n\r\n{}"),
+        .init("single cookie ignored", prefix + "Set-Cookie: a=b\r\nContent-Length: 2\r\n\r\n{}"),
+        .init("CDN cookies with chunked JSON", prefix + "Transfer-Encoding: chunked\r\nSet-Cookie: a=b; Secure; HttpOnly\r\nset-cookie: c=d; Path=/\r\nSET-COOKIE: e=f; Expires=Wed, 18 Nov 2026 00:00:00 GMT\r\n\r\n2\r\n{}\r\n0\r\n\r\n"),
+        .init("cookies cannot hide duplicate type", prefix + "Set-Cookie: a=b\r\nContent-Type: application/json\r\nSet-Cookie: c=d\r\n\r\n{}", "invalid_response"),
+        .init("cookies cannot hide duplicate length", prefix + "Set-Cookie: a=b\r\nContent-Length: 2\r\nset-cookie: c=d\r\ncontent-length: 2\r\n\r\n{}", "invalid_response"),
+        .init("cookies cannot hide conflicting framing", prefix + "Transfer-Encoding: chunked\r\nSet-Cookie: a=b\r\nContent-Length: 2\r\n\r\n{}", "invalid_response"),
+        .init("cookies cannot hide duplicate metadata", prefix + "Set-Cookie: a=b\r\nX-Test: first\r\nset-cookie: c=d\r\nx-test: second\r\n\r\n{}", "invalid_response"),
+        .init("cookie control rejected", prefix + "Set-Cookie: a=\u{1}b\r\n\r\n{}", "invalid_response"),
+        .init("cookie folding rejected", prefix + "Set-Cookie: a=b\r\n c=d\r\n\r\n{}", "invalid_response"),
+        .init("cookie field syntax rejected", prefix + "Set-Cookie : a=b\r\n\r\n{}", "invalid_response"),
+        .init("cookies cannot hide forbidden status", "HTTP/1.1 403 Forbidden\r\nSet-Cookie: a=b\r\nSet-Cookie: c=d\r\n\r\n{}", "http"),
+        .init("cookies cannot hide rate limit", "HTTP/1.1 429 Too Many Requests\r\nSet-Cookie: a=b\r\nSet-Cookie: c=d\r\n\r\n{}", "http"),
         .init("NUL", prefix + "X: a\0b\r\n\r\n{}", "invalid_response"),
         .init("DEL", prefix + "X: a\u{7f}b\r\n\r\n{}", "invalid_response"),
         .init("control", prefix + "X: a\u{1}b\r\n\r\n{}", "invalid_response"),
@@ -100,26 +111,29 @@ func runRawHTTPTests() throws {
                 parser.feed(item.wire.subdata(in: offset..<offset+size)); offset += size
             }
             let valid = parser.eof()
-            try demand(parser.error == item.error, item.name+": unexpected error \(parser.error ?? "none")")
+            try demand(parser.error == item.error, item.name+": segment \(segment), unexpected error \(parser.error ?? "none"), diagnostic \(parser.diagnostic)")
             try demand(valid == (item.error == nil), item.name+": EOF validity")
             try demand(parser.body == (valid ? Data("{}".utf8) : Data()), item.name+": body")
+            try demand(parser.headers["set-cookie"] == nil, item.name+": cookies never retained")
             try demand(parser.rawHeaderBytes <= RawHTTPResponse.headerCap, item.name+": header bound")
             count += 1
         }
     }
-    let base = prefix + "Content-Length: 2\r\nX-Fill: "
-    for extra in [0, 1] {
-        let wire = Data((base + String(repeating: "h", count: RawHTTPResponse.headerCap-base.utf8.count-4+extra) + "\r\n\r\n{}").utf8)
-        let parser = RawHTTPResponse()
-        var offset = 0
-        while offset < wire.count && parser.error == nil {
-            let size = min(parser.nextReadLimit, wire.count-offset)
-            parser.feed(wire.subdata(in: offset..<offset+size)); offset += size
+    for field in ["X-Fill", "Set-Cookie"] {
+        let base = prefix + "Content-Length: 2\r\n" + field + ": "
+        for extra in [0, 1] {
+            let wire = Data((base + String(repeating: "h", count: RawHTTPResponse.headerCap-base.utf8.count-4+extra) + "\r\n\r\n{}").utf8)
+            let parser = RawHTTPResponse()
+            var offset = 0
+            while offset < wire.count && parser.error == nil {
+                let size = min(parser.nextReadLimit, wire.count-offset)
+                parser.feed(wire.subdata(in: offset..<offset+size)); offset += size
+            }
+            try demand(parser.eof() == (extra == 0), "exact header cap")
+            try demand(parser.rawHeaderBytes == RawHTTPResponse.headerCap, "header append cap")
+            if extra == 1 { try demand(parser.diagnostic == "header_cap", "over-cap rejection before parse") }
+            count += 1
         }
-        try demand(parser.eof() == (extra == 0), "exact header cap")
-        try demand(parser.rawHeaderBytes == RawHTTPResponse.headerCap, "header append cap")
-        if extra == 1 { try demand(parser.diagnostic == "header_cap", "over-cap rejection before parse") }
-        count += 1
     }
     let oversized = RawHTTPResponse()
     oversized.feed(Data(repeating: 65, count: 4097))

@@ -83,7 +83,7 @@ typealias ProbeAttempt = MacHTTPSAttempt
                 completion(result)
             }
         #endif
-        if mode == "cancel" || mode == "dns-cancel" { DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(100)) { attempt.cancel() } }
+        if mode == "cancel" { DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(100)) { attempt.cancel() } }
         guard done.wait(timeout: .now() + .seconds(35)) == .success else { exit(1) }
         // Force cancellation and callbacks after termination; there must be no second delivery.
         attempt.cancel(); attempt.revalidateDeadline()

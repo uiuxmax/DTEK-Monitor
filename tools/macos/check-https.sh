@@ -58,7 +58,7 @@ reject "${valid[@]}" DTEKMONITOR_TEST_PROFILE="$run" "$run/HTTPSProbe" 1 trusted
 grep -q '^RESULT 16/16 resource and provider-guard checks passed$' "$run/resources.log" || exit 1
 if [[ "$candidate" == network ]]; then
     "${valid[@]}" "$run/HTTPSProbe" --parser > "$run/parser.log" 2>&1 || exit 1
-    grep -q '^RESULT 213/213 raw HTTP parser checks passed; 70 vectors with 3 segment sizes$' "$run/parser.log" || exit 1
+    grep -q '^RESULT 248/248 raw HTTP parser checks passed; 81 vectors with 3 segment sizes$' "$run/parser.log" || exit 1
     "${valid[@]}" "$run/HTTPSProbe" --lifecycle > "$run/lifecycle.log" 2>&1 || exit 1
     grep -q '^RESULT 49/49 lifecycle policy checks passed$' "$run/lifecycle.log" || exit 1
 fi
@@ -73,7 +73,7 @@ cases = report['cases']
 assert len({case['case'] for case in cases}) == len(cases)
 if sys.argv[2] == 'network':
     assert report['transport'] == 'Network.framework/raw HTTP1'
-    assert report['critical_transport_checks'] == 'PASS' and len(cases) == 36
+    assert report['critical_transport_checks'] == 'PASS' and len(cases) == 37
 else:
     assert report['transport'] == 'URLSession' and len(cases) == 21
 print('PASS: primary wire report agrees with the requested candidate and exact case count')

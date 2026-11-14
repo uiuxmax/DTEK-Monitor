@@ -45,7 +45,7 @@ bool run_monitor_bridge_tests() {
         check_result("theme saves through atomic settings backend",[engine setTheme:@"dark"] && [[engine snapshotAtEpoch:now][@"theme"] isEqual:@"dark"]);
         check_result("invalid theme cannot change saved value",![engine setTheme:@"invalid"] && [[engine snapshotAtEpoch:now][@"theme"] isEqual:@"dark"]);
         __block int calls=0;
-        DMLookupOperation *operation=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"2-А" token:42 suggestions:NO];
+        DMLookupOperation *operation=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"2-А" token:42 suggestions:NO houseSuggestions:NO];
         DMLookupReply *reply=[operation performWithTransport:^NSDictionary *(NSDictionary *request) { ++calls; return answer(request,now); }];
         check_result("bridge executes the four-stage worker",calls==4 && reply.token==42 && [reply.metadata[@"failure"] isEqual:@"none"]);
         check_result("bridge receipt is accepted by the existing cache",[engine acceptReply:reply epoch:now]);
@@ -58,11 +58,11 @@ bool run_monitor_bridge_tests() {
         check_result("receipt persists only in the supplied profile",std::filesystem::exists(profile/"receipt.json"));
         DMLookupReply *second=[operation performWithTransport:^NSDictionary *(NSDictionary *request) { ++calls; return answer(request,now); }];
         check_result("operation cannot execute twice",calls==4 && ![second.metadata[@"failure"] isEqual:@"none"]);
-        DMLookupOperation *cancelled=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"2-А" token:43 suggestions:NO];
+        DMLookupOperation *cancelled=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"2-А" token:43 suggestions:NO houseSuggestions:NO];
         [cancelled cancel];
         DMLookupReply *cancelReply=[cancelled performWithTransport:^NSDictionary *(NSDictionary *request) { ++calls; return answer(request,now); }];
         check_result("pre-cancelled bridge starts no GET",calls==4 && [cancelReply.metadata[@"failure"] isEqual:@"cancelled"]);
-        DMLookupOperation *forbidden=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"2-А" token:44 suggestions:NO];
+        DMLookupOperation *forbidden=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"2-А" token:44 suggestions:NO houseSuggestions:NO];
         DMLookupReply *blocked=[forbidden performWithTransport:^NSDictionary *(NSDictionary *request) {
             return @{@"token":request[@"token"],@"error":@"http",@"status":@429,@"mime":@"",@"body":NSData.data,@"received":NSNull.null};
         }];
@@ -72,8 +72,15 @@ bool run_monitor_bridge_tests() {
         NSDictionary *restored=[restarted snapshotAtEpoch:now+2];
         check_result("bridge restart restores address and theme",[restored[@"street"] isEqual:@"вул. Тестова"] && [restored[@"theme"] isEqual:@"dark"]);
         check_result("bridge restart keeps the original receipt stamp",[restored[@"forecast"] boolValue] && [restored[@"received"] longLongValue]==now);
-        check_result("Kyiv midnight expires the restored receipt",![[restarted snapshotAtEpoch:utc(2026,10,17,21).epoch_seconds][@"forecast"] boolValue]);
-        check_result("address change clears the prior graph",[engine selectStreet:@"вул. Інша" house:@"2-А" epoch:now+2] && ![[engine snapshotAtEpoch:now+2][@"forecast"] boolValue]);
+        check_result("Kyiv midnight expires and removes the restored receipt",![[restarted snapshotAtEpoch:utc(2026,10,17,21).epoch_seconds][@"forecast"] boolValue] && !std::filesystem::exists(profile/"receipt.json"));
+        if(![engine acceptReply:reply epoch:now+2])return false;
+        std::filesystem::rename(profile/"receipt.json",profile/"receipt-owned.json");
+        std::filesystem::create_symlink(profile/"receipt-owned.json",profile/"receipt.json");
+        const bool protectedReceipt=![engine selectStreet:@"вул. Інша" house:@"2-А" epoch:now+2] &&
+            std::filesystem::exists(profile/"receipt-owned.json") && [[engine snapshotAtEpoch:now+2][@"storageWarning"] boolValue];
+        std::filesystem::remove(profile/"receipt.json");
+        std::filesystem::rename(profile/"receipt-owned.json",profile/"receipt.json");
+        check_result("address change refuses symlink and clears the prior receipt",protectedReceipt && [engine selectStreet:@"вул. Інша" house:@"2-А" epoch:now+2] && ![[engine snapshotAtEpoch:now+2][@"forecast"] boolValue] && !std::filesystem::exists(profile/"receipt.json"));
         const auto settingsBefore=read(profile/"settings.json");
         check_result("invalid address cannot overwrite settings",![engine selectStreet:@"" house:@"" epoch:now+2] && read(profile/"settings.json")==settingsBefore);
         return true;

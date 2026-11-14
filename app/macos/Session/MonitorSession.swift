@@ -35,14 +35,26 @@ struct MonitorSnapshot: Sendable {
     let tomorrow: Bool
     let tomorrowAvailable: Bool
     let countdown: String
+    let currentForecast: Bool
+    let currentEmergency: Bool
+    let currentCountdown: String
     let rows: [Row]
     let suggestions: [String]
+    let suggestionResult: String?
+    let suggestionKind: String?
+    let suggestionInput: String?
     let totalOutageMinutes: Int
     let received: Int64?
     let editing: Bool
     let loading: Bool
     let stopped: Bool
+    let cleanupStopped: Bool
     let storageWarning: Bool
+    let floatingVisible: Bool
+    let floatingPositioned: Bool
+    let floatingX: Int
+    let floatingY: Int
+    let floatingSize: Int
     let failure: String?
     let requestCount: Int
 }
@@ -64,6 +76,9 @@ actor MonitorSession {
     private var lastFailure: String?
     private var street = "", house = ""
     private var suggestions: [String] = []
+    private var suggestionResult: String?
+    private var suggestionKind: String?
+    private var suggestionInput: String?
 
     init(profile: String, clock: MonitorClock, mode: MonitorTransportMode,
          publish: @escaping @Sendable (MonitorSnapshot) -> Void) {
@@ -92,8 +107,9 @@ actor MonitorSession {
         cancel(action.cancel)
         guard let ticket = action.start else { return }
         let clock = self.clock
-        let requestStreet = ticket.kind == .suggestions ? ticket.selection : street
-        let requestHouse = ticket.kind == .suggestions ? "" : house
+        let parts = ticket.kind == .houseSuggestions ? ticket.selection.split(separator:"\n",maxSplits:1).map(String.init) : []
+        let requestStreet = ticket.kind == .suggestions ? ticket.selection : ticket.kind == .houseSuggestions ? (parts.first ?? "") : street
+        let requestHouse = ticket.kind == .suggestions ? "" : ticket.kind == .houseSuggestions ? (parts.count == 2 ? parts[1] : "") : house
         let work = worker.start(ticket:ticket,street:requestStreet,house:requestHouse,mode:mode,
             epoch:{ clock.read()?.epoch ?? 0 }) { [weak self] reply in
                 Task { await self?.received(ticket, reply: reply) }
@@ -118,11 +134,26 @@ actor MonitorSession {
         let query = input.flatMap { DMMonitorEngine.streetQuery($0) }
         cancel(policy.editStreetQuery(query,nowMS:now?.milliseconds ?? -1))
         suggestions = []
+        suggestionResult = nil
+        suggestionKind = "street"
+        suggestionInput = input
+        emit(epoch:now?.epoch ?? 0)
+    }
+    func editHouse(street: String, house: String) {
+        guard started, !policy.closed else { return }
+        let now = clock.read()
+        let normalized = DMMonitorEngine.normalize(street:street,house:house)
+        let query = normalized.flatMap { value -> String? in
+            guard let street=value["street"], let house=value["house"] else { return nil }
+            return key(street,house)
+        }
+        cancel(policy.editHouseQuery(query,nowMS:now?.milliseconds ?? -1))
+        suggestions = []; suggestionResult = nil; suggestionKind = "house"; suggestionInput = key(street,house)
         emit(epoch:now?.epoch ?? 0)
     }
     func cancelEditing() {
         guard started, !policy.closed, policy.editing else { return }
-        cancel(policy.cancelEditing()); suggestions = []; emit(epoch:clock.read()?.epoch ?? 0)
+        cancel(policy.cancelEditing()); suggestions = []; suggestionResult = nil; suggestionKind = nil; suggestionInput = nil; emit(epoch:clock.read()?.epoch ?? 0)
     }
     func applyAddress(street: String, house: String) {
         guard started, !policy.closed, let engine=engine else { return }
@@ -134,12 +165,20 @@ actor MonitorSession {
         record(.addressApplied,epoch:now)
         cancel(policy.selectAddress(key(normalizedStreet,normalizedHouse)))
         suggestions = []
+        suggestionResult = nil
+        suggestionKind = nil
+        suggestionInput = nil
         lastFailure = nil
         tick()
     }
     func setTheme(_ theme: String) {
         guard started, !policy.closed, let engine=engine else { return }
         _ = engine.setTheme(theme); record(.themeChanged); emit(epoch:clock.read()?.epoch ?? 0)
+    }
+    func setFloating(visible: Bool, positioned: Bool, x: Int, y: Int, size: Int) {
+        guard started, !policy.closed, let engine=engine else { return }
+        _ = engine.setFloating(visible:visible,positioned:positioned,x:x,y:y,size:size)
+        emit(epoch:clock.read()?.epoch ?? 0)
     }
     func selectTomorrow(_ value: Bool) {
         guard started, !policy.closed, let engine=engine else { return }
@@ -155,6 +194,10 @@ actor MonitorSession {
     private func received(_ ticket: MacSessionPolicy.Ticket, reply: MonitorReplyBox) {
         guard let engine=engine else { return }
         completedRequests += reply.requests
+        if reply.cleanupUnsafe {
+            cancel(policy.stopForCleanup()); lastFailure="cleanup_failed"; suggestions=[]
+            emit(epoch:clock.read()?.epoch ?? 0); return
+        }
         let metadata = reply.value.metadata
         let stages = metadata["stages"] as? [[String:Any]] ?? []
         let blocked = stages.compactMap { ($0["status"] as? NSNumber)?.intValue }.first { $0 == 403 || $0 == 429 }
@@ -170,7 +213,10 @@ actor MonitorSession {
                 let reason=accepted ? 0 : (failure == "schema" || failure == "none") ? 12 : failure == "address_mismatch" ? 13 : (stages.last?["error"] as? NSNumber)?.intValue ?? 0
                 record(accepted ? .lookupOK : .lookupFailed,status:status,reason:reason)
             }
-            else { suggestions = (metadata["suggestions"] as? [[String:Any]] ?? []).compactMap { $0["label"] as? String } }
+            else {
+                suggestions = (metadata["suggestions"] as? [[String:Any]] ?? []).compactMap { $0["label"] as? String }
+                suggestionResult = failure == "none" ? (suggestions.isEmpty ? "empty" : "ready") : failure
+            }
         } else if decision.disposition == .sourceStopped { lastFailure="source_stopped"; suggestions = []; record(.sourceStopped,status:blocked ?? 0,reason:5) }
         emit(epoch:clock.read()?.epoch ?? 0)
     }
@@ -190,11 +236,24 @@ actor MonitorSession {
             emergency:(value["emergency"] as? NSNumber)?.boolValue == true,
             tomorrow:(value["tomorrow"] as? NSNumber)?.boolValue == true,
             tomorrowAvailable:(value["tomorrowAvailable"] as? NSNumber)?.boolValue == true && !policy.editing,
-            countdown:policy.editing ? "" : value["countdown"] as? String ?? "",rows:policy.editing ? [] : rows,
+            countdown:policy.editing ? "" : value["countdown"] as? String ?? "",
+            currentForecast:(value["currentForecast"] as? NSNumber)?.boolValue == true && policy.displayAllowed,
+            currentEmergency:(value["currentEmergency"] as? NSNumber)?.boolValue == true && policy.displayAllowed,
+            currentCountdown:policy.displayAllowed ? value["currentCountdown"] as? String ?? "" : "",
+            rows:policy.editing ? [] : rows,
             suggestions:suggestions,
+            suggestionResult:suggestionResult,
+            suggestionKind:suggestionKind,
+            suggestionInput:suggestionInput,
             totalOutageMinutes:(value["totalOutageMinutes"] as? NSNumber)?.intValue ?? 0,
             received:(value["received"] as? NSNumber)?.int64Value,editing:policy.editing,loading:policy.pending != nil,
-            stopped:policy.stopped,storageWarning:(value["storageWarning"] as? NSNumber)?.boolValue == true,
+            stopped:policy.stopped,cleanupStopped:policy.cleanupStopped,
+            storageWarning:(value["storageWarning"] as? NSNumber)?.boolValue == true,
+            floatingVisible:(value["floatingVisible"] as? NSNumber)?.boolValue == true,
+            floatingPositioned:(value["floatingPositioned"] as? NSNumber)?.boolValue == true,
+            floatingX:(value["floatingX"] as? NSNumber)?.intValue ?? 0,
+            floatingY:(value["floatingY"] as? NSNumber)?.intValue ?? 0,
+            floatingSize:(value["floatingSize"] as? NSNumber)?.intValue ?? 1,
             failure:lastFailure,requestCount:completedRequests+(active?.1.requests ?? 0)))
     }
 }

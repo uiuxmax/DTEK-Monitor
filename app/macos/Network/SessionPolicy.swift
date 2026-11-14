@@ -3,7 +3,7 @@ import Foundation
 // Single-owner scheduling policy. Its owner validates addresses/normalizes queries
 // with M4, supplies named-Kyiv dates and cancels retired tickets before new work.
 struct MacSessionPolicy {
-    enum Kind: Equatable, Sendable { case lookup, suggestions }
+    enum Kind: Equatable, Sendable { case lookup, suggestions, houseSuggestions }
     struct Ticket: Equatable, Sendable {
         let generation: UInt64
         let kind: Kind
@@ -21,6 +21,7 @@ struct MacSessionPolicy {
     private(set) var pending: Ticket?
     private(set) var editing = false
     private(set) var stopped = false
+    private(set) var cleanupStopped = false
     private(set) var sourceStatus: Int?
     private(set) var closed = false
     private(set) var clockBroken = false
@@ -28,6 +29,7 @@ struct MacSessionPolicy {
     private var lastLookupMS: Int64?
     private var lastKyivDay: String?
     private var draftQuery: String?
+    private var draftKind: Kind = .suggestions
     private var editedMS: Int64?
     private var editGeneration: UInt64?
     private var issuedEditGeneration: UInt64?
@@ -67,6 +69,16 @@ struct MacSessionPolicy {
         let old = retire()
         editing = true
         draftQuery = query
+        draftKind = .suggestions
+        editedMS = observe(nowMS) ? nowMS : nil
+        editGeneration = generation
+        return old
+    }
+    mutating func editHouseQuery(_ query: String?, nowMS: Int64) -> Ticket? {
+        let old = retire()
+        editing = true
+        draftQuery = query
+        draftKind = .houseSuggestions
         editedMS = observe(nowMS) ? nowMS : nil
         editGeneration = generation
         return old
@@ -75,6 +87,11 @@ struct MacSessionPolicy {
         let old = retire()
         editing = false; draftQuery = nil; editedMS = nil; editGeneration = nil
         return old
+    }
+    mutating func stopForCleanup() -> Ticket? {
+        guard !closed else { return nil }
+        cleanupStopped=true; stopped=true
+        return retire()
     }
     // Popup presentation deliberately issues no work. Refresh belongs to tick.
     func popupOpened() -> Action { Action() }
@@ -95,10 +112,10 @@ struct MacSessionPolicy {
                 pending = ticket; action.start = ticket
                 lastLookupMS = nowMS; lastKyivDay = day
             }
-        } else if editing, let query = draftQuery, query.utf16.count >= 2,
+        } else if editing, let query = draftQuery, (draftKind == .houseSuggestions || query.utf16.count >= 2),
                   let edited = editedMS, nowMS >= edited, nowMS - edited >= 450,
                   editGeneration != issuedEditGeneration, let token = nextGeneration() {
-            let ticket = Ticket(generation: token, kind: .suggestions, selection: query)
+            let ticket = Ticket(generation: token, kind: draftKind, selection: query)
             pending = ticket; action.start = ticket
             issuedEditGeneration = editGeneration
         }
@@ -113,7 +130,7 @@ struct MacSessionPolicy {
             return CompletionAction(disposition: .sourceStopped, cancel: cancelled)
         }
         let matches = ticket.kind == .lookup ? (!editing && selection == ticket.selection) :
-            (editing && draftQuery == ticket.selection)
+            (editing && draftKind == ticket.kind && draftQuery == ticket.selection)
         guard !clockBroken, pending == ticket, ticket.generation == generation, matches else {
             return CompletionAction(disposition: .obsolete, cancel: nil)
         }

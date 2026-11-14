@@ -27,7 +27,8 @@ finish() {
 trap finish EXIT
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-before.json" || exit 1
 inputs=(tests/macos/MonitorUITests.swift tests/macos/MonitorInfo.plist tests/macos/LoginItemTests.swift
-    tools/macos/check-monitor.sh tools/macos/verify-ui-result.swift app/https_resource.cpp app/https_resource.h
+    app/assets/power-on-v1.png app/assets/power-off-v1.png app/assets/notification-v1.png
+    tools/macos/check-monitor.sh tools/macos/verify-ui-result.swift tools/macos/select-prior-run.py app/https_resource.cpp app/https_resource.h
     app/https_contract.h app/yasno_lookup_types.h app/yasno_schedule_adapter.h app/address_draft.h
     app/schedule_flow.h app/schedule_cache.h app/popup_schedule.h app/log_retention.h
     research/schedule-engine/schedule_engine.cpp research/schedule-engine/schedule_engine.h
@@ -56,9 +57,15 @@ reject() { local code=0; "$@" > "$run/rejected.log" 2>&1 || code=$?; [[ "$code" 
 reject "${base[@]}" "$binary"
 reject "${valid[@]}" DTEKMONITOR_AUTOSTART_TEST_MODE=0 "$binary"
 reject "${valid[@]}" DTEKMONITOR_DISABLE_PROVIDER=0 "$binary"
-probes=("$repo"/out/macos/check-*/DerivedData/Build/Products/Debug/DTEKCoreProbe)
-[[ "${#probes[@]}" -eq 1 && -f "${probes[0]}" ]] || exit 64
-"${valid[@]}" "${probes[0]}" --login-probe > "$run/login.log" 2>&1 || exit 1
+if [[ -n "${DTEKMONITOR_CORE_RESULTS:-}" ]]; then
+    prior="$DTEKMONITOR_CORE_RESULTS"
+else
+    reports=("$repo"/out/macos/check-*/results.json)
+    [[ "${#reports[@]}" -eq 1 && -f "${reports[0]}" ]] || exit 64
+    prior="${reports[0]}"
+fi
+probe=$(python3 -B "$repo/tools/macos/select-prior-run.py" core "$repo" "$prior") || exit 1
+"${valid[@]}" "$probe" --login-probe > "$run/login.log" 2>&1 || exit 1
 grep -q '^RESULT 14/14 fake Login Item checks passed$' "$run/login.log" || exit 1
 # Build the personal configuration without starting it or registering anything.
 /usr/bin/xcodebuild -project "$repo/app/macos/DTEKMonitor.xcodeproj" -scheme DTEKMonitor -configuration Release \
@@ -69,6 +76,10 @@ personal="$run/PersonalData/Build/Products/Release/DTEKMonitor.app"
 [[ "$(/usr/bin/plutil -extract CFBundleIdentifier raw "$personal/Contents/Info.plist")" == local.dtekmonitor.Monitor ]] || exit 1
 [[ "$(/usr/bin/lipo -archs "$personal/Contents/MacOS/DTEKMonitor")" == arm64 ]] || exit 1
 /usr/bin/codesign --verify --deep --strict "$personal" > "$run/release-signature.log" 2>&1 || exit 1
+for asset in power-on-v1.png power-off-v1.png notification-v1.png; do
+    cmp "$repo/app/assets/$asset" "$app/Contents/Resources/$asset" || exit 1
+    cmp "$repo/app/assets/$asset" "$personal/Contents/Resources/$asset" || exit 1
+done
 summary_verifier="$repo/tools/macos/verify-ui-result.swift"
 for invalid in failed skipped partial malformed wrong-target; do
     case "$invalid" in
@@ -91,6 +102,9 @@ code=0
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log" || exit 1
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json" || exit 1
 cmp "$run/verified-before.json" "$run/verified-after.json" || exit 1
+/usr/bin/shasum -a 256 "$personal/Contents/MacOS/DTEKMonitor" \
+    "$personal/Contents/Resources/power-on-v1.png" "$personal/Contents/Resources/power-off-v1.png" \
+    "$personal/Contents/Resources/notification-v1.png" > "$run/personal-files.sha256" || exit 1
 record ui_checks 8
 record fake_login_checks 14
 record rejected_app_envelopes 3

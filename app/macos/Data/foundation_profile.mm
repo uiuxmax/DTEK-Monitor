@@ -117,7 +117,16 @@ SettingsRead settings(const Read& file) {
         if ((!street.empty() || !house.empty()) && !draft) return {ReadState::unreadable, {}};
         const auto theme = text(root[@"theme"]);
         if (!theme_valid(theme)) return {ReadState::unreadable, {}};
-        return {ReadState::loaded, {draft.value_or(address_draft::Draft{}), theme}};
+        Settings result{draft.value_or(address_draft::Draft{}), theme};
+        if (id floating = root[@"floating"]) {
+            NSDictionary *item = mac_json::object(floating);
+            result.floating_visible = mac_json::integer(item[@"visible"],1,true) == 1;
+            result.floating_positioned = mac_json::integer(item[@"positioned"],1,true) == 1;
+            result.floating_size = static_cast<int>(mac_json::integer(item[@"size"],2,true));
+            result.floating_x = static_cast<int>(mac_json::integer(item[@"x"],200000,true)) - 100000;
+            result.floating_y = static_cast<int>(mac_json::integer(item[@"y"],200000,true)) - 100000;
+        }
+        return {ReadState::loaded, result};
     } catch (...) { return {ReadState::unreadable, {}}; }
 }
 bool canonical_number(std::string_view bytes) {
@@ -177,12 +186,16 @@ bool save_settings(const fs::path& profile, const Settings& value, WriteFault fa
             const auto normalized = address_draft::normalize(value.draft.street, value.draft.house);
             if ((!value.draft.street.empty() || !value.draft.house.empty()) && !normalized) return false;
             if (!theme_valid(value.theme)) return false;
+            if (value.floating_size < 0 || value.floating_size > 2 || value.floating_x < -100000 || value.floating_x > 100000 ||
+                value.floating_y < -100000 || value.floating_y > 100000) return false;
             Descriptor directory{open_profile(profile)};
             const auto current = settings(read_file(directory.value, "settings.json", 64 * 1024));
             if (current.state != ReadState::missing && current.state != ReadState::loaded) return false;
             const auto draft = normalized.value_or(address_draft::Draft{});
             const auto bytes = mac_json::encode(@{@"format": @"dtek-monitor-macos-settings", @"version": @1,
-                @"draftStreet": mac_json::text(draft.street), @"draftHouse": mac_json::text(draft.house), @"theme": mac_json::text(value.theme)});
+                @"draftStreet": mac_json::text(draft.street), @"draftHouse": mac_json::text(draft.house), @"theme": mac_json::text(value.theme),
+                @"floating": @{@"visible": @(value.floating_visible ? 1 : 0), @"positioned": @(value.floating_positioned ? 1 : 0),
+                    @"size": @(value.floating_size), @"x": @(value.floating_x + 100000), @"y": @(value.floating_y + 100000)}});
             return replace_file(directory.value, "settings.json", bytes, fault);
         } catch (...) { return false; }
     }
@@ -218,6 +231,18 @@ bool save_receipt(const fs::path& profile, const Receipt& value, WriteFault faul
             return replace_file(directory.value, "receipt.json", bytes, fault);
         } catch (...) { return false; }
     }
+}
+bool remove_receipt(const fs::path& profile) {
+    Descriptor directory{open_profile(profile)};
+    if (directory.value < 0) return false;
+    struct stat info{};
+    if (::fstatat(directory.value, "receipt.json", &info, AT_SYMLINK_NOFOLLOW) != 0) return errno == ENOENT;
+    if (!S_ISREG(info.st_mode)) return false;
+    // Do not destroy an unreadable or future-schema receipt automatically.
+    if (!receipt(read_file(directory.value, "receipt.json", 2'010'000))) return false;
+    if (::unlinkat(directory.value, "receipt.json", 0) != 0) return false;
+    ::fsync(directory.value);
+    return true;
 }
 bool clean_logs(const fs::path& profile, fs::file_time_type now, std::size_t reserve_bytes) {
     if (!owned_profile(profile) || reserve_bytes > 5 * 1024 * 1024) return false;

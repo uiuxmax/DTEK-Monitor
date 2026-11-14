@@ -6,7 +6,8 @@
 - Run /bin/bash tools/macos/check-ui.sh --public-probe serially on an unlocked Mac.
 - Keep the complete test envelope, disabled provider flag and isolated profile.
 - Never register Login Items, change user settings or weaken signing/test guards.
-- Keep synthetic data explicit; no provider samples, private history or images.
+- Keep synthetic data explicit; no provider samples or private history. Only
+  the three current widget icons are included.
 - Report checkout, commit, input hashes, results path and unverified behavior.
 - A CI PASS is not physical display, VoiceOver, real timezone, networking, Gatekeeper or sign-in acceptance.
 - Retain MIT attribution; no application release without a separate request.
