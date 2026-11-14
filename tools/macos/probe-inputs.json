@@ -72,7 +72,7 @@
     },
     {
       "path": "app/macos/CoreProbe/main.swift",
-      "sha256": "c1e860f0980f318224d3def4ac90e1a03ca227ab944fec3c254c0635df0b2e4d"
+      "sha256": "560d88ab95fde9122e1c00610c5d53494fac3b833f5ac5be59cee5a88390cfcc"
     },
     {
       "path": "app/macos/DTEKMonitor.xcodeproj/project.pbxproj",

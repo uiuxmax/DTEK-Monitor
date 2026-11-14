@@ -87,9 +87,9 @@ guard lookupTotals["checks"]?.intValue == 92, lookupTotals["failures"]?.intValue
 print("RESULT 92/92 Foundation lookup checks passed")
 
 let monitorTotals = DMCoreProbeBridge.runMonitorBridgeTests()
-guard monitorTotals["checks"]?.intValue == 26, monitorTotals["failures"]?.intValue == 0 else { exit(1) }
-print("RESULT 26/26 monitor receipt bridge checks passed")
+guard monitorTotals["checks"]?.intValue == 33, monitorTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 33/33 monitor receipt bridge checks passed")
 
 let diagnosticTotals=DMCoreProbeBridge.runDiagnosticsTests()
-guard diagnosticTotals["checks"]?.intValue == 21, diagnosticTotals["failures"]?.intValue == 0 else { exit(1) }
-print("RESULT 21/21 native diagnostic checks passed")
+guard diagnosticTotals["checks"]?.intValue == 23, diagnosticTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 23/23 native diagnostic checks passed")
