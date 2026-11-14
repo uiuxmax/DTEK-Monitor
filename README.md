@@ -54,4 +54,6 @@ The export excludes private Git history, historical binaries/settings/logs and
 provider samples. It includes three current widget icons used by the Mac app.
 Code is licensed under MIT.
 
-No release or application update feed has been published by this probe.
+This publication branch builds personal preview 0.1.0 (3) after its serial native checks pass.
+See docs/engineering/macos-personal-preview.uk.md for installation and remaining physical acceptance.
+No automatic application update feed is enabled.

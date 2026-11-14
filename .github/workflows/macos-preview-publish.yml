@@ -1,0 +1,105 @@
+name: Publish reviewed macOS personal preview 3
+
+on:
+  push:
+    branches: [publish/macos-preview-0.1.0-3]
+
+# The owner authorized this separate preview for testing after the native fix passed.
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-personal-preview-publication
+  cancel-in-progress: false
+
+jobs:
+  reviewed-preview:
+    if: github.repository == 'uiuxmax/DTEK-Monitor' && github.event.repository.private == false
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require native Apple Silicon
+        run: test "$(uname -s)" = Darwin && test "$(uname -m)" = arm64
+      - name: Verify core and isolated data
+        run: /bin/bash tools/macos/check.sh --public-probe
+      - name: Verify controlled native HTTPS
+        run: /bin/bash tools/macos/check-https.sh --network-candidate --public-probe
+      - name: Verify baseline UI serially
+        run: /bin/bash tools/macos/check-ui.sh --public-probe
+      - name: Verify native session
+        run: /bin/bash tools/macos/check-session.sh --public-probe
+      - name: Verify connected UI and compile personal configuration
+        run: /bin/bash tools/macos/check-monitor.sh --public-probe
+      - name: Audit ZIP round trip
+        run: /bin/bash tools/macos/package-monitor.sh
+      - name: Publish this reviewed personal preview
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: uiuxmax/DTEK-Monitor
+        run: |
+          set -euo pipefail
+          tag=macos-v0.1.0-preview.3
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo 'Preview tag already exists; it will not be overwritten.' >&2
+            exit 1
+          fi
+          reports=(out/macos/package-check-*/results.json)
+          test "${#reports[@]}" -eq 1 && test -f "${reports[0]}" || exit 1
+          package_root=$(dirname "${reports[0]}")
+          python3 - "${reports[0]}" "$package_root/extracted-audit.json" "$GITHUB_SHA" <<'PY'
+          import json,sys
+          from pathlib import Path
+          report=json.loads(Path(sys.argv[1]).read_bytes())
+          audit=json.loads(Path(sys.argv[2]).read_bytes())
+          assert report['result']=='PASS' and report['commit']==sys.argv[3]
+          assert report['architecture']=='arm64' and report['signature']=='ad-hoc' and report['notarized'] is False
+          assert report['round_trip_file_hashes_match'] is True
+          assert audit['result']=='PASS' and audit['version']=='0.1.0' and audit['build']=='3'
+          PY
+          cat > "$package_root/release-notes.uk.md" <<'NOTES'
+          Особистий preview 0.1.0 (3) для Apple Silicon (arm64), macOS 13+.
+
+          Виправлено завантаження графіка та підказок адреси: коректні відповіді
+          YASNO з повторними Set-Cookie більше не відхиляються. Cookies не
+          зберігаються й не надсилаються назад. Номер збірки в застосунку — 3.
+
+          Перед заміною старої копії виберіть «Вийти» в її меню. Замініть
+          DTEKMonitor.app у /Applications та запустіть нову копію. Наявну папку
+          даних видаляти не потрібно: адреса й налаштування використовуються з неї.
+
+          Native CI перевіряє 248 parser, 37 TLS/wire/DNS, 24 connected session,
+          13 fixture UI та 8 monitor UI cases; ZIP проходить перевірку цілісності
+          після розпакування. Це тестовий preview з ad-hoc підписом, без Developer
+          ID та notarization. Якщо macOS блокує запуск, див. Open Anyway у
+          System Settings → Privacy & Security.
+
+          Реальний lookup на вашому Mac, 30-хвилинне спостереження, фізичний
+          дисплей, Gatekeeper, macOS 13 і реальний Login Item ще потребують тесту.
+          Автозапуск початково вимкнений; персональних даних у ZIP немає.
+
+          Інструкція:
+          https://github.com/uiuxmax/DTEK-Monitor/blob/macos-v0.1.0-preview.3/docs/engineering/macos-personal-preview.uk.md
+          NOTES
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+            --title 'macOS Apple Silicon — personal preview 0.1.0 (3)' \
+            --notes-file "$package_root/release-notes.uk.md" \
+            "$package_root/DTEKMonitor-0.1.0-macos-arm64.zip" \
+            "$package_root/SHA256SUMS.txt" "$package_root/results.json" "$package_root/extracted-audit.json"
+      - name: Print verification summary
+        if: always()
+        shell: bash
+        run: |
+          for report in out/macos/check-*/results.json out/macos/https-check-*/results.json out/macos/session-check-*/results.json out/macos/ui-check-*/test-summary.json out/macos/monitor-ui-check-*/test-summary.json out/macos/package-check-*/results.json; do
+            if test -f "$report"; then printf '\nReport: %s\n' "$report"; cat "$report"; fi
+          done
+          for report in out/macos/https-check-*/parser.log out/macos/https-check-*/lifecycle.log out/macos/session-check-*/session.log out/macos/monitor-ui-check-*/login.log; do
+            if test -f "$report"; then printf '\nReport: %s\n' "$report"; tail -n 60 "$report"; fi
+          done
+          for report in out/macos/check-*/build.log out/macos/https-check-*/build.log out/macos/ui-check-*/tests.log out/macos/monitor-ui-check-*/tests.log; do
+            if test -f "$report"; then awk '/error:|Fatal error|Test Case .* failed|^FAIL / { if (++count <= 30) print }' "$report"; fi
+          done
