@@ -1,6 +1,6 @@
 {
   "format": "dtek-monitor-public-core-probe-v1",
-  "source_base_commit": "8340ca8398a2d5e2a195dce73f5eb12e95c2d7d8",
+  "source_base_commit": "14da596b67a46b15be3a022de807a23b24b3ece0",
   "files": [
     {
       "path": ".gitattributes",
@@ -24,7 +24,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "6bc9239070edfc817d77e1c8073ef34579ab4cde422242c4ecc24424fe4d6aba"
+      "sha256": "3eea14d0ba70015f7e42979ef7a6b12f7579673b3dc68558b6e6e0271e34af0d"
     },
     {
       "path": "app/address_draft.h",
@@ -156,7 +156,7 @@
     },
     {
       "path": "app/macos/Network/RawHTTPResponse.swift",
-      "sha256": "8a79a784f45d151baba140f564543db7114b725449d451fe9e4cff0893cd5e5d"
+      "sha256": "c28b59fbb89ff5ef1d70ceadbed2f28c62ded43407a75246c1502a93a514c4f4"
     },
     {
       "path": "app/macos/Network/SessionPolicy.swift",
@@ -292,7 +292,7 @@
     },
     {
       "path": "tests/macos/MonitorSessionTests.swift",
-      "sha256": "5d0978905f059d9c38794d45db227affaed2be35ceba868ef28e4f04e9c6b143"
+      "sha256": "539fd00668d5ea7e7850a678634a3816656f630ba09834891dff0eb123e64083"
     },
     {
       "path": "tests/macos/MonitorUITests.swift",
@@ -300,7 +300,7 @@
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
-      "sha256": "8d511bebb5965b643f7590a17084737e95158cb2158aba53d2f6c62c77e8f63b"
+      "sha256": "8405cc8c1d986f56db9a690219cb69a53669c0019dc8eb4357f323aecde427a6"
     },
     {
       "path": "tests/macos/SessionPolicyTests.swift",
@@ -324,7 +324,7 @@
     },
     {
       "path": "tests/macos/https_wire_server.py",
-      "sha256": "9e3e8068a82aab0c1b0a50a42ac6f7c134a6aa47a6d6b579c2c3c228ada0a4af"
+      "sha256": "1c503f19c870a992e29cd880172594b5ff19f3514fb31163e917eba23a553620"
     },
     {
       "path": "tests/macos/lookup_tests.h",
@@ -344,7 +344,7 @@
     },
     {
       "path": "tests/macos/session_wire_server.py",
-      "sha256": "54831b9c2cfd226584b2988f49aa7013ae83cf621d98869cb4137049be4740c4"
+      "sha256": "a18511f93cb79f74dbd14a04fe581e6ae1e2716f9e7809d55d30b39dbbfe75ae"
     },
     {
       "path": "tests/macos/test_select_prior_run.py",
@@ -360,7 +360,7 @@
     },
     {
       "path": "tools/macos/check-https.sh",
-      "sha256": "f02b52c93fec1a36887008576fd822876757b417aaa0aaad3699d4b3f7b3ff94"
+      "sha256": "7c4b7df38d22a08307ab4e6531f442e836715abe5dcf3f3c8702d024176536a4"
     },
     {
       "path": "tools/macos/check-monitor.sh",

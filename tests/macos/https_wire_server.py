@@ -102,6 +102,8 @@ def main():
         partial_header = b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nX-Synthetic: pending'
         partial_body = response(payload=b'{', framing='Content-Length: 18\r\n')
         cases += [
+            ('cdn-cookies', response('Set-Cookie: a=b; Secure; HttpOnly\r\nset-cookie: c=d; Path=/\r\nSET-COOKIE: e=f; Expires=Wed, 18 Nov 2026 00:00:00 GMT\r\n',
+                payload=f'{len(body):x}\r\n'.encode()+body+b'\r\n0\r\n\r\n', framing='Transfer-Encoding: chunked\r\n'), 'trusted', 'none', 2000),
             ('expired-certificate', response(), 'trusted', 'tls', 2000),
             ('dns', None, 'dns', 'dns', 2000),
             ('header-deadline', partial_header, 'trusted', 'timeout', 600),
@@ -192,6 +194,7 @@ def main():
         assert result['deliveries'] == 1 and result['token'] == 1
         assert result['address'] == 'synthetic-address' and not result['proxy']
         if network:
+            assert 'set-cookie' not in result['headers'], (name, result)
             no_tcp={'dns','dns-deadline','dns-cancel','real-dns-cancel'}
             assert stats['connections'] == (0 if name in no_tcp or name == 'first-unreachable' else 1), (name, stats)
             assert result['connectionAttempts'] == (0 if name in no_tcp else 1), (name,result)

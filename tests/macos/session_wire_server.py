@@ -53,13 +53,14 @@ def main():
                         if len(raw)>=8192: raise ValueError('Request cap')
                     method,path,version=raw.split(b'\r\n',1)[0].decode('ascii').split(' ')
                     assert (method,version)==('GET','HTTP/1.1')
+                    assert not any(line.lower().startswith(b'cookie:') for line in raw.split(b'\r\n')[1:])
                     url=urlsplit(path); query=parse_qs(url.query); requests.append(path)
-                    assert len(requests)<=21
+                    assert len(requests)<=23
                     if url.path.endswith('/streets'):
                         assert query['regionId']==['25'] and query['dsoId']==['902']
                         body=[{'id':101,'value':'вул. Тестова'}]
                     elif url.path.endswith('/houses'):
-                        assert query['streetId']==['101'] and query['query'][0] in ('2-А','3')
+                        assert query['streetId']==['101'] and query['query'][0] in ('2','2-А','3')
                         body=[{'id':201,'value':query['query'][0]}]
                     elif url.path.endswith('/group'):
                         assert query['streetId']==['101'] and query['houseId']==['201']
@@ -79,8 +80,13 @@ def main():
                             'today':{'date':today.isoformat(),'status':'ScheduleApplies','slots':slots},
                             'tomorrow':{'date':(today+timedelta(days=1)).isoformat(),'status':'ScheduleApplies','slots':slots}}}
                     payload=json.dumps(body,ensure_ascii=False).encode('utf-8')
-                    tls.sendall(('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: '
-                        +str(len(payload))+'\r\n\r\n').encode('ascii')+payload)
+                    # Model the live CDN's repeatable cookies and chunked framing
+                    # through every lookup stage, suggestions and receipt restore.
+                    tls.sendall(b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n'
+                        b'Set-Cookie: a=b; Secure; HttpOnly\r\nset-cookie: c=d; Path=/\r\n'
+                        b'SET-COOKIE: e=f; Expires=Wed, 18 Nov 2026 00:00:00 GMT\r\n'
+                        b'Transfer-Encoding: chunked\r\n\r\n'
+                        +f'{len(payload):x}\r\n'.encode('ascii')+payload+b'\r\n0\r\n\r\n')
                     # The raw transport requires an explicit TLS close_notify/EOF.
                     tls.settimeout(0.5)
                     try: tls.unwrap()
@@ -93,15 +99,15 @@ def main():
             capture_output=True,text=True,encoding='utf-8',timeout=60)
     finally: stop.set(); listener.close(); thread.join(timeout=4)
     (profile.parent/'session.log').write_text(result.stdout+result.stderr,encoding='utf-8')
-    report=dict(result='PASS' if result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout and 17<=len(requests)<=21 and not errors and len(requests)<=accepted<=len(requests)+1 else 'FAIL',
+    report=dict(result='PASS' if result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout and 19<=len(requests)<=23 and not errors and len(requests)<=accepted<=len(requests)+1 else 'FAIL',
         checks=24,accepted_connections=accepted,http_gets=len(requests),resources=requests,server_errors=errors,
         scope='Real TLS loopback, synthetic provider JSON, no public provider, no Login Items')
     (profile.parent/'runner-results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(result.stdout)
     assert result.returncode==0 and 'RESULT 24/24 connected session checks passed' in result.stdout,result.stderr
-    assert 17<=len(requests)<=21 and not errors,report
+    assert 19<=len(requests)<=23 and not errors,report
     assert len(requests)<=accepted<=len(requests)+1,report
-    print('PASS: 17..21 owned TLS GETs: lookup, suggestions, A B A and close cancellation on owned TLS loopback')
+    print('PASS: 19..23 owned TLS GETs: lookup, street/house suggestions, A B A and close cancellation with CDN-style cookies')
 
 
 if __name__=='__main__': main()

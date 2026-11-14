@@ -62,7 +62,7 @@ func runMonitorSessionTests(port: UInt16, anchor: Data) async -> Bool {
     try? await Task.sleep(for:.milliseconds(480)); await session.tick()
     let suggested=await wait(box) { !$0.loading && !$0.suggestions.isEmpty }
     let houseBox=SnapshotBox()
-    let houseSession=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.synthetic("ready"),publish:{ houseBox.store($0) })
+    let houseSession=MonitorSession(profile:profile(),clock:MonitorClock(),mode:.loopback(port,anchor),publish:{ houseBox.store($0) })
     await houseSession.start(); await houseSession.editHouse(street:"вул. Тестова",house:"2")
     try? await Task.sleep(for:.milliseconds(480)); await houseSession.tick()
     let houseSuggested=await wait(houseBox) { !$0.loading && $0.suggestionResult != nil }
