@@ -11,6 +11,10 @@
       "sha256": "9f0e10d15a2d20e2ecf087c054e94921a17c795f02b8acab6e0b6abf902f31f6"
     },
     {
+      "path": ".github/workflows/macos-preview-publish.yml",
+      "sha256": "870b519528b022dbad583f56885d1b29feab47f0c725f4df17248b888bc35173"
+    },
+    {
       "path": ".gitignore",
       "sha256": "2ea7cc8c7a35ab3be9bb7a61bab07ac55c44c062042a7b891024243bab6ce7e9"
     },
@@ -24,7 +28,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "3c14e6646931e5362f9c2557fd884c3dbc4a02bf9abb44bc9fa66fe3d6c8abe2"
+      "sha256": "79724bbdd431844eb7ce7fa70577c92fdb3186ea96b3d7e12b24cbff302b0555"
     },
     {
       "path": "app/address_draft.h",
@@ -168,7 +172,7 @@
     },
     {
       "path": "app/macos/Session/Info.plist",
-      "sha256": "07b0d6768c45d7275971f13a9748133c016c7a744aaae4912de215c0a028424e"
+      "sha256": "5d15af3201ac3dcae106e4cce1ff8e5e354b26fd26bf614a7e313ec03b112bc1"
     },
     {
       "path": "app/macos/Session/LoginItemModel.swift",
@@ -240,7 +244,7 @@
     },
     {
       "path": "docs/engineering/macos-personal-preview.uk.md",
-      "sha256": "b607be96376a39e80a5a7753b7c61ab5c992fedc742d61e9290df44e6ed46b80"
+      "sha256": "7d825e19a92856a78307526073bb6708c1765c00ec8f9f7dace5e94766e74079"
     },
     {
       "path": "research/schedule-engine/kyiv_time_projection.h",
@@ -296,7 +300,7 @@
     },
     {
       "path": "tests/macos/MonitorUITests.swift",
-      "sha256": "cb4308e911e6800cfde473fbdfcf6f9cb67700da1b2978935f3f6df15de1bea4"
+      "sha256": "a0af6a790184ebb70d43d0aa33e00ab890491c82ebff97693fbcc9b59d4f7a1f"
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
@@ -384,7 +388,7 @@
     },
     {
       "path": "tools/macos/package-monitor.sh",
-      "sha256": "73ffced24e9d176651fc4498c213d9f7b0ab89e48d54857abe6951702ccedebc"
+      "sha256": "8852d27a09a041b576b33196ce429a79db2ff7db5ec2cdfe5a2ba09bcc2d360b"
     },
     {
       "path": "tools/macos/select-prior-run.py",
