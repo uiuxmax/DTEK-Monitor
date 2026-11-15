@@ -44,6 +44,12 @@ bool run_monitor_bridge_tests() {
         check_result("valid address saves to isolated profile",[engine selectStreet:@"вул. Тестова" house:@"2-А" epoch:now] && std::filesystem::exists(profile/"settings.json"));
         check_result("theme saves through atomic settings backend",[engine setTheme:@"dark"] && [[engine snapshotAtEpoch:now][@"theme"] isEqual:@"dark"]);
         check_result("invalid theme cannot change saved value",![engine setTheme:@"invalid"] && [[engine snapshotAtEpoch:now][@"theme"] isEqual:@"dark"]);
+        check_result("floating options default to movable topmost",![initial[@"floatingLocked"] boolValue] && [initial[@"floatingTopmost"] boolValue] && ![initial[@"floatingHideFullscreen"] boolValue]);
+        check_result("independent floating options persist without overwriting each other",[engine setFloatingOption:@"locked" enabled:YES] &&
+            [engine setFloatingOption:@"topmost" enabled:NO] && [engine setFloatingOption:@"hideFullscreen" enabled:YES] &&
+            [engine setFloatingVisible:NO positioned:YES x:-42 y:700 size:0] && [[engine snapshotAtEpoch:now][@"floatingLocked"] boolValue]);
+        const auto optionsBefore=read(profile/"settings.json");
+        check_result("unknown option cannot mutate saved settings",![engine setFloatingOption:@"unknown" enabled:YES] && read(profile/"settings.json")==optionsBefore);
         __block int calls=0;
         DMLookupOperation *operation=[[DMLookupOperation alloc] initWithStreet:@"вул. Тестова" house:@"2-А" token:42 suggestions:NO houseSuggestions:NO];
         DMLookupReply *reply=[operation performWithTransport:^NSDictionary *(NSDictionary *request) { ++calls; return answer(request,now); }];
@@ -53,6 +59,7 @@ bool run_monitor_bridge_tests() {
         check_result("bridge exposes forecast and complement intervals",[ready[@"forecast"] boolValue] && [ready[@"intervals"] count]==3);
         check_result("bridge preserves exact daily outage duration",[ready[@"totalOutageMinutes"] intValue]==210);
         check_result("bridge exposes an estimated local countdown",[ready[@"countdown"] length]>0);
+        check_result("typed countdown has minutes and event without parsing display text",[ready[@"currentMinutes"] intValue]==30 && [ready[@"currentEvent"] isEqual:@"outage"]);
         check_result("unpublished tomorrow remains disabled",![ready[@"tomorrowAvailable"] boolValue]);
         check_result("original receipt time is preserved",[ready[@"received"] longLongValue]==now);
         check_result("receipt persists only in the supplied profile",std::filesystem::exists(profile/"receipt.json"));
@@ -82,6 +89,8 @@ bool run_monitor_bridge_tests() {
         DMMonitorEngine *restarted=[[DMMonitorEngine alloc] initWithProfile:path epoch:now+2];
         NSDictionary *restored=[restarted snapshotAtEpoch:now+2];
         check_result("bridge restart restores address and theme",[restored[@"street"] isEqual:@"вул. Тестова"] && [restored[@"theme"] isEqual:@"dark"]);
+        check_result("bridge restart restores floating options and position",[restored[@"floatingLocked"] boolValue] && ![restored[@"floatingTopmost"] boolValue] &&
+            [restored[@"floatingHideFullscreen"] boolValue] && [restored[@"floatingX"] intValue]==-42 && [restored[@"floatingSize"] intValue]==0);
         check_result("bridge restart keeps the original receipt stamp",[restored[@"forecast"] boolValue] && [restored[@"received"] longLongValue]==now);
         check_result("Kyiv midnight expires and removes the restored receipt",![[restarted snapshotAtEpoch:utc(2026,10,17,21).epoch_seconds][@"forecast"] boolValue] && !std::filesystem::exists(profile/"receipt.json"));
         if(![engine acceptReply:reply epoch:now+2])return false;

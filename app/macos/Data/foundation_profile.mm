@@ -125,6 +125,9 @@ SettingsRead settings(const Read& file) {
             result.floating_size = static_cast<int>(mac_json::integer(item[@"size"],2,true));
             result.floating_x = static_cast<int>(mac_json::integer(item[@"x"],200000,true)) - 100000;
             result.floating_y = static_cast<int>(mac_json::integer(item[@"y"],200000,true)) - 100000;
+            if (item[@"locked"]) result.floating_locked = mac_json::integer(item[@"locked"],1,true) == 1;
+            if (item[@"topmost"]) result.floating_topmost = mac_json::integer(item[@"topmost"],1,true) == 1;
+            if (item[@"hideFullscreen"]) result.floating_hide_fullscreen = mac_json::integer(item[@"hideFullscreen"],1,true) == 1;
         }
         return {ReadState::loaded, result};
     } catch (...) { return {ReadState::unreadable, {}}; }
@@ -195,7 +198,9 @@ bool save_settings(const fs::path& profile, const Settings& value, WriteFault fa
             const auto bytes = mac_json::encode(@{@"format": @"dtek-monitor-macos-settings", @"version": @1,
                 @"draftStreet": mac_json::text(draft.street), @"draftHouse": mac_json::text(draft.house), @"theme": mac_json::text(value.theme),
                 @"floating": @{@"visible": @(value.floating_visible ? 1 : 0), @"positioned": @(value.floating_positioned ? 1 : 0),
-                    @"size": @(value.floating_size), @"x": @(value.floating_x + 100000), @"y": @(value.floating_y + 100000)}});
+                    @"size": @(value.floating_size), @"x": @(value.floating_x + 100000), @"y": @(value.floating_y + 100000),
+                    @"locked": @(value.floating_locked ? 1 : 0), @"topmost": @(value.floating_topmost ? 1 : 0),
+                    @"hideFullscreen": @(value.floating_hide_fullscreen ? 1 : 0)}});
             return replace_file(directory.value, "settings.json", bytes, fault);
         } catch (...) { return false; }
     }

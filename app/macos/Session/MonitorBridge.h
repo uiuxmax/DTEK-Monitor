@@ -29,6 +29,7 @@ typedef NSDictionary<NSString *, id> * _Nonnull (^DMGetTransport)(NSDictionary<N
     NS_SWIFT_NAME(select(street:house:epoch:));
 - (BOOL)acceptReply:(DMLookupReply *)reply epoch:(int64_t)epoch NS_SWIFT_NAME(accept(_:epoch:));
 - (BOOL)setTheme:(NSString *)theme;
+- (BOOL)setFloatingOption:(NSString *)option enabled:(BOOL)enabled NS_SWIFT_NAME(setFloatingOption(_:enabled:));
 - (BOOL)setFloatingVisible:(BOOL)visible positioned:(BOOL)positioned x:(NSInteger)x y:(NSInteger)y size:(NSInteger)size
     NS_SWIFT_NAME(setFloating(visible:positioned:x:y:size:));
 - (BOOL)recordEvent:(NSInteger)event status:(NSInteger)status reason:(NSInteger)reason epoch:(int64_t)epoch

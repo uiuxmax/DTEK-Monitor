@@ -18,10 +18,11 @@ enum LoginItemStatus: Equatable { case enabled, notRegistered, requiresApproval,
     init(backend: LoginItemBackend) { self.backend=backend; status=backend.status }
     var checked: Bool { status == .enabled }
     var canChange: Bool { status != .unknown && status != .notFound }
-    var label: String {
+    var label: String { "Запускати після входу" }
+    var statusText: String {
         switch status {
-        case .enabled: return "Запускати після входу — увімкнено"
-        case .notRegistered: return "Запускати після входу — вимкнено"
+        case .enabled: return "Автозапуск увімкнено"
+        case .notRegistered: return "Автозапуск вимкнено"
         case .requiresApproval: return "Автозапуск очікує дозволу macOS"
         case .notFound: return "macOS не знайшла цю копію програми"
         case .unknown: return "Стан автозапуску не підтверджено"
