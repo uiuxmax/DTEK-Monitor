@@ -3,15 +3,19 @@
 set -euo pipefail
 [[ "$(uname -s)" == Darwin && "$(uname -m)" == arm64 && "$#" -eq 0 ]] || exit 64
 repo=$(cd "$(dirname "$0")/../.." && pwd -P)
-reports=("$repo"/out/macos/monitor-ui-check-*/results.json)
-[[ "${#reports[@]}" -eq 1 && -f "${reports[0]}" ]] || exit 64
-build_root=$(dirname "${reports[0]}")
-source_app="$build_root/PersonalData/Build/Products/Release/DTEKMonitor.app"
-python3 - "${reports[0]}" "$repo" "$source_app" <<'PY'
+if [[ -n "${DTEKMONITOR_MONITOR_RESULTS:-}" ]]; then
+    report="$DTEKMONITOR_MONITOR_RESULTS"
+else
+    reports=("$repo"/out/macos/monitor-ui-check-*/results.json)
+    [[ "${#reports[@]}" -eq 1 && -f "${reports[0]}" ]] || exit 64
+    report="${reports[0]}"
+fi
+source_app=$(python3 -B "$repo/tools/macos/select-prior-run.py" monitor "$repo" "$report") || exit 1
+python3 - "$report" "$repo" "$source_app" <<'PY'
 import json,subprocess,sys
 from pathlib import Path
 report=json.loads(Path(sys.argv[1]).read_bytes())
-assert report['result']=='PASS' and report['ui_checks']=='8' and report['fake_login_checks']=='14' and report['architecture']=='arm64'
+assert report['result']=='PASS' and report['ui_checks']=='11' and report['fake_login_checks']=='14' and report['architecture']=='arm64'
 assert report['commit']==subprocess.check_output(['/usr/bin/git','-C',sys.argv[2],'rev-parse','HEAD'],text=True).strip()
 app=Path(sys.argv[3]); assert app.is_dir() and app.resolve()==app
 PY
@@ -25,8 +29,11 @@ from pathlib import Path
 bundle=Path(sys.argv[1]).resolve(strict=True)
 info=plistlib.loads((bundle/'Contents/Info.plist').read_bytes())
 assert info['CFBundleIdentifier']=='local.dtekmonitor.Monitor' and info['CFBundleExecutable']=='DTEKMonitor'
-assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='1'
+assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='4'
 assert info['LSMinimumSystemVersion']=='13.0' and info['LSUIElement'] is True
+for name in ('power-on-v1.png','power-off-v1.png','notification-v1.png'):
+    icon=bundle/'Contents/Resources'/name
+    assert icon.is_file() and icon.stat().st_size > 0, name
 subprocess.run(['/usr/bin/codesign','--verify','--deep','--strict',str(bundle)],check=True,capture_output=True)
 signature=subprocess.run(['/usr/bin/codesign','-dv','--verbose=4',str(bundle)],check=True,capture_output=True,text=True).stderr
 assert 'Signature=adhoc' in signature

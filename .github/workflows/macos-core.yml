@@ -56,7 +56,7 @@ jobs:
           /usr/bin/xcrun swift tools/macos/verify-ui-result.swift "${reports[0]}" || exit 1
           monitors=(out/macos/monitor-ui-check-*/test-summary.json)
           if test "${#monitors[@]}" -ne 1 || ! test -f "${monitors[0]}"; then exit 1; fi
-          /usr/bin/xcrun swift tools/macos/verify-ui-result.swift "${monitors[0]}" 8 || exit 1
+          /usr/bin/xcrun swift tools/macos/verify-ui-result.swift "${monitors[0]}" 11 || exit 1
       - name: Print bounded verification evidence
         if: always()
         shell: bash

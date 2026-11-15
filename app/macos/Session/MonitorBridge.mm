@@ -39,6 +39,17 @@ Error error_code(NSString *value) {
     if(code=="cleanup")return Error::cleanup; if(code=="invalid_request")return Error::invalid_request;
     return Error::invalid_response;
 }
+NSString *error_name(Error value) {
+    switch(value) {
+    case Error::none:return @"none"; case Error::invalid_request:return @"invalid_request";
+    case Error::dns:return @"dns"; case Error::tls:return @"tls";
+    case Error::connection:return @"connection"; case Error::http:return @"http";
+    case Error::timeout:return @"timeout"; case Error::cancelled:return @"cancelled";
+    case Error::invalid_response:return @"invalid_response"; case Error::body_too_large:return @"body_too_large";
+    case Error::incomplete_body:return @"incomplete_body"; case Error::cleanup:return @"cleanup";
+    }
+    return @"invalid_response";
+}
 std::uint64_t token_number(id value) {
     mac_json::number(value); // Reject booleans/non-finite values before decimal conversion.
     const auto bytes=mac_json::utf8([(NSNumber *)value stringValue]);
@@ -57,6 +68,7 @@ struct EngineState {
     std::filesystem::path profile;
     mac_profile::Settings settings;
     bool storage_warning=false;
+    bool disk_receipt=false;
     std::unique_ptr<schedule::KyivTimeZone> zone=schedule::make_foundation_kyiv_time_zone();
     std::unique_ptr<mac_profile::DayReceipt> receipt;
     explicit EngineState(NSString *path,schedule::UtcInstant now) : profile(mac_json::utf8(path)) {
@@ -65,7 +77,13 @@ struct EngineState {
         storage_warning=loaded.state==mac_profile::ReadState::unreadable || loaded.state==mac_profile::ReadState::future_schema;
         if(zone) {
             receipt=std::make_unique<mac_profile::DayReceipt>(*zone);
-            if(auto saved=mac_profile::load_receipt(profile))receipt->restore(std::move(*saved),settings.draft,now);
+            if(auto saved=mac_profile::load_receipt(profile)) {
+                disk_receipt=true;
+                if(!receipt->restore(std::move(*saved),settings.draft,now) && !storage_warning) {
+                    if(mac_profile::remove_receipt(profile))disk_receipt=false;
+                    else storage_warning=true;
+                }
+            }
         }
         mac_profile::clean_logs(profile,std::filesystem::file_time_type::clock::now());
     }
@@ -82,7 +100,7 @@ struct EngineState {
 - (NSDictionary<NSString *,id> *)metadata {
     if(!_value)return @{@"failure":@"schema",@"stages":@[],@"suggestions":@[]};
     NSMutableArray *stages=[NSMutableArray array], *suggestions=[NSMutableArray array];
-    for(const auto& stage:_value->stages)[stages addObject:@{@"kind":resource_name(stage.resource),@"status":@(stage.status),@"bytes":@(stage.body_bytes),@"error":@(static_cast<int>(stage.error))}];
+    for(const auto& stage:_value->stages)[stages addObject:@{@"kind":resource_name(stage.resource),@"status":@(stage.status),@"bytes":@(stage.body_bytes),@"error":@(static_cast<int>(stage.error)),@"errorName":error_name(stage.error)}];
     for(const auto& choice:_value->suggestions)[suggestions addObject:@{@"id":text(choice.id),@"label":text(choice.label)}];
     return @{@"failure":failure_name(_value->failure),@"stages":stages,@"suggestions":suggestions,@"hasSchedule":@(_value->schedule.has_value())};
 }
@@ -91,12 +109,12 @@ struct EngineState {
 @interface DMLookupOperation () { std::unique_ptr<OperationState> _state; }
 @end
 @implementation DMLookupOperation
-- (instancetype)initWithStreet:(NSString *)street house:(NSString *)house token:(uint64_t)token suggestions:(BOOL)suggestions {
+- (instancetype)initWithStreet:(NSString *)street house:(NSString *)house token:(uint64_t)token suggestions:(BOOL)suggestions houseSuggestions:(BOOL)houseSuggestions {
     if((self=[super init])) {
         _state=std::make_unique<OperationState>(); _state->request.selection=token;
         try {
             _state->request.street=mac_json::utf8(street); _state->request.house=mac_json::utf8(house);
-            _state->request.suggest_streets=suggestions; _state->valid=true;
+            _state->request.suggest_streets=suggestions; _state->request.suggest_houses=houseSuggestions; _state->valid=true;
         } catch(...) { _state->valid=false; }
     }
     return self;
@@ -168,14 +186,18 @@ struct EngineState {
     try {
         const auto draft=address_draft::normalize(mac_json::wide(street),mac_json::wide(house));
         if(!draft)return NO;
-        if(_state->receipt && _state->settings.draft!=*draft)_state->receipt->clear(schedule::UtcInstant{epoch});
+        if(_state->settings.draft!=*draft) {
+            if(!mac_profile::remove_receipt(_state->profile)) { _state->storage_warning=true; return NO; }
+            _state->disk_receipt=false;
+            if(_state->receipt)_state->receipt->clear(schedule::UtcInstant{epoch});
+        }
         _state->settings.draft=*draft;
         _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
         return YES;
     } catch(...) { return NO; }
 }
 - (BOOL)recordEvent:(NSInteger)event status:(NSInteger)status reason:(NSInteger)reason epoch:(int64_t)epoch {
-    if(!_state || event<0 || event>8 || status<0 || status>599 || reason<0 || reason>13)return NO;
+    if(!_state || event<0 || event>10 || status<0 || status>599 || reason<0 || reason>13)return NO;
     return mac_profile::append_event(_state->profile,static_cast<mac_profile::DiagnosticEvent>(event),schedule::UtcInstant{epoch},static_cast<int>(status),static_cast<int>(reason));
 }
 - (BOOL)setTheme:(NSString *)theme {
@@ -189,6 +211,23 @@ struct EngineState {
     } catch(...) { return NO; }
 }
 - (void)selectTomorrow:(BOOL)tomorrow { if(_state && _state->receipt)_state->receipt->select_tomorrow(tomorrow); }
+- (BOOL)setFloatingOption:(NSString *)option enabled:(BOOL)enabled {
+    if (!_state) return NO;
+    if ([option isEqual:@"locked"]) _state->settings.floating_locked=enabled;
+    else if ([option isEqual:@"topmost"]) _state->settings.floating_topmost=enabled;
+    else if ([option isEqual:@"hideFullscreen"]) _state->settings.floating_hide_fullscreen=enabled;
+    else return NO;
+    _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
+    return !_state->storage_warning;
+}
+- (BOOL)setFloatingVisible:(BOOL)visible positioned:(BOOL)positioned x:(NSInteger)x y:(NSInteger)y size:(NSInteger)size {
+    if (!_state || size < 0 || size > 2 || x < -100000 || x > 100000 || y < -100000 || y > 100000) return NO;
+    _state->settings.floating_visible=visible; _state->settings.floating_positioned=positioned;
+    _state->settings.floating_x=static_cast<int>(x); _state->settings.floating_y=static_cast<int>(y);
+    _state->settings.floating_size=static_cast<int>(size);
+    _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
+    return !_state->storage_warning;
+}
 - (BOOL)acceptReply:(DMLookupReply *)reply epoch:(int64_t)epoch {
     if(!_state || !_state->receipt || !reply->_value)return NO;
     const auto& result=*reply->_value;
@@ -196,6 +235,7 @@ struct EngineState {
     mac_profile::Receipt receipt{_state->settings.draft,result.resolution,result.schedule->body,*result.schedule->received_at};
     if(!_state->receipt->accept(receipt,_state->settings.draft,schedule::UtcInstant{epoch}))return NO;
     if(!mac_profile::save_receipt(_state->profile,receipt))_state->storage_warning=true;
+    else _state->disk_receipt=true;
     return YES;
 }
 - (NSDictionary<NSString *,id> *)snapshotAtEpoch:(int64_t)epoch {
@@ -206,14 +246,20 @@ struct EngineState {
         if(_state->zone)if(const auto day=_state->zone->local_date_at(now))
             dayKey=[NSString stringWithFormat:@"%04d-%02u-%02u",day->year,day->month,day->day];
         NSMutableArray *intervals=[NSMutableArray array];
-        bool forecast=false,tomorrow=false,tomorrowAvailable=false,emergency=false;
-        NSString *countdown=@"",*address=@"Адресу не задано";
+        bool forecast=false,tomorrow=false,tomorrowAvailable=false,emergency=false,currentForecast=false,currentEmergency=false;
+        NSString *countdown=@"",*currentCountdown=@"",*address=@"Адресу не задано";
         id received=NSNull.null;
+        id currentMinutes=NSNull.null;
+        NSString *currentEvent=@"";
         unsigned total=0;
         if(!_state->settings.draft.street.empty())address=[NSString stringWithFormat:@"%@, %@",wide_text(_state->settings.draft.street),wide_text(_state->settings.draft.house)];
         if(_state->receipt) {
             const auto& window=_state->receipt->view(now);
             tomorrow=window.viewing_tomorrow(); tomorrowAvailable=window.has_tomorrow();
+            if(const auto& today=window.today()) {
+                currentEmergency=today->state==popup_schedule::State::emergency;
+                currentForecast=today->state==popup_schedule::State::published && today->verified;
+            }
             if(const auto day=window.selected()) {
                 emergency=day->state==popup_schedule::State::emergency;
                 forecast=day->state==popup_schedule::State::published && day->verified;
@@ -228,17 +274,31 @@ struct EngineState {
                     total=popup_schedule::total_outage_minutes(day);
                 }
             }
-            if(!tomorrow)if(const auto estimate=_state->receipt->estimate(now))countdown=text(estimate->ukrainian_text);
+            if(const auto estimate=_state->receipt->estimate(now)) {
+                currentCountdown=text(estimate->ukrainian_text);
+                currentMinutes=@((estimate->remaining_seconds+59)/60);
+                currentEvent=estimate->event==schedule::EventKind::outage_starts ? @"outage" : @"restoration";
+            }
+            if(!tomorrow)countdown=currentCountdown;
             if(const auto& saved=_state->receipt->saved(now)) {
                 received=@(saved->received.epoch_seconds);
                 address=[NSString stringWithFormat:@"%@, %@",text(saved->resolution.address.displayed_street),text(saved->resolution.address.displayed_house)];
+            } else if(_state->disk_receipt && !_state->storage_warning) {
+                if(mac_profile::remove_receipt(_state->profile))_state->disk_receipt=false;
+                else _state->storage_warning=true;
             }
         }
         return @{@"valid":@YES,@"street":wide_text(_state->settings.draft.street),@"house":wide_text(_state->settings.draft.house),
             @"address":address,@"theme":text(_state->settings.theme),@"storageWarning":@(_state->storage_warning),
             @"kyivDay":dayKey,@"forecast":@(forecast),@"emergency":@(emergency),@"tomorrow":@(tomorrow),
+            @"currentForecast":@(currentForecast),@"currentEmergency":@(currentEmergency),@"currentCountdown":currentCountdown,
+            @"currentMinutes":currentMinutes,@"currentEvent":currentEvent,
             @"tomorrowAvailable":@(tomorrowAvailable),@"countdown":countdown,@"intervals":intervals,
-            @"totalOutageMinutes":@(total),@"received":received};
+            @"totalOutageMinutes":@(total),@"received":received,
+            @"floatingVisible":@(_state->settings.floating_visible), @"floatingPositioned":@(_state->settings.floating_positioned),
+            @"floatingX":@(_state->settings.floating_x), @"floatingY":@(_state->settings.floating_y), @"floatingSize":@(_state->settings.floating_size),
+            @"floatingLocked":@(_state->settings.floating_locked),@"floatingTopmost":@(_state->settings.floating_topmost),
+            @"floatingHideFullscreen":@(_state->settings.floating_hide_fullscreen)};
     }
 }
 @end

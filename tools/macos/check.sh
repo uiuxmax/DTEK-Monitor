@@ -111,23 +111,23 @@ expect_rejected symlink-profile "${valid_env[@]}" DTEKMONITOR_TEST_ROOT="$run/sy
 "${valid_env[@]}" "$probe" > "$run/probe.log" 2>&1
 grep -q '^RESULT 67/67 portable checks; 3 bridge scenarios passed$' "$run/probe.log"
 grep -q '^RESULT 60/60 Kyiv timezone checks passed$' "$run/probe.log" || exit 1
-grep -q '^RESULT 111/111 Foundation data checks passed$' "$run/probe.log" || exit 1
+grep -q '^RESULT 112/112 Foundation data checks passed$' "$run/probe.log" || exit 1
 grep -q '^RESULT 92/92 Foundation lookup checks passed$' "$run/probe.log" || exit 1
-grep -q '^RESULT 26/26 monitor receipt bridge checks passed$' "$run/probe.log" || exit 1
+grep -q '^RESULT 38/38 monitor receipt bridge checks passed$' "$run/probe.log" || exit 1
 "${valid_env[@]}" "$probe" --restore-data-probe > "$run/restart.log" 2>&1 || exit 1
 grep -q '^RESULT 5/5 Foundation restart checks passed$' "$run/restart.log" || exit 1
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log"
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json"
 cmp "$run/verified-before.json" "$run/verified-after.json"
-grep -q '^RESULT 21/21 native diagnostic checks passed$' "$run/probe.log" || exit 1
+grep -q '^RESULT 23/23 native diagnostic checks passed$' "$run/probe.log" || exit 1
 record portable_checks 67
 record bridge_scenarios 3
 record timezone_checks 60
-record data_checks 111
+record data_checks 112
 record data_restart_checks 5
 record lookup_checks 92
-record diagnostics_checks 21
-record monitor_bridge_checks 26
+record diagnostics_checks 23
+record monitor_bridge_checks 38
 record rejected_envelopes 6
 if [[ "$scope" == private-checkout ]]; then record preserved_files 504; fi
 record evidence 'build.log, probe.log, inputs.sha256, signature.log, toolchain.txt, linked-libraries.txt'

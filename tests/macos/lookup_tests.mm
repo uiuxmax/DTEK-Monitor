@@ -116,7 +116,10 @@ bool run_foundation_lookup_tests() {
     check_result("invalid UTF-8 query fails before IO",invalid.failure==LookupFailure::schema && calls==0);
     calls=0;
     auto suggestions=lookup_once({8,"ТЕС",{},true},[&](Request request,StopToken){++calls;return reply(std::move(request),0);});
-    check_result("suggestions use one street resource only",suggestions.failure==LookupFailure::none && suggestions.suggestions.size()==1 && calls==1 && !suggestions.schedule);
+    const auto streetCalls=calls; calls=0;
+    auto houses=lookup_once({9,"вул. Тестова","2",false,true},[&](Request request,StopToken){return reply(std::move(request),calls++);});
+    check_result("suggestions resolve street and house without requesting a schedule",suggestions.failure==LookupFailure::none && suggestions.suggestions.size()==1 && streetCalls==1 && !suggestions.schedule &&
+        houses.failure==LookupFailure::none && houses.suggestions.size()==1 && houses.suggestions[0].label=="2-А" && calls==2 && !houses.schedule);
     check_result("default cancellation token remains unstopped",!StopToken{}.stop_requested());
     StopSource owner; auto token=owner.get_token(); auto shared=owner;
     check_result("copied source initially shares unstopped state",!owner.stop_requested() && !token.stop_requested() && !shared.stop_requested());

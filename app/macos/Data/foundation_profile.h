@@ -11,6 +11,14 @@ enum class ReadState { missing, loaded, unreadable, future_schema };
 struct Settings {
     address_draft::Draft draft;
     std::string theme = "system";
+    bool floating_visible = false;
+    bool floating_positioned = false;
+    int floating_x = 0;
+    int floating_y = 0;
+    int floating_size = 1;
+    bool floating_locked = false;
+    bool floating_topmost = true;
+    bool floating_hide_fullscreen = false;
     bool operator==(const Settings&) const = default;
 };
 struct SettingsRead { ReadState state; Settings value; };
@@ -27,8 +35,10 @@ struct Receipt {
 };
 std::optional<Receipt> load_receipt(const std::filesystem::path& profile);
 bool save_receipt(const std::filesystem::path& profile, const Receipt& receipt, WriteFault fault = WriteFault::none);
+bool remove_receipt(const std::filesystem::path& profile);
 bool clean_logs(const std::filesystem::path& profile, std::filesystem::file_time_type now, std::size_t reserve_bytes = 0);
-enum class DiagnosticEvent { startup, address_applied, lookup_ok, lookup_failed, source_stopped, wake, clock_changed, theme_changed, shutdown };
+enum class DiagnosticEvent { startup, address_applied, lookup_ok, lookup_failed, source_stopped, wake, clock_changed, theme_changed, shutdown,
+                             street_suggestions_failed, house_suggestions_failed };
 // Fixed event/status/reason only: no address, URL, body or arbitrary log text.
 bool append_event(const std::filesystem::path& profile, DiagnosticEvent event, schedule::UtcInstant now,
                   int status = 0, int reason = 0);

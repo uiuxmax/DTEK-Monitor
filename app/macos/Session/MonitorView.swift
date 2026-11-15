@@ -5,12 +5,16 @@ import AppKit
     @ObservedObject var model: MonitorModel
     @ObservedObject var login: LoginItemModel
     let showSchedule: () -> Void
+    let showFloating: () -> Void
+    let showSettings: () -> Void
     let closeWindow: () -> Void
     @State private var editing=false
     @State private var street=""
     @State private var house=""
     @State private var validation=""
     @State private var choosing=false
+    @State private var choosingHouse=false
+    @State private var searchingHouse=false
     @FocusState private var focus: Field?
     private enum Field: Hashable { case street, house, suggestion(Int) }
 
@@ -20,7 +24,9 @@ import AppKit
                 Image(systemName:"bolt.circle.fill").foregroundStyle(.orange)
                 Text("DTEK Monitor").font(.headline)
                 Spacer()
-                Button("Графік",action:showSchedule).accessibilityIdentifier("open-schedule")
+                Button("Віджет",action:showFloating).accessibilityIdentifier("open-floating")
+                Button(action:showSettings) { Image(systemName:"gearshape") }
+                    .help("Налаштування (⌘,)").accessibilityLabel("Налаштування").accessibilityIdentifier("open-settings")
             }
             #if DTEKMONITOR_MAC_TEST_BUILD
             Text("ТЕСТОВІ ДАНІ · не реальний графік").font(.caption.bold()).foregroundStyle(.orange)
@@ -28,8 +34,17 @@ import AppKit
             #endif
             ScrollView {
                 VStack(alignment:.leading,spacing:12) {
-                    Text(model.status).font(.title3.bold()).accessibilityIdentifier("status")
-                        .fixedSize(horizontal:false,vertical:true)
+                    HStack(alignment:.center,spacing:12) {
+                        MonitorStatusIcon(model:model,size:46)
+                        VStack(alignment:.leading,spacing:4) {
+                            Text(model.status).font(.headline).accessibilityIdentifier("status")
+                                .fixedSize(horizontal:false,vertical:true)
+                            if let countdown=model.state?.countdown, !countdown.isEmpty {
+                                Text(countdown + " · орієнтовно").font(.subheadline).monospacedDigit()
+                                    .accessibilityIdentifier("countdown")
+                            }
+                        }
+                    }.padding(.vertical,4)
                     HStack {
                         Text(model.state?.address ?? "Адресу не задано").lineLimit(2).accessibilityIdentifier("address")
                         Spacer()
@@ -37,12 +52,16 @@ import AppKit
                     }
                     if editing { addressForm }
                     if model.state?.stopped == true {
-                        Text("Автоматичні запити зупинено до наступного запуску програми")
+                        Text(model.state?.cleanupStopped == true ? "Не вдалося завершити попереднє з’єднання. Запити зупинено до наступного запуску програми." : "Автоматичні запити зупинено до наступного запуску програми")
                             .font(.caption).foregroundStyle(.orange).accessibilityIdentifier("source-stop")
                     }
                     if model.state?.storageWarning == true {
                         Text("Налаштування або графік не вдалося зберегти. Перевірте доступ до папки даних.")
                             .font(.caption).foregroundStyle(.orange).accessibilityIdentifier("storage-warning")
+                    }
+                    if model.state?.forecast == true && model.state?.failure != nil {
+                        Text("Оновити графік не вдалося. Показано останні підтверджені дані.")
+                            .font(.caption).foregroundStyle(.orange).accessibilityIdentifier("retained-warning")
                     }
                     HStack {
                         Button("Сьогодні") { model.selectTomorrow(false) }.accessibilityIdentifier("today")
@@ -57,11 +76,8 @@ import AppKit
                     if model.state?.tomorrowAvailable != true {
                         Text("Завтра ще не підтверджене").font(.caption).foregroundStyle(.secondary)
                     }
-                    if let countdown=model.state?.countdown, !countdown.isEmpty {
-                        Text("Орієнтовно: " + countdown).font(.headline).monospacedDigit()
-                            .accessibilityIdentifier("countdown")
-                    }
                     if model.state?.forecast == true {
+                        ScheduleTimeline(rows:model.state?.rows ?? [])
                         Text("Груповий прогноз не підтверджує стан окремої лінії")
                             .font(.caption).foregroundStyle(.secondary)
                         ForEach(model.state?.rows ?? [],id:\.start) { row in
@@ -91,48 +107,78 @@ import AppKit
                 }.frame(maxWidth:.infinity,alignment:.leading)
             }.accessibilityIdentifier("schedule-scroll")
             Divider()
-            Toggle(login.label,isOn:Binding(get:{ login.checked },set:{ login.requestEnabled($0) }))
-                .disabled(!login.canChange).accessibilityIdentifier("launch-at-login")
-            if login.status == .requiresApproval {
-                Button("Параметри входу macOS") { login.openSettings() }.accessibilityIdentifier("login-settings")
-            }
-            if let message=login.message { Text(message).font(.caption).foregroundStyle(.orange).accessibilityIdentifier("login-message") }
             HStack {
-                ForEach(MonitorTheme.allCases) { theme in
-                    Button(theme.title) { model.setTheme(theme) }.accessibilityIdentifier("theme-\(theme.rawValue)")
-                        .accessibilityValue(model.theme == theme ? "Вибрано" : "Не вибрано")
-                }
+                Button("Налаштування…",action:showSettings).accessibilityIdentifier("open-settings-footer")
                 Spacer()
                 Button("Вийти") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q").accessibilityIdentifier("quit")
             }
-            Text("Тема: \(model.theme.title)").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("selected-theme")
+            Text("Версія \(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "—") (\(Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "—"))")
+                .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("app-version")
         }.padding(16).frame(width:380).frame(maxHeight:.infinity).preferredColorScheme(model.theme.colorScheme)
             .background(MonitorWindowReader(onEscape:escape,onSuggestionKey:suggestionKey).frame(width:0,height:0).accessibilityHidden(true))
             .onExitCommand(perform:escape)
     }
     private var addressForm: some View {
         VStack(alignment:.leading,spacing:8) {
+            Text("Вулиця").font(.caption.bold())
             TextField("Вулиця в Києві",text:$street).focused($focus,equals:.street).accessibilityIdentifier("street")
                 .onChange(of:street) { value in
-                    if choosing { choosing=false } else { model.editStreet(value) }
+                    if choosing { choosing=false } else { searchingHouse=false; model.editStreet(value) }
                 }
                 .onSubmit {
-                    if let first=model.state?.suggestions.first { choose(first) } else { focus = .house }
+                    guard focus == .street else { return }
+                    if !searchingHouse, suggestionsMatch, let first=model.state?.suggestions.first { choose(first) } else { focus = .house }
                 }
-            if let choices=model.state?.suggestions, !choices.isEmpty {
-                ForEach(Array(choices.prefix(8).enumerated()),id:\.offset) { index,label in
-                    Button(label) { choose(label) }.buttonStyle(.plain).focused($focus,equals:.suggestion(index))
-                        .accessibilityIdentifier("suggestion-\(index)")
-                }
-            }
+            if !searchingHouse { suggestionContent }
+            Text("Будинок").font(.caption.bold())
             TextField("Будинок",text:$house).focused($focus,equals:.house).accessibilityIdentifier("house")
-                .onSubmit { apply() }
+                .onChange(of:house) { value in
+                    if choosingHouse { choosingHouse=false } else { searchingHouse=true; model.editHouse(street:street,house:value) }
+                }
+                .onSubmit { if focus == .house { apply() } }
+            if searchingHouse { suggestionContent }
             if !validation.isEmpty { Text(validation).font(.caption).foregroundStyle(.red).accessibilityIdentifier("address-error") }
             HStack {
                 Button("Застосувати",action:apply).accessibilityIdentifier("apply-address")
                 Button("Скасувати",action:cancelEditing).accessibilityIdentifier("cancel-address")
             }
         }.textFieldStyle(.roundedBorder)
+    }
+    @ViewBuilder private var suggestionContent: some View {
+        if model.state?.stopped == true {
+            Text(model.state?.cleanupStopped == true ? "Пошук зупинено: попереднє з’єднання не завершилося." : "Пошук зупинено джерелом до наступного запуску програми.")
+                .font(.caption).foregroundStyle(.orange)
+        } else if model.state?.loading == true {
+            Text(searchingHouse ? "Пошук будинку…" : "Пошук вулиці…").font(.caption).foregroundStyle(.secondary)
+        } else if suggestionsMatch, let result=model.state?.suggestionResult, result != "ready" {
+            Text(suggestionMessage(result))
+                .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("suggestion-message")
+        }
+        if suggestionsMatch, let choices=model.state?.suggestions, !choices.isEmpty {
+            ForEach(Array(choices.prefix(8).enumerated()),id:\.offset) { index,label in
+                Button(action:{ chooseSuggestion(label) }) {
+                    Text(label).frame(maxWidth:.infinity,alignment:.leading).padding(.horizontal,9).padding(.vertical,6)
+                }.buttonStyle(.plain).background(.quaternary,in:RoundedRectangle(cornerRadius:6)).focused($focus,equals:.suggestion(index))
+                    .accessibilityIdentifier("suggestion-\(index)")
+            }
+        }
+    }
+    private func suggestionMessage(_ result: String) -> String {
+        switch result {
+        case "empty": return searchingHouse ? "Будинок не знайдено. Перевірте номер." : "Вулицю не знайдено. Спробуйте іншу назву."
+        case "address_mismatch": return "Оберіть точну назву вулиці зі списку."
+        case "schema": return "Джерело повернуло незрозумілу відповідь. Спробуйте пізніше."
+        case "dns": return "Не вдалося знайти сервер джерела. Перевірте з’єднання."
+        case "tls": return "Не вдалося встановити захищене з’єднання з джерелом."
+        case "timeout": return "Джерело не відповіло вчасно. Спробуйте ще раз."
+        case "invalid_response","incomplete_body","body_too_large": return "Не вдалося прочитати відповідь джерела для підказок."
+        case "http": return "Джерело тимчасово недоступне. Спробуйте пізніше."
+        default: return "Не вдалося отримати підказки. Перевірте з’єднання та спробуйте ще раз."
+        }
+    }
+    private var suggestionsMatch: Bool {
+        model.state?.suggestionKind == (searchingHouse ? "house" : "street") &&
+            model.state?.suggestionInput == (searchingHouse ? street + "\n" + house : street)
     }
     private func beginEditing() {
         street=model.state?.street ?? ""; house=model.state?.house ?? ""
@@ -142,6 +188,13 @@ import AppKit
         if value != street { choosing=true; street=value }
         focus = .house; model.editStreet(nil)
     }
+    private func chooseSuggestion(_ value: String) {
+        guard suggestionsMatch else { return }
+        if model.state?.suggestionKind == "house" {
+            if value != house { choosingHouse=true; house=value }
+            model.editStreet(nil); focus = .house
+        } else { choose(value) }
+    }
     private func apply() {
         if let error=model.apply(street:street,house:house) { validation=error }
         else { editing=false; validation=""; focus=nil }
@@ -149,20 +202,181 @@ import AppKit
     private func cancelEditing() { editing=false; validation=""; focus=nil; model.cancelEditing() }
     private func escape() { if editing { cancelEditing() } else { closeWindow() } }
     private func suggestionKey(_ key: UInt16) -> Bool {
-        guard editing,let choices=model.state?.suggestions,!choices.isEmpty else { return false }
+        guard editing, suggestionsMatch, let choices=model.state?.suggestions,!choices.isEmpty else { return false }
         if key==125 {
-            if focus == .street { focus = .suggestion(0); return true }
+            if focus == .street || focus == .house { focus = .suggestion(0); return true }
             if case .some(.suggestion(let index))=focus { focus = .suggestion(min(index+1,min(8,choices.count)-1)); return true }
         }
         if key==126,case .some(.suggestion(let index))=focus {
-            focus = index>0 ? .suggestion(index-1) : .street; return true
+            focus = index>0 ? .suggestion(index-1) : (searchingHouse ? .house : .street); return true
         }
         if (key==36 || key==76),case .some(.suggestion(let index))=focus,choices.indices.contains(index) {
-            choose(choices[index]); return true
+            chooseSuggestion(choices[index]); return true
         }
         return false
     }
     private func time(_ minute: Int) -> String { String(format:"%02d:%02d",minute/60,minute%60) }
+}
+
+// Render exact minute boundaries; the interval list remains the accessible,
+// text-based alternative and is also useful when colours are hard to distinguish.
+private struct MonitorStatusIcon: View {
+    @ObservedObject var model: MonitorModel
+    let size: CGFloat
+    var current = false
+    var body: some View {
+        let countdown=(current ? model.state?.currentCountdown : model.state?.countdown) ?? ""
+        let emergency=current ? model.state?.currentEmergency : model.state?.emergency
+        let name = emergency == true || countdown.hasPrefix("Відновлення") ? "power-off-v1" :
+            countdown.hasPrefix("Відключення") ? "power-on-v1" : "notification-v1"
+        Group {
+            if let image=NSImage(named:NSImage.Name(name)) {
+                Image(nsImage:image).resizable().scaledToFit()
+            } else {
+                Image(systemName:"bolt.circle.fill").resizable().scaledToFit().foregroundStyle(.orange)
+            }
+        }.frame(width:size,height:size).accessibilityHidden(true)
+    }
+}
+
+private struct ScheduleTimeline: View {
+    let rows: [MonitorSnapshot.Row]
+    private var accessibilitySummary: String {
+        let outages=rows.filter { !$0.power }
+        if outages.isEmpty { return "Планових відключень немає" }
+        return outages.map { row in
+            String(format:"%02d:%02d–%02d:%02d",row.start/60,row.start%60,row.end/60,row.end%60)
+        }.joined(separator:", ")
+    }
+    var body: some View {
+        VStack(alignment:.leading,spacing:9) {
+            Text("Планові відключення").font(.caption.bold())
+            HStack(spacing:0) {
+                ForEach(0..<9,id:\.self) { index in
+                    Text(String(format:"%02d",index*3)).font(.system(size:9)).foregroundStyle(.secondary)
+                        .frame(maxWidth:.infinity,alignment:index == 0 ? .leading : index == 8 ? .trailing : .center)
+                }
+            }.accessibilityHidden(true)
+            GeometryReader { geometry in
+                ZStack(alignment:.leading) {
+                    RoundedRectangle(cornerRadius:4).fill(Color.green.opacity(0.36))
+                    ForEach(rows.filter { !$0.power },id:\.start) { row in
+                        Rectangle().fill(Color.orange.opacity(0.75))
+                            .frame(width:geometry.size.width * CGFloat(row.end-row.start)/1440)
+                            .offset(x:geometry.size.width * CGFloat(row.start)/1440)
+                    }
+                }.clipShape(RoundedRectangle(cornerRadius:4))
+            }.frame(height:16).accessibilityHidden(true)
+            HStack(spacing:18) {
+                Label("За графіком зі світлом",systemImage:"circle.fill").foregroundStyle(.green)
+                Label("Відключення",systemImage:"circle.fill").foregroundStyle(.orange)
+            }.font(.system(size:10)).labelStyle(.titleAndIcon).accessibilityHidden(true)
+        }.padding(12).background(.quaternary,in:RoundedRectangle(cornerRadius:9))
+            .accessibilityElement(children:.ignore).accessibilityLabel("Шкала планових відключень")
+            .accessibilityValue(accessibilitySummary).accessibilityIdentifier("schedule-timeline")
+    }
+}
+
+// A compact, movable companion window shares the same session and countdown.
+@MainActor struct FloatingMonitorView: View {
+    @ObservedObject var model: MonitorModel
+    let showSchedule: () -> Void
+    let close: () -> Void
+    let showMenu: () -> Void
+    private var size: Int { model.state?.floatingSize ?? 1 }
+    var body: some View {
+        HStack(spacing:8) {
+            MonitorStatusIcon(model:model,size:size == 0 ? 30 : 38,current:true)
+            VStack(alignment:.leading,spacing:2) {
+            #if DTEKMONITOR_MAC_TEST_BUILD
+                Text("ТЕСТОВІ ДАНІ").font(.system(size:8,weight:.bold)).foregroundStyle(.orange)
+            #endif
+                if let time=model.floatingTime {
+                    Text(time).font(.system(size:size == 0 ? 21 : size == 2 ? 30 : 25,weight:.semibold)).monospacedDigit()
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                        .accessibilityIdentifier("floating-countdown")
+                    Text(model.floatingEvent).font(.system(size:size == 0 ? 11 : 13,weight:.medium)).lineLimit(1)
+                        .accessibilityIdentifier("floating-status")
+                    Text(model.floatingQualifier).font(.system(size:9)).lineLimit(1).minimumScaleFactor(0.8)
+                        .accessibilityIdentifier("floating-qualifier")
+                } else {
+                    Text(model.floatingStatus).font(.system(size:size == 0 ? 12 : 14,weight:.semibold)).lineLimit(2)
+                        .accessibilityIdentifier("floating-status")
+                }
+            }.frame(maxWidth:.infinity,alignment:.leading)
+                .contentShape(Rectangle()).onTapGesture(perform:showSchedule)
+                .help(model.floatingSummary + ". Натисніть, щоб відкрити графік")
+                .accessibilityAction(named:Text("Відкрити графік"),showSchedule)
+            Spacer(minLength:0)
+            Button(action:showMenu) { Image(systemName:"ellipsis").frame(width:22,height:28) }
+                .buttonStyle(.plain).help("Меню віджета").accessibilityLabel("Меню віджета")
+                .accessibilityIdentifier("floating-menu")
+            Button(action:close) { Image(systemName:"xmark") }
+                .buttonStyle(.plain).accessibilityLabel("Приховати віджет").accessibilityIdentifier("floating-close")
+        }.padding(.horizontal,10).padding(.vertical,6).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
+            .preferredColorScheme(model.theme.colorScheme)
+            .background(Color(nsColor:.windowBackgroundColor),in:RoundedRectangle(cornerRadius:11))
+            .overlay(RoundedRectangle(cornerRadius:11).strokeBorder(Color.primary.opacity(0.18),lineWidth:1))
+    }
+}
+
+@MainActor struct MonitorSettingsView: View {
+    @ObservedObject var model: MonitorModel
+    @ObservedObject var login: LoginItemModel
+    let setSize: (Int) -> Void
+    let resetPosition: () -> Void
+    private func option(_ option: MonitorFloatingOption) -> Binding<Bool> {
+        Binding(get:{
+            switch option {
+            case .locked:return model.state?.floatingLocked == true
+            case .topmost:return model.state?.floatingTopmost != false
+            case .hideFullscreen:return model.state?.floatingHideFullscreen == true
+            }
+        },set:{ model.setFloatingOption(option,enabled:$0) })
+    }
+    var body: some View {
+        ScrollView {
+        VStack(alignment:.leading,spacing:14) {
+            Text("Налаштування").font(.title2.bold()).accessibilityIdentifier("settings-title")
+            GroupBox("Запуск програми") {
+                VStack(alignment:.leading,spacing:8) {
+                    Toggle(login.label,isOn:Binding(get:{ login.checked },set:{ login.requestEnabled($0) }))
+                        .disabled(!login.canChange).accessibilityIdentifier("launch-at-login")
+                    Text(login.statusText).font(.caption).accessibilityIdentifier("login-status")
+                    if login.status == .notFound {
+                        Text("Перемістіть програму до «Програми» й запустіть цю копію ще раз.").font(.caption)
+                    }
+                    Button("Параметри входу macOS…") { login.openSettings() }.accessibilityIdentifier("login-settings")
+                    if let message=login.message { Text(message).font(.caption).foregroundStyle(.orange).accessibilityIdentifier("login-message") }
+                }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
+            }
+            GroupBox("Віджет") {
+                VStack(alignment:.leading,spacing:10) {
+                    Picker("Розмір",selection:Binding(get:{ model.state?.floatingSize ?? 1 },set:setSize)) {
+                        Text("Компактний").tag(0); Text("Звичайний").tag(1); Text("Великий").tag(2)
+                    }.accessibilityIdentifier("widget-size")
+                    Toggle("Закріпити позицію",isOn:option(.locked)).accessibilityIdentifier("widget-locked")
+                    Toggle("Поверх інших вікон",isOn:option(.topmost)).accessibilityIdentifier("widget-topmost")
+                    Toggle("Ховати у повноекранному режимі",isOn:option(.hideFullscreen)).accessibilityIdentifier("widget-fullscreen")
+                    Button("Скинути позицію віджета",action:resetPosition).accessibilityIdentifier("reset-position")
+                }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
+            }
+            GroupBox("Оформлення") {
+                VStack(alignment:.leading,spacing:8) {
+                    HStack {
+                        ForEach(MonitorTheme.allCases) { theme in
+                            Button(theme.title) { model.setTheme(theme) }.accessibilityIdentifier("theme-\(theme.rawValue)")
+                                .accessibilityValue(model.theme == theme ? "Вибрано" : "Не вибрано")
+                        }
+                    }
+                    Text("Тема: \(model.theme.title)").font(.caption).accessibilityIdentifier("selected-theme")
+                }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
+            }
+            Text("Меню дій: ПКМ на віджеті або іконці в menu bar; кнопка «…» на віджеті.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
+        }.padding(20)
+        }.frame(width:420).frame(maxHeight:.infinity).preferredColorScheme(model.theme.colorScheme)
+    }
 }
 
 // App-local keyboard handling is limited to the owning visible window.

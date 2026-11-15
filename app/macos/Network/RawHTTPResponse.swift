@@ -55,6 +55,10 @@ final class RawHTTPResponse {
             guard namePart.utf8.allSatisfy({ (65...90).contains($0) || (97...122).contains($0) ||
                 (48...57).contains($0) || tokens.contains($0) }) else { fail("invalid_response", "field_name"); return }
             let name = namePart.lowercased()
+            // Set-Cookie is repeatable response metadata (YASNO's CDN sends
+            // several). Validate it within the same raw header cap, then ignore
+            // it: this transport has no cookie store and never sends cookies.
+            if name == "set-cookie" { continue }
             guard headers[name] == nil else { fail("invalid_response", "duplicate_field"); return }
             let value = field[field.index(after: colon)...].trimmingCharacters(in: CharacterSet(charactersIn: " \t"))
             headers[name] = value

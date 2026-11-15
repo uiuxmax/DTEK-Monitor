@@ -23,6 +23,8 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
     private var dnsReference: DNSServiceRef?
     private var dnsContext: UnsafeMutableRawPointer?
     private var dnsCompletion: ((NWEndpoint.Host) -> Void)?
+    private var resolvingDNS = false
+    private var dnsHadNoRecord = false
     private var startedHTTP = false
     #if DTEKMONITOR_MAC_TEST_BUILD
     private var testCancelAt = "none"
@@ -63,16 +65,36 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
         let endpointHost = testDNS ? name : localhostDNS ? "localhost" : "127.0.0.1"
         let port = NWEndpoint.Port(rawValue:testPort)!
         let path = resource?.path ?? "/probe"
-        guard ["normal","first-unreachable","dns-deadline","dns-cancel","real-dns-cancel","ipv6"].contains(resolverMode) else {
+        guard ["normal","first-unreachable","dns-deadline","dns-cancel","real-dns-cancel","ipv6",
+               "negative-then-ipv4","negative-then-ipv6","negative-only","negative-cancel"].contains(resolverMode) else {
             owner.async { self.finish("invalid_request") }; return
         }
         testCancelDNS = resolverMode == "real-dns-cancel"
         if resolverMode != "normal" && !testCancelDNS {
             owner.async {
                 guard self.active() else { return }; self.armDeadline()
+                if resolverMode.hasPrefix("negative-") {
+                    self.resolvingDNS = true
+                    self.dnsCompletion = { [weak self] host in
+                        self?.start(endpoint:.hostPort(host:host,port:port),serverName:name,authority:"\(name):\(testPort)",path:path,anchorDER:anchorDER)
+                    }
+                    // DNS-SD can report a missing A/AAAA record before the
+                    // other family returns a usable address. Error arguments
+                    // are deliberately nil: production must not inspect them.
+                    self.resolved(flags:0,error:DNSServiceErrorType(kDNSServiceErr_NoSuchRecord),address:nil)
+                    if resolverMode == "negative-only" { return }
+                    if resolverMode == "negative-cancel" { self.cancel() }
+                    self.owner.async {
+                        self.testResolvedLoopback(ipv6:resolverMode == "negative-then-ipv6")
+                    }
+                    return
+                }
                 if resolverMode == "dns-deadline" { return }
                 if resolverMode == "dns-cancel" {
-                    self.owner.asyncAfter(deadline:.now() + .milliseconds(150)) {
+                    // Exercise cancellation before a late simulated resolver
+                    // result without depending on two unrelated timer queues.
+                    self.cancel()
+                    self.owner.async {
                         guard self.active() else { return }
                         self.start(endpoint:.hostPort(host:.ipv4(.loopback),port:port),serverName:name,authority:"\(name):\(testPort)",path:path,anchorDER:anchorDER)
                     }
@@ -89,6 +111,28 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
                 anchorDER:anchorDER,protocols:localhostDNS ? DNSServiceProtocol(kDNSServiceProtocol_IPv4) : 0)
         } else {
             start(endpoint:.hostPort(host:.ipv4(.loopback),port:port),serverName:name,authority:"\(name):\(testPort)",path:path,anchorDER:anchorDER)
+        }
+    }
+
+    private func testResolvedLoopback(ipv6: Bool) {
+        if ipv6 {
+            var address=sockaddr_in6()
+            address.sin6_len=UInt8(MemoryLayout<sockaddr_in6>.size); address.sin6_family=sa_family_t(AF_INET6)
+            guard inet_pton(AF_INET6,"::1",&address.sin6_addr)==1 else { finish("dns"); return }
+            withUnsafePointer(to:&address) { pointer in
+                pointer.withMemoryRebound(to:sockaddr.self,capacity:1) {
+                    resolved(flags:DNSServiceFlags(kDNSServiceFlagsAdd),error:DNSServiceErrorType(kDNSServiceErr_NoError),address:$0)
+                }
+            }
+        } else {
+            var address=sockaddr_in()
+            address.sin_len=UInt8(MemoryLayout<sockaddr_in>.size); address.sin_family=sa_family_t(AF_INET)
+            guard inet_pton(AF_INET,"127.0.0.1",&address.sin_addr)==1 else { finish("dns"); return }
+            withUnsafePointer(to:&address) { pointer in
+                pointer.withMemoryRebound(to:sockaddr.self,capacity:1) {
+                    resolved(flags:DNSServiceFlags(kDNSServiceFlagsAdd),error:DNSServiceErrorType(kDNSServiceErr_NoError),address:$0)
+                }
+            }
         }
     }
     #endif
@@ -108,6 +152,7 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
                 self.finish("invalid_request"); return
             }
             guard self.active() else { return }; self.armDeadline()
+            self.resolvingDNS = true
             self.dnsCompletion = { [weak self] host in
                 self?.start(endpoint:.hostPort(host:host,port:port),serverName:serverName,authority:authority,path:path,anchorDER:anchorDER)
             }
@@ -133,12 +178,17 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
         }
     }
     private func cancelDNS() {
+        resolvingDNS = false
         if let reference=dnsReference { dnsReference=nil; DNSServiceRefDeallocate(reference) }
         dnsCompletion=nil
         if let context=dnsContext { dnsContext=nil; Unmanaged<NetworkHTTPSAttempt>.fromOpaque(context).release() }
     }
     private func resolved(flags: DNSServiceFlags, error: DNSServiceErrorType, address: UnsafePointer<sockaddr>?) {
         guard active() else { return }
+        // A missing record is not a failure of both address families. Wait for
+        // the first usable address within the original deadline; never inspect
+        // undefined callback parameters on errors or create a second connection.
+        if error == kDNSServiceErr_NoSuchRecord { dnsHadNoRecord = true; return }
         guard error == kDNSServiceErr_NoError else { finish("dns"); return }
         guard flags & DNSServiceFlags(kDNSServiceFlagsAdd) != 0 else { return }
         guard let address=address, [AF_INET,AF_INET6].contains(Int32(address.pointee.sa_family)) else { finish("dns"); return }
@@ -155,14 +205,18 @@ final class NetworkHTTPSAttempt: @unchecked Sendable {
         let instant=began.advanced(by:.milliseconds(budget))
         deadline=Task { [weak self] in
             do { try await ContinuousClock().sleep(until:instant) } catch { return }
-            self?.owner.async { [weak self] in self?.finish("timeout") }
+            self?.owner.async { [weak self] in
+                guard let self=self else { return }
+                self.finish(self.deadlineFailure)
+            }
         }
     }
     private func active() -> Bool {
         guard !terminal else { return false }
-        if began.duration(to: ContinuousClock.now) >= .milliseconds(budget) { finish("timeout"); return false }
+        if began.duration(to: ContinuousClock.now) >= .milliseconds(budget) { finish(deadlineFailure); return false }
         return true
     }
+    private var deadlineFailure: String { resolvingDNS && dnsHadNoRecord ? "dns" : "timeout" }
     func cancel() { owner.async { self.finish("cancelled") } }
     func revalidateDeadline() { owner.async { _ = self.active() } }
     private func finish(_ error: String) {
