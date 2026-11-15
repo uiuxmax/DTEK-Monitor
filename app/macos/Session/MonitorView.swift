@@ -287,6 +287,13 @@ private struct ScheduleTimeline: View {
     var body: some View {
         HStack(spacing:8) {
             MonitorStatusIcon(model:model,size:size == 0 ? 30 : 38,current:true)
+                .overlay(alignment:.bottom) {
+                    #if DTEKMONITOR_MAC_TEST_BUILD
+                    Text("ТЕСТ").font(.system(size:7,weight:.bold)).padding(.horizontal,2)
+                        .background(Color(nsColor:.windowBackgroundColor),in:RoundedRectangle(cornerRadius:2))
+                        .accessibilityHidden(true)
+                    #endif
+                }
             VStack(alignment:.leading,spacing:2) {
                 if let time=model.floatingTime {
                     Text(time).font(.system(size:size == 0 ? 21 : size == 2 ? 30 : 25,weight:.semibold)).monospacedDigit()
@@ -294,8 +301,10 @@ private struct ScheduleTimeline: View {
                         .accessibilityIdentifier("floating-countdown")
                     Text(model.floatingEvent).font(.system(size:size == 0 ? 11 : 13,weight:.medium)).lineLimit(1)
                         .accessibilityIdentifier("floating-status")
-                    Text(qualifier).font(.system(size:9)).lineLimit(1).minimumScaleFactor(0.8)
-                        .accessibilityIdentifier("floating-qualifier")
+                    if model.state?.failure != nil {
+                        Text("Немає оновлення").font(.system(size:9)).foregroundStyle(.orange).lineLimit(1)
+                            .accessibilityIdentifier("floating-refresh-warning")
+                    }
                 } else {
                     Text(model.floatingStatus).font(.system(size:size == 0 ? 12 : 14,weight:.semibold)).lineLimit(2)
                         .accessibilityIdentifier("floating-status")
@@ -318,13 +327,6 @@ private struct ScheduleTimeline: View {
             .background(Color(nsColor:.windowBackgroundColor),in:RoundedRectangle(cornerRadius:11))
             .overlay(RoundedRectangle(cornerRadius:11).strokeBorder(Color.primary.opacity(0.18),lineWidth:1))
             .accessibilityElement(children:.contain).accessibilityIdentifier("floating-content")
-    }
-    private var qualifier: String {
-        #if DTEKMONITOR_MAC_TEST_BUILD
-        return "ТЕСТ · " + model.floatingQualifier
-        #else
-        return model.floatingQualifier
-        #endif
     }
 }
 

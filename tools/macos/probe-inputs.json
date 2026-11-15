@@ -12,7 +12,7 @@
     },
     {
       "path": ".github/workflows/macos-preview-publish.yml",
-      "sha256": "41140a9c1813f42ce1131c0260951699b5426772d0c67827772e5d1033696136"
+      "sha256": "6f73f55b59f51227d5f9ead69b9127577bd36d88042252033ad2cec552df09d3"
     },
     {
       "path": ".gitignore",
@@ -176,7 +176,7 @@
     },
     {
       "path": "app/macos/Session/Info.plist",
-      "sha256": "136e299053ce9b49ad4bd736acb70ab10ab48a094506a655f6b7f2036b762bf6"
+      "sha256": "8c7bdd0a80913170fcb6bc3ffa14d682a1600214b9bb854210070ead1bd56b03"
     },
     {
       "path": "app/macos/Session/LoginItemModel.swift",
@@ -204,7 +204,7 @@
     },
     {
       "path": "app/macos/Session/MonitorView.swift",
-      "sha256": "b7ddb8350442efc6a1c1cd96890f4908507308303b133d8433bfe51b09710555"
+      "sha256": "62a088ab2a71e18850af4627371cd2f79271fc3b4552bf3ecd5806fc922041b2"
     },
     {
       "path": "app/macos/Session/NativeLookupWorker.swift",
@@ -248,7 +248,7 @@
     },
     {
       "path": "docs/engineering/macos-personal-preview.uk.md",
-      "sha256": "c864d137f4a07be85424ab0729d2903888d415f49b9cfe4efdd4175cf52a8f8a"
+      "sha256": "60a2956bff892f56a0d82c491f48f73fbadf93fc533f5c42a6bafeb86930eab1"
     },
     {
       "path": "research/schedule-engine/kyiv_time_projection.h",
@@ -304,7 +304,7 @@
     },
     {
       "path": "tests/macos/MonitorUITests.swift",
-      "sha256": "51072cf58c56d513f958a05c127d1e7cdf543cf56b4643bd77c2869d4cc5e0a4"
+      "sha256": "4d48d26ba2849f4f3fde3b65ebad7bf61b272bc5ff2ae8d100aff0a62cf2c11c"
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
@@ -392,7 +392,7 @@
     },
     {
       "path": "tools/macos/package-monitor.sh",
-      "sha256": "f93455c19ffb1c0104ec565d5ba2ffc23be3b0651658114fd0343ce80f619b90"
+      "sha256": "79a579c7b34874e342e802d134ad3ecc9f74187a4b5b0c22c2a84eaa7dea1f97"
     },
     {
       "path": "tools/macos/select-prior-run.py",

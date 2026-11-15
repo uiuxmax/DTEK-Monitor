@@ -92,7 +92,7 @@ final class MonitorUITests: XCTestCase {
             if color.alphaComponent>0.9 && max(color.redComponent,max(color.greenComponent,color.blueComponent))<0.2 { dark += 1 }
         } }
         XCTAssertGreaterThan(amber,300); XCTAssertGreaterThan(dark,80); XCTAssertGreaterThan(transparent,20)
-        waitText("app-version","0.1.0 (6)")
+        waitText("app-version","0.1.0 (7)")
         XCTAssertFalse(element("tomorrow").isEnabled)
         XCTAssertFalse(element("fixture-scenario").exists)
         let window=app.windows.firstMatch
@@ -185,6 +185,9 @@ final class MonitorUITests: XCTestCase {
         let original=try Data(contentsOf:receipt)
         app.terminate(); launch("unavailable"); ready(); settings(); waitText("selected-theme","Темна"); closeSettings()
         waitText("address","вул. Тестова, 2-А"); waitText("request-count","1")
+        element("open-floating").click()
+        waitText("floating-refresh-warning","Немає оновлення")
+        XCTAssertFalse(element("floating-qualifier").exists)
         XCTAssertEqual(try Data(contentsOf:receipt),original)
     }
     func testSettingsShortcutAndPersistedWindowBehavior() throws {
@@ -230,7 +233,9 @@ final class MonitorUITests: XCTestCase {
     func testCountdownHierarchyAndAllSizes() {
         launch(); applyAddress(); ready(); element("open-floating").click()
         XCTAssertTrue(element("floating-countdown").waitForExistence(timeout:8))
-        waitText("floating-status","до "); waitText("floating-qualifier","Орієнтовно")
+        waitText("floating-status","до ")
+        XCTAssertFalse(element("floating-qualifier").exists)
+        XCTAssertFalse(element("floating-refresh-warning").exists)
         let originalRequestCount=text(element("request-count"))
         for title in ["Компактний","Звичайний","Великий"] {
             element("floating-menu").click(); app.menuItems["Розмір віджета"].hover()
@@ -239,7 +244,7 @@ final class MonitorUITests: XCTestCase {
             XCTAssertTrue(time.exists); XCTAssertGreaterThan(time.frame.height,event.frame.height)
             XCTAssertLessThanOrEqual(time.frame.maxX,element("floating-menu").frame.minX)
             let bounds=element("floating-content").frame
-            for id in ["floating-countdown","floating-status","floating-qualifier"] {
+            for id in ["floating-countdown","floating-status"] {
                 XCTAssertGreaterThanOrEqual(element(id).frame.minY,bounds.minY)
                 XCTAssertLessThanOrEqual(element(id).frame.maxY,bounds.maxY)
             }
