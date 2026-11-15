@@ -13,7 +13,7 @@ struct UISummary: Decodable {
 
 guard [2,3].contains(CommandLine.arguments.count) else { exit(64) }
 let expected=CommandLine.arguments.count == 3 ? Int(CommandLine.arguments[2]) ?? 0 : 13
-guard [8,13].contains(expected) else { exit(64) }
+guard [11,13].contains(expected) else { exit(64) }
 do {
     let summary = try JSONDecoder().decode(UISummary.self,
         from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))

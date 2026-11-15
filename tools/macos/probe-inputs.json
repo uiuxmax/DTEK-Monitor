@@ -12,7 +12,7 @@
     },
     {
       "path": ".github/workflows/macos-preview-publish.yml",
-      "sha256": "ef13b7026ac683bf71c00c9fe81f4120ca32e91a4d429eeaac1f1f18724e134c"
+      "sha256": "96c9667273641848cf86918f82af5d100c3e85681af8eb02da35b1eab8583469"
     },
     {
       "path": ".gitignore",
@@ -400,7 +400,7 @@
     },
     {
       "path": "tools/macos/verify-ui-result.swift",
-      "sha256": "8c907e95f0c298e74e7319b8cfb3baf24c31073386389a4dfc78c4a257f3e5d9"
+      "sha256": "03cde92401af005b493deed01bf61b7a2b216e5c02014472339e76442e3b9351"
     }
   ]
 }
