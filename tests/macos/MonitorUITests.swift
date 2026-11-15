@@ -30,6 +30,13 @@ final class MonitorUITests: XCTestCase {
         XCTAssertTrue(element("test-banner").waitForExistence(timeout:10))
     }
     private func element(_ id: String) -> XCUIElement { app.descendants(matching:.any).matching(identifier:id).firstMatch }
+    private func visibleMenuItem(_ title: String) -> XCUIElement {
+        // The app menu and the context menu both legitimately have Settings.
+        // Select the visible command, never an arbitrary first matching item.
+        let candidates=app.menuItems.matching(identifier:title).allElementsBoundByIndex.filter { $0.isHittable }
+        XCTAssertEqual(candidates.count,1,"Expected one visible menu command: \(title)")
+        return candidates.first ?? app.menuItems.matching(identifier:title).firstMatch
+    }
     private func text(_ item: XCUIElement) -> String {
         if let value=item.value as? String,!value.isEmpty { return value }; return item.label
     }
@@ -198,7 +205,7 @@ final class MonitorUITests: XCTestCase {
         XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
         element("floating-status").rightClick()
         XCTAssertTrue(app.menuItems["Приховати віджет"].waitForExistence(timeout:5))
-        app.menuItems["Налаштування…"].click()
+        visibleMenuItem("Налаштування…").click()
         XCTAssertTrue(element("settings-title").waitForExistence(timeout:8)); closeSettings()
         element("floating-menu").click()
         XCTAssertTrue(app.menuItems["Поверх інших вікон"].waitForExistence(timeout:5))
@@ -209,6 +216,7 @@ final class MonitorUITests: XCTestCase {
         launch(); applyAddress(); ready(); element("open-floating").click()
         XCTAssertTrue(element("floating-countdown").waitForExistence(timeout:8))
         waitText("floating-status","до "); waitText("floating-qualifier","Орієнтовно")
+        let originalRequestCount=text(element("request-count"))
         for title in ["Компактний","Звичайний","Великий"] {
             element("floating-menu").click(); app.menuItems["Розмір віджета"].hover()
             XCTAssertTrue(app.menuItems[title].waitForExistence(timeout:5)); app.menuItems[title].click()
@@ -223,6 +231,6 @@ final class MonitorUITests: XCTestCase {
             XCTAssertFalse(text(time).contains("Відключення"))
             let attachment=XCTAttachment(screenshot:app.screenshot()); attachment.name="Countdown-\(title)"; attachment.lifetime = .keepAlways; add(attachment)
         }
-        waitText("request-count","4")
+        waitText("request-count",originalRequestCount)
     }
 }

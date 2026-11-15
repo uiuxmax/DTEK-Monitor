@@ -300,7 +300,7 @@
     },
     {
       "path": "tests/macos/MonitorUITests.swift",
-      "sha256": "3de6dc8e0cf43b27fd9fb4959a24bf2e7a8cc38b9e482b37837f01020a9cbf8b"
+      "sha256": "7a4ad93fa0f969472a178bd9a75ff00ee58dfe92e86d1bfe5b662fe4ade7f2d6"
     },
     {
       "path": "tests/macos/RawHTTPTests.swift",
