@@ -1,6 +1,17 @@
 import SwiftUI
 import AppKit
 
+// Explicit opaque colours keep wallpaper tint and popover vibrancy out of the
+// content. Resolve inside preferredColorScheme so the fill and text agree.
+private struct MonitorSurface: View {
+    @Environment(\.colorScheme) private var colorScheme
+    var body: some View {
+        colorScheme == .dark
+            ? Color(.sRGB,red:36/255,green:40/255,blue:48/255,opacity:1)
+            : Color(.sRGB,red:250/255,green:251/255,blue:253/255,opacity:1)
+    }
+}
+
 @MainActor struct MonitorView: View {
     @ObservedObject var model: MonitorModel
     @ObservedObject var login: LoginItemModel
@@ -78,24 +89,9 @@ import AppKit
                     }
                     if model.state?.forecast == true {
                         ScheduleTimeline(rows:model.state?.rows ?? [])
+                        OutageSummary(rows:model.state?.rows ?? [],totalMinutes:model.state?.totalOutageMinutes ?? 0)
                         Text("Груповий прогноз не підтверджує стан окремої лінії")
                             .font(.caption).foregroundStyle(.secondary)
-                        ForEach(model.state?.rows ?? [],id:\.start) { row in
-                            HStack {
-                                Image(systemName:row.power ? "bolt.fill" : "bolt.slash.fill")
-                                    .foregroundStyle(row.power ? .green : .orange).accessibilityHidden(true)
-                                VStack(alignment:.leading,spacing:2) {
-                                    Text(time(row.start)+"–"+time(row.end)).monospacedDigit()
-                                    Text(MonitorModel.duration(row.end-row.start)).font(.caption).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Text(row.power ? "За графіком зі світлом" : "Планове відключення")
-                                    .font(.caption).multilineTextAlignment(.trailing)
-                            }.padding(8).background(.quaternary,in:RoundedRectangle(cornerRadius:8))
-                                .accessibilityElement(children:.combine).accessibilityIdentifier("interval-\(row.start)")
-                        }
-                        Text("Разом без світла: " + MonitorModel.duration(model.state?.totalOutageMinutes ?? 0))
-                            .font(.caption.bold()).accessibilityIdentifier("outage-total")
                     } else {
                         Text(model.state?.emergency == true ? "Час відновлення невідомий" : "Підтвердженого графіка немає")
                             .foregroundStyle(.secondary).padding(.vertical,12)
@@ -112,9 +108,11 @@ import AppKit
                 Spacer()
                 Button("Вийти") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q").accessibilityIdentifier("quit")
             }
-            Text("Версія \(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "—") (\(Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "—"))")
+            Text("v\(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "—")")
                 .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("app-version")
-        }.padding(16).frame(width:380).frame(maxHeight:.infinity).preferredColorScheme(model.theme.colorScheme)
+        }.padding(16).frame(width:380).frame(maxHeight:.infinity)
+            .background(MonitorSurface())
+            .preferredColorScheme(model.theme.colorScheme)
             .background(MonitorWindowReader(onEscape:escape,onSuggestionKey:suggestionKey).frame(width:0,height:0).accessibilityHidden(true))
             .onExitCommand(perform:escape)
     }
@@ -215,7 +213,64 @@ import AppKit
         }
         return false
     }
-    private func time(_ minute: Int) -> String { String(format:"%02d:%02d",minute/60,minute%60) }
+}
+
+// Match the Windows summary: total first, then only planned outage ranges.
+// Keep every range when the source supplies more than two; the outer scroll
+// view remains the screen-height fallback.
+private struct OutageSummary: View {
+    let rows: [MonitorSnapshot.Row]
+    let totalMinutes: Int
+    @Environment(\.colorScheme) private var colorScheme
+    private var outages: [MonitorSnapshot.Row] { rows.filter { !$0.power } }
+    private func range(_ row: MonitorSnapshot.Row) -> String {
+        String(format:"%02d:%02d–%02d:%02d",row.start/60,row.start%60,row.end/60,row.end%60)
+    }
+    private func duration(_ minutes: Int) -> String {
+        let hours=minutes/60,remainder=minutes%60
+        if hours == 0 { return "\(remainder) хв" }
+        return "\(hours) год" + (remainder == 0 ? "" : " \(remainder) хв")
+    }
+    var body: some View {
+        VStack(alignment:.leading,spacing:10) {
+            Text("За графіком без світла: " + duration(totalMinutes))
+                .font(.caption.bold()).accessibilityIdentifier("outage-total")
+            Divider()
+            HStack(spacing:12) {
+                Image(systemName:"clock").font(.system(size:22)).accessibilityHidden(true)
+                if outages.isEmpty {
+                    Text("Планових відключень немає").font(.subheadline)
+                        .frame(maxWidth:.infinity).accessibilityIdentifier("no-outages")
+                } else if outages.count <= 2 {
+                    HStack(spacing:8) {
+                        ForEach(Array(outages.enumerated()),id:\.element.start) { index,row in
+                            if index > 0 { Divider().frame(height:40) }
+                            VStack(spacing:4) {
+                                Text(range(row)).font(.system(size:14,weight:.semibold)).monospacedDigit()
+                                Text(duration(row.end-row.start)).font(.caption).foregroundStyle(.secondary)
+                            }.frame(maxWidth:.infinity)
+                                .accessibilityElement(children:.combine).accessibilityIdentifier("interval-\(row.start)")
+                        }
+                    }
+                } else {
+                    VStack(spacing:8) {
+                        ForEach(outages,id:\.start) { row in
+                            HStack {
+                                Text(range(row)).monospacedDigit()
+                                Spacer()
+                                Text(duration(row.end-row.start)).foregroundStyle(.secondary)
+                            }.font(.caption)
+                                .accessibilityElement(children:.combine).accessibilityIdentifier("interval-\(row.start)")
+                        }
+                    }
+                }
+            }
+        }.padding(12).frame(maxWidth:.infinity,alignment:.leading)
+            .background(colorScheme == .dark
+                ? Color(.sRGB,red:59/255,green:68/255,blue:81/255,opacity:1)
+                : Color(.sRGB,red:227/255,green:235/255,blue:244/255,opacity:1),in:RoundedRectangle(cornerRadius:8))
+            .accessibilityElement(children:.contain).accessibilityIdentifier("outage-summary")
+    }
 }
 
 // Render exact minute boundaries; the interval list remains the accessible,
@@ -323,9 +378,9 @@ private struct ScheduleTimeline: View {
             Button(action:close) { Image(systemName:"xmark") }
                 .buttonStyle(.plain).accessibilityLabel("Приховати віджет").accessibilityIdentifier("floating-close")
         }.padding(.horizontal,10).padding(.vertical,6).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
-            .preferredColorScheme(model.theme.colorScheme)
-            .background(Color(nsColor:.windowBackgroundColor),in:RoundedRectangle(cornerRadius:11))
+            .background(MonitorSurface().clipShape(RoundedRectangle(cornerRadius:11)))
             .overlay(RoundedRectangle(cornerRadius:11).strokeBorder(Color.primary.opacity(0.18),lineWidth:1))
+            .preferredColorScheme(model.theme.colorScheme)
             .accessibilityElement(children:.contain).accessibilityIdentifier("floating-content")
     }
 }
@@ -385,7 +440,9 @@ private struct ScheduleTimeline: View {
             Text("Меню дій: ПКМ на віджеті або іконці в menu bar; кнопка «…» на віджеті.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
         }.padding(20)
-        }.frame(width:420).frame(maxHeight:.infinity).preferredColorScheme(model.theme.colorScheme)
+        }.frame(width:420).frame(maxHeight:.infinity)
+            .background(MonitorSurface())
+            .preferredColorScheme(model.theme.colorScheme)
     }
 }
 

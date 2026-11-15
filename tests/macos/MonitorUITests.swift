@@ -92,7 +92,7 @@ final class MonitorUITests: XCTestCase {
             if color.alphaComponent>0.9 && max(color.redComponent,max(color.greenComponent,color.blueComponent))<0.2 { dark += 1 }
         } }
         XCTAssertGreaterThan(amber,300); XCTAssertGreaterThan(dark,80); XCTAssertGreaterThan(transparent,20)
-        waitText("app-version","0.1.0 (7)")
+        waitText("app-version","v0.1.7")
         XCTAssertFalse(element("tomorrow").isEnabled)
         XCTAssertFalse(element("fixture-scenario").exists)
         let window=app.windows.firstMatch
@@ -132,7 +132,10 @@ final class MonitorUITests: XCTestCase {
         XCTAssertTrue(element("suggestion-0").waitForExistence(timeout:8))
         element("house").typeKey(.downArrow,modifierFlags:[]); app.typeKey(.return,modifierFlags:[])
         element("house").click(); element("house").typeText("-А\r"); ready()
-        waitText("address","вул. Тестова, 2-А"); waitText("outage-total","3 г 30 хв")
+        waitText("address","вул. Тестова, 2-А"); waitText("outage-total","3 год 30 хв")
+        XCTAssertTrue(element("outage-summary").exists)
+        XCTAssertFalse(element("interval-0").exists)
+        waitText("interval-510","08:30–12:00")
         XCTAssertTrue(element("schedule-timeline").exists)
         waitText("request-count","7"); XCTAssertTrue(element("received").exists)
         Thread.sleep(forTimeInterval:1.2); waitText("request-count","7")
@@ -153,6 +156,8 @@ final class MonitorUITests: XCTestCase {
     func testTomorrowReopenAndCloseKeepsProcess() throws {
         launch(); applyAddress(); ready(); XCTAssertTrue(element("tomorrow").isEnabled)
         element("tomorrow").click(); waitText("selected-day","Завтра")
+        waitText("outage-total","3 год 30 хв"); waitText("interval-510","08:30–12:00")
+        XCTAssertFalse(element("interval-0").exists)
         XCTAssertFalse(element("countdown").exists)
         element("open-floating").click()
         XCTAssertTrue(element("floating-countdown").waitForExistence(timeout:8))

@@ -1,10 +1,10 @@
-name: Publish reviewed macOS personal preview 7
+name: Publish reviewed macOS personal preview v0.1.7
 
 on:
   push:
-    branches: [publish/macos-preview-0.1.0-7]
+    branches: [publish/macos-preview-0.1.7]
 
-# The owner authorized this separate preview for testing after the native fix passed.
+# Push to this publication branch only after the owner's explicit authorization.
 permissions:
   contents: write
 
@@ -43,7 +43,7 @@ jobs:
           GH_REPO: uiuxmax/DTEK-Monitor
         run: |
           set -euo pipefail
-          tag=macos-v0.1.0-preview.7
+          tag=macos-v0.1.7
           if gh release view "$tag" > /dev/null 2>&1; then
             echo 'Preview tag already exists; it will not be overwritten.' >&2
             exit 1
@@ -59,18 +59,18 @@ jobs:
           assert report['result']=='PASS' and report['commit']==sys.argv[3]
           assert report['architecture']=='arm64' and report['signature']=='ad-hoc' and report['notarized'] is False
           assert report['round_trip_file_hashes_match'] is True
-          assert audit['result']=='PASS' and audit['version']=='0.1.0' and audit['build']=='7'
+          assert audit['result']=='PASS' and audit['version']=='0.1.7' and audit['build']=='7'
           PY
           cat > "$package_root/release-notes.uk.md" <<'NOTES'
-          Особистий preview 0.1.0 (7) для Apple Silicon (arm64), macOS 13+.
+          Особистий preview v0.1.7 для Apple Silicon (arm64), macOS 13+.
 
-          Із компактного віджета прибрано рядок «Орієнтовно · груповий графік».
-          Залишено час і підпис події. Пояснення групового прогнозу збережено
-          у підказці та вікні графіка; повідомлення «Немає оновлення» лишається
-          видимим після невдалого оновлення. Іконки й функціонал preview 6 збережено.
+          Графік, налаштування та компактний віджет мають непрозорий фон
+          відповідно до світлої або темної теми. Під графіком — компактна картка,
+          як у Windows: загальний час без світла та лише інтервали відключень
+          із тривалістю. Іконки, меню й повідомлення про невдале оновлення збережено.
           Пороговий бурштиновий акцент поки є пропозицією в HTML-макеті;
           у цій збірці його ще не впроваджено.
-          Унизу вікна видно фактичну версію «0.1.0 (7)».
+          Унизу вікна видно фактичну версію «v0.1.7».
 
           Перед заміною старої копії виберіть «Вийти» в її меню. Замініть
           DTEKMonitor.app у /Applications та запустіть нову копію. Наявну папку
@@ -89,12 +89,12 @@ jobs:
           Автозапуск початково вимкнений; персональних даних у ZIP немає.
 
           Інструкція:
-          https://github.com/uiuxmax/DTEK-Monitor/blob/macos-v0.1.0-preview.7/docs/engineering/macos-personal-preview.uk.md
+          https://github.com/uiuxmax/DTEK-Monitor/blob/macos-v0.1.7/docs/engineering/macos-personal-preview.uk.md
           NOTES
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title 'macOS Apple Silicon — personal preview 0.1.0 (7)' \
+            --title 'macOS Apple Silicon — personal preview v0.1.7' \
             --notes-file "$package_root/release-notes.uk.md" \
-            "$package_root/DTEKMonitor-0.1.0-macos-arm64.zip" \
+            "$package_root/DTEKMonitor-0.1.7-macos-arm64.zip" \
             "$package_root/SHA256SUMS.txt" "$package_root/results.json" "$package_root/extracted-audit.json"
       - name: Print verification summary
         if: always()

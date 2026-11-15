@@ -29,7 +29,7 @@ from pathlib import Path
 bundle=Path(sys.argv[1]).resolve(strict=True)
 info=plistlib.loads((bundle/'Contents/Info.plist').read_bytes())
 assert info['CFBundleIdentifier']=='local.dtekmonitor.Monitor' and info['CFBundleExecutable']=='DTEKMonitor'
-assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='7'
+assert info['CFBundleShortVersionString']=='0.1.7' and info['CFBundleVersion']=='7'
 assert info['LSMinimumSystemVersion']=='13.0' and info['LSUIElement'] is True
 assert info['CFBundleIconFile']=='DTEKMonitor'
 app_icon=bundle/'Contents/Resources/DTEKMonitor.icns'
@@ -101,7 +101,7 @@ PY
 python3 -B "$audit" "$source_app" "$run/source-audit.json" || exit 1
 /usr/bin/ditto "$source_app" "$run/stage/DTEKMonitor.app" || exit 1
 python3 -B "$audit" "$run/stage/DTEKMonitor.app" "$run/stage-audit.json" || exit 1
-archive="$run/DTEKMonitor-0.1.0-macos-arm64.zip"
+archive="$run/DTEKMonitor-0.1.7-macos-arm64.zip"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$run/stage/DTEKMonitor.app" "$archive" || exit 1
 /usr/bin/ditto -x -k "$archive" "$run/extracted" || exit 1
 python3 -B "$audit" "$run/extracted/DTEKMonitor.app" "$run/extracted-audit.json" || exit 1
@@ -111,7 +111,7 @@ from pathlib import Path
 run,repo=map(Path,sys.argv[1:])
 reports=[json.loads((run/name).read_bytes()) for name in ('source-audit.json','stage-audit.json','extracted-audit.json')]
 assert all(report['result']=='PASS' for report in reports) and reports[0]['files']==reports[1]['files']==reports[2]['files']
-archive=run/'DTEKMonitor-0.1.0-macos-arm64.zip'
+archive=run/'DTEKMonitor-0.1.7-macos-arm64.zip'
 report=dict(result='PASS',commit=subprocess.check_output(['/usr/bin/git','-C',str(repo),'rev-parse','HEAD'],text=True).strip(),
     artifact=archive.name,bytes=archive.stat().st_size,sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),
     architecture='arm64',bundle_id='local.dtekmonitor.Monitor',signature='ad-hoc',notarized=False,uploaded=False,
