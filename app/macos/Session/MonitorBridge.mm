@@ -211,6 +211,15 @@ struct EngineState {
     } catch(...) { return NO; }
 }
 - (void)selectTomorrow:(BOOL)tomorrow { if(_state && _state->receipt)_state->receipt->select_tomorrow(tomorrow); }
+- (BOOL)setFloatingOption:(NSString *)option enabled:(BOOL)enabled {
+    if (!_state) return NO;
+    if ([option isEqual:@"locked"]) _state->settings.floating_locked=enabled;
+    else if ([option isEqual:@"topmost"]) _state->settings.floating_topmost=enabled;
+    else if ([option isEqual:@"hideFullscreen"]) _state->settings.floating_hide_fullscreen=enabled;
+    else return NO;
+    _state->storage_warning=!mac_profile::save_settings(_state->profile,_state->settings);
+    return !_state->storage_warning;
+}
 - (BOOL)setFloatingVisible:(BOOL)visible positioned:(BOOL)positioned x:(NSInteger)x y:(NSInteger)y size:(NSInteger)size {
     if (!_state || size < 0 || size > 2 || x < -100000 || x > 100000 || y < -100000 || y > 100000) return NO;
     _state->settings.floating_visible=visible; _state->settings.floating_positioned=positioned;
@@ -240,6 +249,8 @@ struct EngineState {
         bool forecast=false,tomorrow=false,tomorrowAvailable=false,emergency=false,currentForecast=false,currentEmergency=false;
         NSString *countdown=@"",*currentCountdown=@"",*address=@"Адресу не задано";
         id received=NSNull.null;
+        id currentMinutes=NSNull.null;
+        NSString *currentEvent=@"";
         unsigned total=0;
         if(!_state->settings.draft.street.empty())address=[NSString stringWithFormat:@"%@, %@",wide_text(_state->settings.draft.street),wide_text(_state->settings.draft.house)];
         if(_state->receipt) {
@@ -263,7 +274,11 @@ struct EngineState {
                     total=popup_schedule::total_outage_minutes(day);
                 }
             }
-            if(const auto estimate=_state->receipt->estimate(now))currentCountdown=text(estimate->ukrainian_text);
+            if(const auto estimate=_state->receipt->estimate(now)) {
+                currentCountdown=text(estimate->ukrainian_text);
+                currentMinutes=@((estimate->remaining_seconds+59)/60);
+                currentEvent=estimate->event==schedule::EventKind::outage_starts ? @"outage" : @"restoration";
+            }
             if(!tomorrow)countdown=currentCountdown;
             if(const auto& saved=_state->receipt->saved(now)) {
                 received=@(saved->received.epoch_seconds);
@@ -277,10 +292,13 @@ struct EngineState {
             @"address":address,@"theme":text(_state->settings.theme),@"storageWarning":@(_state->storage_warning),
             @"kyivDay":dayKey,@"forecast":@(forecast),@"emergency":@(emergency),@"tomorrow":@(tomorrow),
             @"currentForecast":@(currentForecast),@"currentEmergency":@(currentEmergency),@"currentCountdown":currentCountdown,
+            @"currentMinutes":currentMinutes,@"currentEvent":currentEvent,
             @"tomorrowAvailable":@(tomorrowAvailable),@"countdown":countdown,@"intervals":intervals,
             @"totalOutageMinutes":@(total),@"received":received,
             @"floatingVisible":@(_state->settings.floating_visible), @"floatingPositioned":@(_state->settings.floating_positioned),
-            @"floatingX":@(_state->settings.floating_x), @"floatingY":@(_state->settings.floating_y), @"floatingSize":@(_state->settings.floating_size)};
+            @"floatingX":@(_state->settings.floating_x), @"floatingY":@(_state->settings.floating_y), @"floatingSize":@(_state->settings.floating_size),
+            @"floatingLocked":@(_state->settings.floating_locked),@"floatingTopmost":@(_state->settings.floating_topmost),
+            @"floatingHideFullscreen":@(_state->settings.floating_hide_fullscreen)};
     }
 }
 @end

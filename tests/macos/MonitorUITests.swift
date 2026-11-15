@@ -45,6 +45,11 @@ final class MonitorUITests: XCTestCase {
         element("house").click(); element("house").typeText("2-А\r")
     }
     private func ready() { XCTAssertTrue(element("interval-510").waitForExistence(timeout:8)) }
+    private func settings() {
+        element("open-settings").click()
+        XCTAssertTrue(element("settings-title").waitForExistence(timeout:8))
+    }
+    private func closeSettings() { app.windows["Налаштування DTEK Monitor"].buttons[XCUIIdentifierCloseWindow].click() }
     private func waitLogin(_ checked: Bool) {
         let native=app.checkBoxes.matching(identifier:"launch-at-login").firstMatch
         let toggle=native.exists ? native : element("launch-at-login")
@@ -65,7 +70,7 @@ final class MonitorUITests: XCTestCase {
     }
     func testInitialProfileAndBounds() {
         launch(); waitText("status","Додайте адресу"); waitText("request-count","0")
-        waitText("app-version","0.1.0 (4)")
+        waitText("app-version","0.1.0 (5)")
         XCTAssertFalse(element("tomorrow").isEnabled)
         XCTAssertFalse(element("fixture-scenario").exists)
         let window=app.windows.firstMatch
@@ -150,14 +155,74 @@ final class MonitorUITests: XCTestCase {
         waitText("address","вул. Інша"); waitText("request-count","1"); XCTAssertTrue(element("source-stop").exists)
     }
     func testThemeReceiptRestartAndFakeLogin() throws {
-        launch(); waitLogin(false)
+        launch(); settings(); waitLogin(false)
         element("launch-at-login").click(); waitLogin(true)
         element("launch-at-login").click(); waitLogin(false)
-        applyAddress(); ready(); element("theme-dark").click(); waitText("selected-theme","Темна")
+        closeSettings(); applyAddress(); ready(); settings(); element("theme-dark").click(); waitText("selected-theme","Темна")
         let receipt=root.appendingPathComponent("profile/receipt.json")
         let original=try Data(contentsOf:receipt)
-        app.terminate(); launch("unavailable"); ready(); waitText("selected-theme","Темна")
+        app.terminate(); launch("unavailable"); ready(); settings(); waitText("selected-theme","Темна"); closeSettings()
         waitText("address","вул. Тестова, 2-А"); waitText("request-count","1")
         XCTAssertEqual(try Data(contentsOf:receipt),original)
+    }
+    func testSettingsShortcutAndPersistedWindowBehavior() throws {
+        launch(); app.typeKey(",",modifierFlags:.command)
+        XCTAssertTrue(element("settings-title").waitForExistence(timeout:8))
+        XCTAssertEqual(element("launch-at-login").label,"Запускати після входу")
+        XCTAssertTrue(element("login-settings").exists)
+        element("widget-locked").click(); element("widget-topmost").click(); element("widget-fullscreen").click()
+        let url=root.appendingPathComponent("profile/settings.json")
+        let persisted=NSPredicate { _,_ in
+            guard let data=try? Data(contentsOf:url),let value=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any],
+                  let floating=value["floating"] as? [String:Any] else { return false }
+            return (floating["locked"] as? NSNumber)?.intValue==1 && (floating["topmost"] as? NSNumber)?.intValue==0 &&
+                (floating["hideFullscreen"] as? NSNumber)?.intValue==1 && (floating["visible"] as? NSNumber)?.intValue==0
+        }
+        XCTAssertEqual(XCTWaiter.wait(for:[XCTNSPredicateExpectation(predicate:persisted,object:nil)],timeout:8),.completed)
+        app.terminate(); launch(); settings()
+        for (id,expected) in [("widget-locked",1),("widget-topmost",0),("widget-fullscreen",1)] {
+            let value=element(id).value
+            XCTAssertEqual((value as? NSNumber)?.intValue ?? Int(value as? String ?? ""),expected)
+        }
+        element("reset-position").click()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        closeSettings(); waitText("request-count","0")
+    }
+    func testContextMenusShareSettingsAndVisibility() {
+        launch()
+        let status=element("monitor-menubar")
+        XCTAssertTrue(status.waitForExistence(timeout:8)); status.rightClick()
+        XCTAssertTrue(app.menuItems["Налаштування…"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.menuItems["Показати віджет"].exists)
+        app.menuItems["Показати віджет"].click()
+        XCTAssertTrue(element("floating-status").waitForExistence(timeout:8))
+        element("floating-status").rightClick()
+        XCTAssertTrue(app.menuItems["Приховати віджет"].waitForExistence(timeout:5))
+        app.menuItems["Налаштування…"].click()
+        XCTAssertTrue(element("settings-title").waitForExistence(timeout:8)); closeSettings()
+        element("floating-menu").click()
+        XCTAssertTrue(app.menuItems["Поверх інших вікон"].waitForExistence(timeout:5))
+        app.menuItems["Приховати віджет"].click()
+        XCTAssertFalse(element("floating-status").exists); waitText("request-count","0")
+    }
+    func testCountdownHierarchyAndAllSizes() {
+        launch(); applyAddress(); ready(); element("open-floating").click()
+        XCTAssertTrue(element("floating-countdown").waitForExistence(timeout:8))
+        waitText("floating-status","до "); waitText("floating-qualifier","Орієнтовно")
+        for title in ["Компактний","Звичайний","Великий"] {
+            element("floating-menu").click(); app.menuItems["Розмір віджета"].hover()
+            XCTAssertTrue(app.menuItems[title].waitForExistence(timeout:5)); app.menuItems[title].click()
+            let time=element("floating-countdown"),event=element("floating-status")
+            XCTAssertTrue(time.exists); XCTAssertGreaterThan(time.frame.height,event.frame.height)
+            XCTAssertLessThanOrEqual(time.frame.maxX,element("floating-menu").frame.minX)
+            let bounds=element("floating-content").frame
+            for id in ["floating-countdown","floating-status","floating-qualifier"] {
+                XCTAssertGreaterThanOrEqual(element(id).frame.minY,bounds.minY)
+                XCTAssertLessThanOrEqual(element(id).frame.maxY,bounds.maxY)
+            }
+            XCTAssertFalse(text(time).contains("Відключення"))
+            let attachment=XCTAttachment(screenshot:app.screenshot()); attachment.name="Countdown-\(title)"; attachment.lifetime = .keepAlways; add(attachment)
+        }
+        waitText("request-count","4")
     }
 }

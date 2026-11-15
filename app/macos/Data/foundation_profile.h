@@ -16,6 +16,9 @@ struct Settings {
     int floating_x = 0;
     int floating_y = 0;
     int floating_size = 1;
+    bool floating_locked = false;
+    bool floating_topmost = true;
+    bool floating_hide_fullscreen = false;
     bool operator==(const Settings&) const = default;
 };
 struct SettingsRead { ReadState state; Settings value; };

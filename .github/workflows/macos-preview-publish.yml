@@ -1,8 +1,8 @@
-name: Publish reviewed macOS personal preview 4
+name: Publish reviewed macOS personal preview 5
 
 on:
   push:
-    branches: [publish/macos-preview-0.1.0-4]
+    branches: [publish/macos-preview-0.1.0-5]
 
 # The owner authorized this separate preview for testing after the native fix passed.
 permissions:
@@ -43,7 +43,7 @@ jobs:
           GH_REPO: uiuxmax/DTEK-Monitor
         run: |
           set -euo pipefail
-          tag=macos-v0.1.0-preview.4
+          tag=macos-v0.1.0-preview.5
           if gh release view "$tag" > /dev/null 2>&1; then
             echo 'Preview tag already exists; it will not be overwritten.' >&2
             exit 1
@@ -59,38 +59,39 @@ jobs:
           assert report['result']=='PASS' and report['commit']==sys.argv[3]
           assert report['architecture']=='arm64' and report['signature']=='ad-hoc' and report['notarized'] is False
           assert report['round_trip_file_hashes_match'] is True
-          assert audit['result']=='PASS' and audit['version']=='0.1.0' and audit['build']=='4'
+          assert audit['result']=='PASS' and audit['version']=='0.1.0' and audit['build']=='5'
           PY
           cat > "$package_root/release-notes.uk.md" <<'NOTES'
-          Особистий preview 0.1.0 (4) для Apple Silicon (arm64), macOS 13+.
+          Особистий preview 0.1.0 (5) для Apple Silicon (arm64), macOS 13+.
 
-          Містить виправлення передчасного завершення DNS після негативної
-          A/AAAA-відповіді, окремі повідомлення про DNS/TLS/timeout та журналювання
-          збоїв підказок вулиці й будинку без адреси користувача. Збережено
-          виправлення повторних Set-Cookie без cookie storage/replay.
-          Унизу вікна видно фактичну версію «0.1.0 (4)».
+          Узгоджено основні дії з Windows: великий час до події та короткий
+          підпис, спільне меню ПКМ / «…», помітні налаштування з Cmd+,
+          і явний автозапуск зі статусом macOS. Зберігаються розмір, тема,
+          позиція, закріплення, поверх інших вікон і приховування під час fullscreen.
+          Збережено DNS-виправлення та діагностику підказок preview 4.
+          Унизу вікна видно фактичну версію «0.1.0 (5)».
 
           Перед заміною старої копії виберіть «Вийти» в її меню. Замініть
           DTEKMonitor.app у /Applications та запустіть нову копію. Наявну папку
           даних видаляти не потрібно: адреса й налаштування використовуються з неї.
 
           Native CI перевіряє 248 parser, 41 TLS/wire/DNS, 29 connected session,
-          33 bridge, 23 diagnostics, 13 fixture UI та 8 monitor UI cases;
+          38 bridge, 23 diagnostics, 13 fixture UI та 11 monitor UI cases;
           ZIP проходить перевірку цілісності
           після розпакування. Це тестовий preview з ad-hoc підписом, без Developer
           ID та notarization. Якщо macOS блокує запуск, див. Open Anyway у
           System Settings → Privacy & Security.
 
-          Попередній збій саме на вашому Mac ще не відтворено. Реальний lookup
+          Фізична читабельність, перемикання fullscreen Spaces та реальний lookup
           у його мережі, 30-хвилинне спостереження, фізичний
           дисплей, Gatekeeper, macOS 13 і реальний Login Item ще потребують тесту.
           Автозапуск початково вимкнений; персональних даних у ZIP немає.
 
           Інструкція:
-          https://github.com/uiuxmax/DTEK-Monitor/blob/macos-v0.1.0-preview.4/docs/engineering/macos-personal-preview.uk.md
+          https://github.com/uiuxmax/DTEK-Monitor/blob/macos-v0.1.0-preview.5/docs/engineering/macos-personal-preview.uk.md
           NOTES
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title 'macOS Apple Silicon — personal preview 0.1.0 (4)' \
+            --title 'macOS Apple Silicon — personal preview 0.1.0 (5)' \
             --notes-file "$package_root/release-notes.uk.md" \
             "$package_root/DTEKMonitor-0.1.0-macos-arm64.zip" \
             "$package_root/SHA256SUMS.txt" "$package_root/results.json" "$package_root/extracted-audit.json"

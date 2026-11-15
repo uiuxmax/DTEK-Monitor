@@ -102,6 +102,9 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
     func setFloating(visible: Bool, positioned: Bool, x: Int, y: Int, size: Int) {
         send { await $0.setFloating(visible:visible,positioned:positioned,x:x,y:y,size:size) }
     }
+    func setFloatingOption(_ option: MonitorFloatingOption, enabled: Bool) {
+        send { await $0.setFloatingOption(option,enabled:enabled) }
+    }
     func stop() async {
         ticks?.cancel(); debounce?.cancel(); observers.removeAll()
         let owned=session; session=nil
@@ -136,6 +139,18 @@ enum MonitorTheme: String,CaseIterable,Identifiable {
         if value.failure == "transport" { return "Не вдалося з’єднатися з джерелом" }
         if value.failure == "schema" { return "Не вдалося прочитати відповідь джерела" }
         return "Підтвердженого графіка немає"
+    }
+    var floatingTime: String? {
+        guard let minutes=state?.currentMinutes else { return nil }
+        return Self.duration(minutes)
+    }
+    var floatingEvent: String {
+        state?.currentEvent == "restoration" ? "до відновлення" : "до відключення"
+    }
+    var floatingQualifier: String { state?.failure == nil ? "Орієнтовно · груповий графік" : "Орієнтовно · без оновлення" }
+    var floatingSummary: String {
+        guard let time=floatingTime else { return floatingStatus }
+        return time + " " + floatingEvent + ". " + floatingQualifier
     }
     var receivedText: String? {
         guard let epoch=state?.received, let zone=TimeZone(identifier:"Europe/Kyiv") else { return nil }

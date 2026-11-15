@@ -80,15 +80,15 @@ let timezoneTotals = DMCoreProbeBridge.runTimezoneTests()
 guard timezoneTotals["checks"]?.intValue == 60, timezoneTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 60/60 Kyiv timezone checks passed")
 let dataTotals = DMCoreProbeBridge.runDataTests()
-guard dataTotals["checks"]?.intValue == 111, dataTotals["failures"]?.intValue == 0 else { exit(1) }
-print("RESULT 111/111 Foundation data checks passed")
+guard dataTotals["checks"]?.intValue == 112, dataTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 112/112 Foundation data checks passed")
 let lookupTotals = DMCoreProbeBridge.runLookupTests()
 guard lookupTotals["checks"]?.intValue == 92, lookupTotals["failures"]?.intValue == 0 else { exit(1) }
 print("RESULT 92/92 Foundation lookup checks passed")
 
 let monitorTotals = DMCoreProbeBridge.runMonitorBridgeTests()
-guard monitorTotals["checks"]?.intValue == 33, monitorTotals["failures"]?.intValue == 0 else { exit(1) }
-print("RESULT 33/33 monitor receipt bridge checks passed")
+guard monitorTotals["checks"]?.intValue == 38, monitorTotals["failures"]?.intValue == 0 else { exit(1) }
+print("RESULT 38/38 monitor receipt bridge checks passed")
 
 let diagnosticTotals=DMCoreProbeBridge.runDiagnosticsTests()
 guard diagnosticTotals["checks"]?.intValue == 23, diagnosticTotals["failures"]?.intValue == 0 else { exit(1) }

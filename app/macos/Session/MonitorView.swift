@@ -6,6 +6,7 @@ import AppKit
     @ObservedObject var login: LoginItemModel
     let showSchedule: () -> Void
     let showFloating: () -> Void
+    let showSettings: () -> Void
     let closeWindow: () -> Void
     @State private var editing=false
     @State private var street=""
@@ -24,7 +25,8 @@ import AppKit
                 Text("DTEK Monitor").font(.headline)
                 Spacer()
                 Button("Віджет",action:showFloating).accessibilityIdentifier("open-floating")
-                Button("Графік",action:showSchedule).accessibilityIdentifier("open-schedule")
+                Button(action:showSettings) { Image(systemName:"gearshape") }
+                    .help("Налаштування (⌘,)").accessibilityLabel("Налаштування").accessibilityIdentifier("open-settings")
             }
             #if DTEKMONITOR_MAC_TEST_BUILD
             Text("ТЕСТОВІ ДАНІ · не реальний графік").font(.caption.bold()).foregroundStyle(.orange)
@@ -105,21 +107,11 @@ import AppKit
                 }.frame(maxWidth:.infinity,alignment:.leading)
             }.accessibilityIdentifier("schedule-scroll")
             Divider()
-            Toggle(login.label,isOn:Binding(get:{ login.checked },set:{ login.requestEnabled($0) }))
-                .disabled(!login.canChange).accessibilityIdentifier("launch-at-login")
-            if login.status == .requiresApproval {
-                Button("Параметри входу macOS") { login.openSettings() }.accessibilityIdentifier("login-settings")
-            }
-            if let message=login.message { Text(message).font(.caption).foregroundStyle(.orange).accessibilityIdentifier("login-message") }
             HStack {
-                ForEach(MonitorTheme.allCases) { theme in
-                    Button(theme.title) { model.setTheme(theme) }.accessibilityIdentifier("theme-\(theme.rawValue)")
-                        .accessibilityValue(model.theme == theme ? "Вибрано" : "Не вибрано")
-                }
+                Button("Налаштування…",action:showSettings).accessibilityIdentifier("open-settings-footer")
                 Spacer()
                 Button("Вийти") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q").accessibilityIdentifier("quit")
             }
-            Text("Тема: \(model.theme.title)").font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("selected-theme")
             Text("Версія \(Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "—") (\(Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "—"))")
                 .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("app-version")
         }.padding(16).frame(width:380).frame(maxHeight:.infinity).preferredColorScheme(model.theme.colorScheme)
@@ -290,36 +282,108 @@ private struct ScheduleTimeline: View {
     @ObservedObject var model: MonitorModel
     let showSchedule: () -> Void
     let close: () -> Void
-    let setSize: (Int) -> Void
+    let showMenu: () -> Void
+    private var size: Int { model.state?.floatingSize ?? 1 }
     var body: some View {
-        HStack(spacing:10) {
-            MonitorStatusIcon(model:model,size:38,current:true)
-            VStack(alignment:.leading,spacing:3) {
-            #if DTEKMONITOR_MAC_TEST_BUILD
-                Text("ТЕСТОВІ ДАНІ").font(.caption2.bold()).foregroundStyle(.orange)
-            #endif
-                Text(model.floatingStatus).font(.subheadline.bold()).lineLimit(2).accessibilityIdentifier("floating-status")
-                if let countdown=model.state?.currentCountdown, !countdown.isEmpty {
-                    Text(countdown + (model.state?.failure == nil ? " · орієнтовно" : " · немає оновлення"))
-                        .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+        HStack(spacing:8) {
+            MonitorStatusIcon(model:model,size:size == 0 ? 30 : 38,current:true)
+            VStack(alignment:.leading,spacing:2) {
+                if let time=model.floatingTime {
+                    Text(time).font(.system(size:size == 0 ? 21 : size == 2 ? 30 : 25,weight:.semibold)).monospacedDigit()
+                        .lineLimit(1).minimumScaleFactor(0.7)
                         .accessibilityIdentifier("floating-countdown")
+                    Text(model.floatingEvent).font(.system(size:size == 0 ? 11 : 13,weight:.medium)).lineLimit(1)
+                        .accessibilityIdentifier("floating-status")
+                    Text(qualifier).font(.system(size:9)).lineLimit(1).minimumScaleFactor(0.8)
+                        .accessibilityIdentifier("floating-qualifier")
+                } else {
+                    Text(model.floatingStatus).font(.system(size:size == 0 ? 12 : 14,weight:.semibold)).lineLimit(2)
+                        .accessibilityIdentifier("floating-status")
+                    #if DTEKMONITOR_MAC_TEST_BUILD
+                    Text("ТЕСТОВІ ДАНІ").font(.system(size:8,weight:.bold)).foregroundStyle(.orange)
+                    #endif
                 }
-            }
+            }.frame(maxWidth:.infinity,alignment:.leading)
+                .contentShape(Rectangle()).onTapGesture(perform:showSchedule)
+                .help(model.floatingSummary + ". Натисніть, щоб відкрити графік")
+                .accessibilityAction(named:Text("Відкрити графік"),showSchedule)
             Spacer(minLength:0)
-            Button(action:showSchedule) { Image(systemName:"calendar") }
-                .buttonStyle(.plain).accessibilityLabel("Відкрити графік").accessibilityIdentifier("floating-schedule")
-            Menu {
-                Button("Компактний") { setSize(0) }
-                Button("Звичайний") { setSize(1) }
-                Button("Великий") { setSize(2) }
-            } label: { Image(systemName:"ellipsis") }
-                .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Розмір віджета")
-                .accessibilityIdentifier("floating-size")
+            Button(action:showMenu) { Image(systemName:"ellipsis").frame(width:22,height:28) }
+                .buttonStyle(.plain).help("Меню віджета").accessibilityLabel("Меню віджета")
+                .accessibilityIdentifier("floating-menu")
             Button(action:close) { Image(systemName:"xmark") }
                 .buttonStyle(.plain).accessibilityLabel("Приховати віджет").accessibilityIdentifier("floating-close")
-        }.padding(.horizontal,12).padding(.vertical,8).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
+        }.padding(.horizontal,10).padding(.vertical,6).frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.leading)
             .preferredColorScheme(model.theme.colorScheme)
-            .background(.regularMaterial,in:RoundedRectangle(cornerRadius:11))
+            .background(Color(nsColor:.windowBackgroundColor),in:RoundedRectangle(cornerRadius:11))
+            .overlay(RoundedRectangle(cornerRadius:11).strokeBorder(Color.primary.opacity(0.18),lineWidth:1))
+            .accessibilityElement(children:.contain).accessibilityIdentifier("floating-content")
+    }
+    private var qualifier: String {
+        #if DTEKMONITOR_MAC_TEST_BUILD
+        return "ТЕСТ · " + model.floatingQualifier
+        #else
+        return model.floatingQualifier
+        #endif
+    }
+}
+
+@MainActor struct MonitorSettingsView: View {
+    @ObservedObject var model: MonitorModel
+    @ObservedObject var login: LoginItemModel
+    let setSize: (Int) -> Void
+    let resetPosition: () -> Void
+    private func option(_ option: MonitorFloatingOption) -> Binding<Bool> {
+        Binding(get:{
+            switch option {
+            case .locked:return model.state?.floatingLocked == true
+            case .topmost:return model.state?.floatingTopmost != false
+            case .hideFullscreen:return model.state?.floatingHideFullscreen == true
+            }
+        },set:{ model.setFloatingOption(option,enabled:$0) })
+    }
+    var body: some View {
+        ScrollView {
+        VStack(alignment:.leading,spacing:14) {
+            Text("Налаштування").font(.title2.bold()).accessibilityIdentifier("settings-title")
+            GroupBox("Запуск програми") {
+                VStack(alignment:.leading,spacing:8) {
+                    Toggle(login.label,isOn:Binding(get:{ login.checked },set:{ login.requestEnabled($0) }))
+                        .disabled(!login.canChange).accessibilityIdentifier("launch-at-login")
+                    Text(login.statusText).font(.caption).accessibilityIdentifier("login-status")
+                    if login.status == .notFound {
+                        Text("Перемістіть програму до «Програми» й запустіть цю копію ще раз.").font(.caption)
+                    }
+                    Button("Параметри входу macOS…") { login.openSettings() }.accessibilityIdentifier("login-settings")
+                    if let message=login.message { Text(message).font(.caption).foregroundStyle(.orange).accessibilityIdentifier("login-message") }
+                }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
+            }
+            GroupBox("Віджет") {
+                VStack(alignment:.leading,spacing:10) {
+                    Picker("Розмір",selection:Binding(get:{ model.state?.floatingSize ?? 1 },set:{ setSize($0) })) {
+                        Text("Компактний").tag(0); Text("Звичайний").tag(1); Text("Великий").tag(2)
+                    }.accessibilityIdentifier("widget-size")
+                    Toggle("Закріпити позицію",isOn:option(.locked)).accessibilityIdentifier("widget-locked")
+                    Toggle("Поверх інших вікон",isOn:option(.topmost)).accessibilityIdentifier("widget-topmost")
+                    Toggle("Ховати у повноекранному режимі",isOn:option(.hideFullscreen)).accessibilityIdentifier("widget-fullscreen")
+                    Button("Скинути позицію віджета",action:resetPosition).accessibilityIdentifier("reset-position")
+                }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
+            }
+            GroupBox("Оформлення") {
+                VStack(alignment:.leading,spacing:8) {
+                    HStack {
+                        ForEach(MonitorTheme.allCases) { theme in
+                            Button(theme.title) { model.setTheme(theme) }.accessibilityIdentifier("theme-\(theme.rawValue)")
+                                .accessibilityValue(model.theme == theme ? "Вибрано" : "Не вибрано")
+                        }
+                    }
+                    Text("Тема: \(model.theme.title)").font(.caption).accessibilityIdentifier("selected-theme")
+                }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
+            }
+            Text("Меню дій: ПКМ на віджеті або іконці в menu bar; кнопка «…» на віджеті.")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
+        }.padding(20)
+        }.frame(width:420).frame(maxHeight:.infinity).preferredColorScheme(model.theme.colorScheme)
     }
 }
 

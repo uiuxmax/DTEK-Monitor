@@ -10,7 +10,7 @@ elif [[ "$#" -eq 0 ]]; then verifier=tools/macos/verify-preserved.swift
 else exit 64; fi
 run=$(mktemp -d "$repo/out/macos/monitor-ui-check-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX")
 mkdir "$run/profile"
-for case_id in 0 1 2 3 4 5 6 7; do mkdir -p "$run/case-$case_id/profile"; done
+for case_id in 0 1 2 3 4 5 6 7 8 9 10; do mkdir -p "$run/case-$case_id/profile"; done
 report="$run/results.plist"
 /usr/bin/plutil -create xml1 "$report"
 record() { /usr/bin/plutil -insert "$1" -string "$2" "$report" || exit 1; }
@@ -91,13 +91,13 @@ for invalid in failed skipped partial malformed wrong-target; do
     esac
     printf '%s\n' "$fixture" > "$run/summary-$invalid.json"
     code=0
-    /usr/bin/xcrun swift "$summary_verifier" "$run/summary-$invalid.json" 8 > "$run/summary-$invalid.log" 2>&1 || code=$?
+    /usr/bin/xcrun swift "$summary_verifier" "$run/summary-$invalid.json" 11 > "$run/summary-$invalid.log" 2>&1 || code=$?
     [[ "$code" -eq 1 ]] || exit 1
 done
 code=0
 "${build[@]}" test-without-building -resultBundlePath "$run/Tests.xcresult" > "$run/tests.log" 2>&1 || code=$?
 /usr/bin/xcrun xcresulttool get test-results summary --path "$run/Tests.xcresult" > "$run/test-summary.json" || exit 1
-/usr/bin/xcrun swift "$summary_verifier" "$run/test-summary.json" 8 > "$run/summary-verification.log" 2>&1 || exit 1
+/usr/bin/xcrun swift "$summary_verifier" "$run/test-summary.json" 11 > "$run/summary-verification.log" 2>&1 || exit 1
 [[ "$code" -eq 0 ]] || exit "$code"
 (cd "$repo" && /usr/bin/shasum -a 256 -c "$run/inputs.sha256") > "$run/inputs-after.log" || exit 1
 /usr/bin/xcrun swift "$repo/$verifier" "$repo" > "$run/verified-after.json" || exit 1
@@ -105,7 +105,7 @@ cmp "$run/verified-before.json" "$run/verified-after.json" || exit 1
 /usr/bin/shasum -a 256 "$personal/Contents/MacOS/DTEKMonitor" \
     "$personal/Contents/Resources/power-on-v1.png" "$personal/Contents/Resources/power-off-v1.png" \
     "$personal/Contents/Resources/notification-v1.png" > "$run/personal-files.sha256" || exit 1
-record ui_checks 8
+record ui_checks 11
 record fake_login_checks 14
 record rejected_app_envelopes 3
 record rejected_invalid_summaries 5

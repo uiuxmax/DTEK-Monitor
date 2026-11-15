@@ -24,6 +24,8 @@ struct MonitorClock: Sendable {
     }
 }
 
+enum MonitorFloatingOption: String,Sendable { case locked, topmost, hideFullscreen }
+
 struct MonitorSnapshot: Sendable {
     struct Row: Sendable { let start: Int; let end: Int; let power: Bool }
     let sequence: UInt64
@@ -39,6 +41,8 @@ struct MonitorSnapshot: Sendable {
     let currentForecast: Bool
     let currentEmergency: Bool
     let currentCountdown: String
+    let currentMinutes: Int?
+    let currentEvent: String
     let rows: [Row]
     let suggestions: [String]
     let suggestionResult: String?
@@ -56,6 +60,9 @@ struct MonitorSnapshot: Sendable {
     let floatingX: Int
     let floatingY: Int
     let floatingSize: Int
+    let floatingLocked: Bool
+    let floatingTopmost: Bool
+    let floatingHideFullscreen: Bool
     let failure: String?
     let requestCount: Int
 }
@@ -176,6 +183,11 @@ actor MonitorSession {
         guard started, !policy.closed, let engine=engine else { return }
         _ = engine.setTheme(theme); record(.themeChanged); emit(epoch:clock.read()?.epoch ?? 0)
     }
+    func setFloatingOption(_ option: MonitorFloatingOption, enabled: Bool) {
+        guard started, !policy.closed, let engine=engine else { return }
+        _ = engine.setFloatingOption(option.rawValue,enabled:enabled)
+        emit(epoch:clock.read()?.epoch ?? 0)
+    }
     func setFloating(visible: Bool, positioned: Bool, x: Int, y: Int, size: Int) {
         guard started, !policy.closed, let engine=engine else { return }
         _ = engine.setFloating(visible:visible,positioned:positioned,x:x,y:y,size:size)
@@ -247,6 +259,8 @@ actor MonitorSession {
             currentForecast:(value["currentForecast"] as? NSNumber)?.boolValue == true && policy.displayAllowed,
             currentEmergency:(value["currentEmergency"] as? NSNumber)?.boolValue == true && policy.displayAllowed,
             currentCountdown:policy.displayAllowed ? value["currentCountdown"] as? String ?? "" : "",
+            currentMinutes:policy.displayAllowed ? (value["currentMinutes"] as? NSNumber)?.intValue : nil,
+            currentEvent:policy.displayAllowed ? value["currentEvent"] as? String ?? "" : "",
             rows:policy.editing ? [] : rows,
             suggestions:suggestions,
             suggestionResult:suggestionResult,
@@ -261,6 +275,9 @@ actor MonitorSession {
             floatingX:(value["floatingX"] as? NSNumber)?.intValue ?? 0,
             floatingY:(value["floatingY"] as? NSNumber)?.intValue ?? 0,
             floatingSize:(value["floatingSize"] as? NSNumber)?.intValue ?? 1,
+            floatingLocked:(value["floatingLocked"] as? NSNumber)?.boolValue == true,
+            floatingTopmost:(value["floatingTopmost"] as? NSNumber)?.boolValue != false,
+            floatingHideFullscreen:(value["floatingHideFullscreen"] as? NSNumber)?.boolValue == true,
             failure:lastFailure,requestCount:completedRequests+(active?.1.requests ?? 0)))
     }
 }
