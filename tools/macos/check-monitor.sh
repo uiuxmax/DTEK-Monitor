@@ -80,6 +80,10 @@ for asset in power-on-v1.png power-off-v1.png notification-v1.png; do
     cmp "$repo/app/assets/$asset" "$app/Contents/Resources/$asset" || exit 1
     cmp "$repo/app/assets/$asset" "$personal/Contents/Resources/$asset" || exit 1
 done
+for asset in DTEKMonitor.icns DTEKMenuBarIcon.png; do
+    test -s "$app/Contents/Resources/$asset" || exit 1
+    cmp "$app/Contents/Resources/$asset" "$personal/Contents/Resources/$asset" || exit 1
+done
 summary_verifier="$repo/tools/macos/verify-ui-result.swift"
 for invalid in failed skipped partial malformed wrong-target; do
     case "$invalid" in
@@ -104,7 +108,8 @@ code=0
 cmp "$run/verified-before.json" "$run/verified-after.json" || exit 1
 /usr/bin/shasum -a 256 "$personal/Contents/MacOS/DTEKMonitor" \
     "$personal/Contents/Resources/power-on-v1.png" "$personal/Contents/Resources/power-off-v1.png" \
-    "$personal/Contents/Resources/notification-v1.png" > "$run/personal-files.sha256" || exit 1
+    "$personal/Contents/Resources/notification-v1.png" "$personal/Contents/Resources/DTEKMonitor.icns" \
+    "$personal/Contents/Resources/DTEKMenuBarIcon.png" > "$run/personal-files.sha256" || exit 1
 record ui_checks 11
 record fake_login_checks 14
 record rejected_app_envelopes 3

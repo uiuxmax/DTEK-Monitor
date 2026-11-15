@@ -36,7 +36,7 @@ def main():
             raise SystemExit('Personal bundle is missing or redirected')
         expected = {product / 'Contents/MacOS/DTEKMonitor'} | {
             product / 'Contents/Resources' / name for name in
-            ('power-on-v1.png', 'power-off-v1.png', 'notification-v1.png')}
+            ('power-on-v1.png', 'power-off-v1.png', 'notification-v1.png', 'DTEKMonitor.icns', 'DTEKMenuBarIcon.png')}
         entries = (run / 'personal-files.sha256').read_text(encoding='utf-8').splitlines()
         seen = set()
         for entry in entries:

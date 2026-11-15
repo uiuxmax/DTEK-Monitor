@@ -24,13 +24,27 @@ run=$(mktemp -d "$repo/out/macos/package-check-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX
 mkdir "$run/stage" "$run/extracted"
 audit="$run/audit.py"
 cat > "$audit" <<'PY'
-import hashlib,json,plistlib,re,subprocess,sys
+import hashlib,json,plistlib,re,struct,subprocess,sys,tempfile
 from pathlib import Path
 bundle=Path(sys.argv[1]).resolve(strict=True)
 info=plistlib.loads((bundle/'Contents/Info.plist').read_bytes())
 assert info['CFBundleIdentifier']=='local.dtekmonitor.Monitor' and info['CFBundleExecutable']=='DTEKMonitor'
-assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='5'
+assert info['CFBundleShortVersionString']=='0.1.0' and info['CFBundleVersion']=='6'
 assert info['LSMinimumSystemVersion']=='13.0' and info['LSUIElement'] is True
+assert info['CFBundleIconFile']=='DTEKMonitor'
+app_icon=bundle/'Contents/Resources/DTEKMonitor.icns'
+data=app_icon.read_bytes()
+assert data[:4]==b'icns' and struct.unpack('>I',data[4:8])[0]==len(data)
+with tempfile.TemporaryDirectory(prefix='icon-audit-',dir=Path(__file__).parent) as temporary:
+    iconset=Path(temporary)/'AppIcon.iconset'
+    subprocess.run(['/usr/bin/iconutil','-c','iconset','-o',str(iconset),str(app_icon)],check=True,capture_output=True)
+    for points in (16,32,128,256,512):
+        for scale in (1,2):
+            suffix='@2x' if scale==2 else ''
+            png=(iconset/f'icon_{points}x{points}{suffix}.png').read_bytes()
+            assert png[:8]==b'\x89PNG\r\n\x1a\n' and struct.unpack('>II',png[16:24])==(points*scale,points*scale)
+menu=(bundle/'Contents/Resources/DTEKMenuBarIcon.png').read_bytes()
+assert menu[:8]==b'\x89PNG\r\n\x1a\n' and struct.unpack('>II',menu[16:24])==(40,40)
 for name in ('power-on-v1.png','power-off-v1.png','notification-v1.png'):
     icon=bundle/'Contents/Resources'/name
     assert icon.is_file() and icon.stat().st_size > 0, name

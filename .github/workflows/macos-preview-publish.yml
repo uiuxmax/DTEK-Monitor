@@ -1,8 +1,8 @@
-name: Publish reviewed macOS personal preview 5
+name: Publish reviewed macOS personal preview 6
 
 on:
   push:
-    branches: [publish/macos-preview-0.1.0-5]
+    branches: [publish/macos-preview-0.1.0-6]
 
 # The owner authorized this separate preview for testing after the native fix passed.
 permissions:
@@ -43,7 +43,7 @@ jobs:
           GH_REPO: uiuxmax/DTEK-Monitor
         run: |
           set -euo pipefail
-          tag=macos-v0.1.0-preview.5
+          tag=macos-v0.1.0-preview.6
           if gh release view "$tag" > /dev/null 2>&1; then
             echo 'Preview tag already exists; it will not be overwritten.' >&2
             exit 1
@@ -59,17 +59,17 @@ jobs:
           assert report['result']=='PASS' and report['commit']==sys.argv[3]
           assert report['architecture']=='arm64' and report['signature']=='ad-hoc' and report['notarized'] is False
           assert report['round_trip_file_hashes_match'] is True
-          assert audit['result']=='PASS' and audit['version']=='0.1.0' and audit['build']=='5'
+          assert audit['result']=='PASS' and audit['version']=='0.1.0' and audit['build']=='6'
           PY
           cat > "$package_root/release-notes.uk.md" <<'NOTES'
-          Особистий preview 0.1.0 (5) для Apple Silicon (arm64), macOS 13+.
+          Особистий preview 0.1.0 (6) для Apple Silicon (arm64), macOS 13+.
 
-          Узгоджено основні дії з Windows: великий час до події та короткий
-          підпис, спільне меню ПКМ / «…», помітні налаштування з Cmd+,
-          і явний автозапуск зі статусом macOS. Зберігаються розмір, тема,
-          позиція, закріплення, поверх інших вікон і приховування під час fullscreen.
-          Збережено DNS-виправлення та діагностику підказок preview 4.
-          Унизу вікна видно фактичну версію «0.1.0 (5)».
+          Додано власну іконку програми для Finder / .app: жовта блискавка
+          на темному бірюзовому тлі. Значок у menu bar став контрастнішим:
+          бурштинове коло з темною блискавкою, без позначення наявності світла.
+          Пакет перевіряє ICNS у десяти розмірах 1x/2x та PNG для Retina.
+          Збережено меню, налаштування та всі виправлення preview 5.
+          Унизу вікна видно фактичну версію «0.1.0 (6)».
 
           Перед заміною старої копії виберіть «Вийти» в її меню. Замініть
           DTEKMonitor.app у /Applications та запустіть нову копію. Наявну папку
@@ -88,10 +88,10 @@ jobs:
           Автозапуск початково вимкнений; персональних даних у ZIP немає.
 
           Інструкція:
-          https://github.com/uiuxmax/DTEK-Monitor/blob/macos-v0.1.0-preview.5/docs/engineering/macos-personal-preview.uk.md
+          https://github.com/uiuxmax/DTEK-Monitor/blob/macos-v0.1.0-preview.6/docs/engineering/macos-personal-preview.uk.md
           NOTES
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
-            --title 'macOS Apple Silicon — personal preview 0.1.0 (5)' \
+            --title 'macOS Apple Silicon — personal preview 0.1.0 (6)' \
             --notes-file "$package_root/release-notes.uk.md" \
             "$package_root/DTEKMonitor-0.1.0-macos-arm64.zip" \
             "$package_root/SHA256SUMS.txt" "$package_root/results.json" "$package_root/extracted-audit.json"

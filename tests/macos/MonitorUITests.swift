@@ -75,9 +75,24 @@ final class MonitorUITests: XCTestCase {
         NSWorkspace.shared.openApplication(at:url,configuration:config) { _,error in XCTAssertNil(error); opened.fulfill() }
         wait(for:[opened],timeout:8)
     }
-    func testInitialProfileAndBounds() {
+    func testInitialProfileAndBounds() throws {
         launch(); waitText("status","Додайте адресу"); waitText("request-count","0")
-        waitText("app-version","0.1.0 (5)")
+        let url=try XCTUnwrap(pid.flatMap { NSRunningApplication(processIdentifier:$0)?.bundleURL })
+        let bundle=try XCTUnwrap(Bundle(url:url))
+        XCTAssertEqual(bundle.object(forInfoDictionaryKey:"CFBundleIconFile") as? String,"DTEKMonitor")
+        let appIcon=try XCTUnwrap(NSImage(contentsOf:url.appendingPathComponent("Contents/Resources/DTEKMonitor.icns")))
+        XCTAssertTrue(appIcon.isValid)
+        let bitmap=try XCTUnwrap(NSBitmapImageRep(data:Data(contentsOf:url.appendingPathComponent("Contents/Resources/DTEKMenuBarIcon.png"))))
+        XCTAssertEqual(bitmap.pixelsWide,40); XCTAssertEqual(bitmap.pixelsHigh,40)
+        var amber=0,dark=0,transparent=0
+        for y in 0..<40 { for x in 0..<40 {
+            let color=try XCTUnwrap(bitmap.colorAt(x:x,y:y)?.usingColorSpace(.deviceRGB))
+            if color.alphaComponent<0.1 { transparent += 1 }
+            if color.alphaComponent>0.9 && color.redComponent>0.9 && color.greenComponent>0.5 && color.blueComponent<0.3 { amber += 1 }
+            if color.alphaComponent>0.9 && max(color.redComponent,max(color.greenComponent,color.blueComponent))<0.2 { dark += 1 }
+        } }
+        XCTAssertGreaterThan(amber,300); XCTAssertGreaterThan(dark,80); XCTAssertGreaterThan(transparent,20)
+        waitText("app-version","0.1.0 (6)")
         XCTAssertFalse(element("tomorrow").isEnabled)
         XCTAssertFalse(element("fixture-scenario").exists)
         let window=app.windows.firstMatch

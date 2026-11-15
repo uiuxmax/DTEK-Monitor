@@ -69,7 +69,7 @@ class SelectionTests(unittest.TestCase):
         run = self.repo / 'out/macos/monitor-ui-check-test'
         app = run / 'PersonalData/Build/Products/Release/DTEKMonitor.app'
         files = [app / 'Contents/MacOS/DTEKMonitor'] + [app / 'Contents/Resources' / name for name in
-                 ('power-on-v1.png', 'power-off-v1.png', 'notification-v1.png')]
+                 ('power-on-v1.png', 'power-off-v1.png', 'notification-v1.png', 'DTEKMonitor.icns', 'DTEKMenuBarIcon.png')]
         for path in files:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(path.name.encode())

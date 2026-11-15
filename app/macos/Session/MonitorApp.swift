@@ -51,8 +51,9 @@ private final class FloatingPanel: NSPanel {
         }
         let status=NSStatusBar.system.statusItem(withLength:NSStatusItem.squareLength)
         if let button=status.button {
-            button.image=NSImage(systemSymbolName:"bolt.circle",accessibilityDescription:"DTEK Monitor")
-            button.image?.isTemplate=true; button.toolTip="DTEK Monitor"
+            button.image=NSImage(named:NSImage.Name("DTEKMenuBarIcon")) ?? NSImage(systemSymbolName:"bolt.circle.fill",accessibilityDescription:"DTEK Monitor")
+            button.image?.size=NSSize(width:20,height:20)
+            button.image?.isTemplate=false; button.toolTip="DTEK Monitor · ПКМ — меню"
             button.setAccessibilityIdentifier("monitor-menubar"); button.setAccessibilityLabel("DTEK Monitor")
             button.target=self; button.action=#selector(statusClicked)
             button.sendAction(on:[.leftMouseUp,.rightMouseUp])
